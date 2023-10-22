@@ -1,70 +1,78 @@
-use std::mem;
-use gl::types::GLuint;
+use crate::error::Error;
+use super::prelude::*;
+use crate::error;
 
 pub struct Handle<R: Resource> {
-    resource: R
+    // this is needed to take R by value in drop which itself takes receiver by &mut self.
+    resource: Option<R>
 }
 
 impl<R> Drop for Handle<R> where R: Resource {
     fn drop(&mut self) {
-        todo!("Drop takes &mut not owned value :/");
-        self.resource.delete()
+        // unwrap does not panic since single value drop is well defined. 
+        manager::delete(
+            // the only place that we move resource out of option is here in `Drop` so unwrap is ok.
+            self.resource.take().unwrap()
+        ).unwrap();
     }
 }
 
-pub trait Resource: Sized {
-    fn const_bulk_create<const N: usize>() -> [Self; N];
+/// Adapters that encapsulate Resource lifetime management.
+mod manager {
+    use crate::error;
+    use crate::object::prelude::{Name, Object};
+    use crate::object::resource::Resource;
 
-    fn dyn_bulk_create(n: usize) -> Vec<Self>;
+    pub fn create<R>() -> R
+    where
+        R: Resource
+    {
+        let mut name = [Default::default()];
+        R::initialize(&mut name).expect("glCreate functions do not error when n >= 0");
+        R::from(Object(name[0]))
+    }
 
-    /// Delete Self in bulk by passing an arbitrary contiguous array of Self.
-    ///
-    /// note: the 'static bound should ensure that said array is moved.
-    fn bulk_delete<R>(resources: R) where R: AsRef<[Self]> + 'static;
+    pub fn delete<R>(r: R) -> error::Result<R::Ok>
+    where
+        R: Resource
+    {
+        let name: Name = r.into().0;
+        R::free(&[name])
+    }
 
-    fn delete(self) /* note: Figure out how to remove this bound */ where Self: 'static {
-        Self::bulk_delete([self]);
+    // unsafe: N mustn't be usize since there cannot be that many gl objects
+    pub fn static_bulk_delete<R, const N: usize>(resources: [R; N]) -> error::Result<R::Ok>
+    where
+        R: Resource
+    {
+        let names = resources.map(|r| r.into().0);
+        R::free(&names)
+    }
+
+    pub fn dyn_bulk_delete<I, R>(resources: I) -> error::Result<R::Ok>
+    where
+        I: Iterator<Item=R>,
+        R: Resource
+    {
+        let names: Vec<Name> = resources.map(|r| r.into().0).collect();
+        R::free(&names)
     }
 }
 
-#[repr(transparent)]
-struct Buffer {
-    name: GLuint,
+/// Handle to multiple homogeneous Resources.
+pub struct MHandle<R: Resource> {
+    resources: Vec<R>
 }
 
-impl Buffer {
-    pub fn new(name: GLuint) -> Self {
-        Self { name }
-    }
+pub(crate) trait Bindable: Sized {
+    fn bind(&self);
+    fn unbind(&self);
 }
 
-impl Resource for Buffer {
-    fn const_bulk_create<const N: usize>() -> [Self; N] {
-        let mut names: [GLuint; N] = [0; N];
+pub(crate) trait Resource: Sized + Into<Object> + From<Object> {
+    type Ok;
 
-        unsafe {
-            gl::GenBuffers(N as _, &mut names as *mut _);
-        }
-        names.map(Self::new)
-    }
+    fn initialize(names: &mut [Name]) -> error::Result<Self::Ok>;
 
-    fn dyn_bulk_create(n: usize) -> Vec<Self> {
-        let mut names = Vec::with_capacity(n);
-        unsafe {
-            gl::GenBuffers(n as _, names.as_mut_ptr());
-        }
-        unsafe { mem::transmute::<Vec<_>, Vec<Self>>(names) }
-    }
-
-    fn bulk_delete<R>(resources: R) where R: AsRef<[Self]> + 'static {
-        // SAFETY: slice is ABI compatible with contiguous array and length is valid
-        unsafe {
-            gl::DeleteBuffers(resources.as_ref().len() as _,
-            // SAFETY: Buffer is `#repr(transparent)` with GLuint
-            unsafe {
-                mem::transmute::<*const Self, *const GLuint>(resources.as_ref().as_ptr())
-                }
-            )
-        }
-    }
+    fn free(names: &[Name]) -> error::Result<Self::Ok>;
 }
