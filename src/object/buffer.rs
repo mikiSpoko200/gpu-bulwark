@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use gl::types::{GLenum, GLuint};
 use crate::error;
-use crate::error::Error;
+use crate::prelude::Const;
 use super::prelude::*;
 use crate::targets::buffer;
 use super::resource::{Resource, Bindable};
@@ -11,9 +11,6 @@ pub struct Buffer<Target> where Target: buffer::Target {
     _target_phantom: PhantomData<Target>,
 }
 
-pub trait Const<T> {
-    const VALUE: T;
-}
 
 pub trait Usage: Const<GLenum> {}
 
@@ -84,8 +81,6 @@ impl<Target> Buffer<Target> where Target: buffer::Target {
             );
         }
     }
-
-
 }
 
 impl<Target> From<Object> for Buffer<Target> where Target: buffer::Target {
@@ -122,13 +117,12 @@ impl<Target> Resource for Buffer<Target> where Target: buffer::Target {
         unsafe {
             gl::CreateBuffers(names.len() as _, names.as_mut_ptr());
         }
-        Error::poll_queue().map_or(Ok(()), Err)
+        error::Error::poll_queue().map_or(Ok(()), Err)
     }
 
     fn free(names: &[GLuint]) -> error::Result<Self::Ok> {
         unsafe {
             gl::DeleteBuffers(names.len() as _, names.as_ptr())
         }
-        Error::poll_queue().map_or(Ok(()), Err)
-    }
-}
+        error::Error::poll_queue().map_or(Ok(()), Err)
+    } }
