@@ -5,7 +5,7 @@
 #[derive(Debug, Clone, Copy, Hash, Default, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub(crate) struct u31 {
-    inner: i32
+    inner: i32,
 }
 
 impl u31 {

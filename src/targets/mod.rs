@@ -1,5 +1,4 @@
 /// Definitions of opengl bind targets
-
 pub mod buffer;
 pub mod prelude;
 

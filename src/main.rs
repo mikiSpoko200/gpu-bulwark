@@ -1,11 +1,11 @@
 #![allow(unused_unsafe)]
 
 use gl;
+mod error;
 mod object;
+mod prelude;
 mod targets;
 mod types;
-mod error;
-mod prelude;
 
 fn main() {
     println!("Hello, world!");
