@@ -3,16 +3,20 @@ use crate::error;
 
 pub struct Handle<R: Resource> {
     // this is needed to take R by value in drop which itself takes receiver by &mut self.
-    resource: Option<R>
+    resource: Option<R>,
 }
 
-impl<R> Drop for Handle<R> where R: Resource {
+impl<R> Drop for Handle<R>
+where
+    R: Resource,
+{
     fn drop(&mut self) {
-        // unwrap does not panic since single value drop is well defined. 
+        // unwrap does not panic since single value drop is well defined.
         manager::delete(
             // the only place that we move resource out of option is here in `Drop` so unwrap is ok.
-            self.resource.take().unwrap()
-        ).unwrap();
+            self.resource.take().unwrap(),
+        )
+        .unwrap();
     }
 }
 
@@ -24,7 +28,7 @@ mod manager {
 
     pub fn create<R>() -> R
     where
-        R: Resource
+        R: Resource,
     {
         let mut name = [Default::default()];
         R::initialize(&mut name).expect("glCreate functions do not error when n >= 0");
@@ -33,7 +37,7 @@ mod manager {
 
     pub fn delete<R>(r: R) -> error::Result<R::Ok>
     where
-        R: Resource
+        R: Resource,
     {
         let name: Name = r.into().0;
         R::free(&[name])
@@ -42,7 +46,7 @@ mod manager {
     // unsafe: N mustn't be usize since there cannot be that many gl objects
     pub fn static_bulk_delete<R, const N: usize>(resources: [R; N]) -> error::Result<R::Ok>
     where
-        R: Resource
+        R: Resource,
     {
         let names = resources.map(|r| r.into().0);
         R::free(&names)
@@ -50,8 +54,8 @@ mod manager {
 
     pub fn dyn_bulk_delete<I, R>(resources: I) -> error::Result<R::Ok>
     where
-        I: Iterator<Item=R>,
-        R: Resource
+        I: Iterator<Item = R>,
+        R: Resource,
     {
         let names: Vec<Name> = resources.map(|r| r.into().0).collect();
         R::free(&names)
@@ -60,7 +64,7 @@ mod manager {
 
 /// Handle to multiple homogeneous Resources.
 pub struct MHandle<R: Resource> {
-    resources: Vec<R>
+    resources: Vec<R>,
 }
 
 pub(crate) trait Bindable: Sized {
