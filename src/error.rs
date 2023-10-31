@@ -1,7 +1,6 @@
-
-use std::fmt::{Debug};
 use gl;
 use gl::types::GLenum;
+use std::fmt::Debug;
 use thiserror;
 
 pub type Result<Ok> = std::result::Result<Ok, Box<[Error]>>;
@@ -27,7 +26,6 @@ pub enum Error {
     ContextLost,
 }
 
-
 impl Error {
     pub fn new(error_code: GLenum) -> Self {
         match error_code {
@@ -39,10 +37,11 @@ impl Error {
             gl::OUT_OF_MEMORY => Self::OutOfMemory,
             gl::INVALID_FRAMEBUFFER_OPERATION => Self::InvalidFramebufferOperation,
             gl::CONTEXT_LOST => Self::ContextLost,
+            _ => panic!("unsupported OpenGL error code {error_code}")
         }
     }
 
-    pub fn poll_queue() -> Option<Box<[Self]>> {
+    pub fn poll_queue() -> Box<[Self]> {
         let mut errors = vec![];
         loop {
             let error = unsafe { gl::GetError() };
@@ -51,6 +50,6 @@ impl Error {
             }
             errors.push(Error::new(error));
         }
-        if errors.len() > 0 { Some( errors.into_boxed_slice()) } else { None }
+        errors.into_boxed_slice()
     }
 }
