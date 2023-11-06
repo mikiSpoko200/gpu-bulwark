@@ -36,18 +36,38 @@ impl_const_super_trait!(Stage for Geometry, gl::GEOMETRY_SHADER);
 impl_const_super_trait!(Stage for Fragment, gl::FRAGMENT_SHADER);
 impl_const_super_trait!(Stage for Compute, gl::COMPUTE_SHADER);
 
+pub trait ShaderInterface { }
 
-pub trait  
+pub const fn locations(shader_interface: impl ShaderInterface) { }
 
+struct Entry<S>(pub Shader<S>)
+where
+    S: Stage;
 
-pub struct Shader<S, In, Out>
+struct Subroutines<S>(pub Vec<Shader<S>>)
+where
+    S: Stage;
+
+/// Collection of shaders for given program stage with defined stage interface.
+///
+/// It contains exactly one shaders that contains main function
+/// and arbitrary many that are there just to supply subroutines.
+pub struct ShaderStage<S, Inputs, Outputs>
+where
+    S: Stage,
+{
+    entry: Entry<S>,
+    subroutines: Subroutines<S>,
+    _in_phantom: PhantomData<Inputs>,
+    _out_phantom: PhantomData<Outputs>,
+}
+
+pub struct Shader<S>
 where
     S: Stage,
 {
     base: Object,
     _stage_phantom: PhantomData<S>,
-    _in_phantom: PhantomData<In>,
-    _out_phantom: PhantomData<Out>,
 }
 
 #[repr(u32)]
@@ -65,7 +85,7 @@ pub struct CompilationError {
     msg: String,
 }
 
-impl<S, In, Out> Shader<S, In, Out>
+impl<S> Shader<S>
 where
     S: Stage,
 {
@@ -79,11 +99,7 @@ where
     }
 
     /// Create new shader from source
-    pub fn source(&mut self, source: &[&str]) -> Result<Self, CompilationError> {
-
-
-
-    }
+    pub fn source(&mut self, source: &[&str]) -> Result<Self, CompilationError> {}
 
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl_call! {
@@ -115,7 +131,9 @@ where
             }
             // GetShaderInfoLog does not account for null terminator in returned length.
             // SAFETY: nothing will panic here so it's safe to set length.
-            unsafe { buffer.set_len((actual_length + 1) as _); }
+            unsafe {
+                buffer.set_len((actual_length + 1) as _);
+            }
             // SAFETY: todo will shader compiler should emmit valid ascii?
             unsafe { String::from_utf8_unchecked(buffer) }
         })
@@ -243,7 +261,40 @@ pub mod program {
         }
     }
 
-    pub struct Program {
+    /// Representation of OpenGL Program Object
+    ///
+    /// Program object by default is in some state -- default?
+    /// Program encompasses multiple shader stages.
+    /// It can have multiple shaders for the same stage attached to itself
+    /// as well as one shader can be attached to multiple programs
+    ///
+    /// Each Stage has an interface. In order for program to be correct there must more or less match.
+    /// One exception that comes to mind is using constant attribute input.
+    /// There are rules that govern if two interfaces match
+    /// Initially I will consider only matching by using the location specifier since it can
+    /// be encoded in type easily with tuples.
+    /// Match by parameter name will be difficult to encode in type system, compile time check maybe?
+    /// Similarly parameter qualification may be painful and realllly verbose but perhaps default
+    /// type parameters will do the trick -- I need to delve into GLSL spec a bit more.
+    ///
+    /// Programs have associated lists of resources that they use.
+    /// These lists seem to be good starting point for modelling the type.
+    /// There are multiple program interfaces, here are some more notable ones:
+    /// - UNIFORM corresponds to the set of active uniform variables used by program.
+    /// - UNIFORM_BLOCK corresponds to the set of active uniform blocks used by program.
+    /// - ATOMIC_COUNTER_BUFFER corresponds to the set of active atomic counter buffer binding points used by program.
+    /// - PROGRAM_INPUT corresponds to the set of active input variables used by the
+    /// first shader stage of program. If program includes multiple shader stages,
+    /// input variables from any shader stage other than the first will not be enumerated.
+    /// - PROGRAM_OUTPUT corresponds to the set of active output variables used by the
+    /// last shader stage of program. If program includes multiple shader stages,
+    /// output variables from any shader stage other than the last will not be enumerated.
+    /// - BUFFER_VARIABLE corresponds to the set of active buffer variables used by program
+    /// - SHADER_STORAGE_BLOCK corresponds to the set of active shader storage blocks used by program
+    ///
+    /// This represents an ownership model of sorts though things might be different
+    /// when using separable programs.
+    pub struct Program<'shader> {
         base: Object,
         config: ProgramConfiguration,
         vertex: Shader<Vertex>,
