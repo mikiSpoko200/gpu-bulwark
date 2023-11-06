@@ -1,5 +1,6 @@
 mod buffer;
 mod prelude;
-mod query;
 mod resource;
 mod shader;
+mod program;
+mod vertex_array;
