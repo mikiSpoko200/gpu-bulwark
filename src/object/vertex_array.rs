@@ -1,13 +1,9 @@
-
-
+#![allow(unused)]
 
 pub struct VertexArray<Attributes> {
-    inputs: Inputs
+    inputs: Attributes,
 }
 
-pub fn draw_arrays<VaoInputs, ProgramInputs>(program: (), vertex_array: VertexArray<VaoInputs>)
-where
-    
-{
+pub fn draw_arrays<VaoInputs, ProgramInputs>(program: (), vertex_array: VertexArray<VaoInputs>) {
     
 }
