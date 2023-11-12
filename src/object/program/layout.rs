@@ -63,7 +63,7 @@ where
 /// Location count for glsl dvecX types is different dvec2 take 1 location and dvec3/4 take 2.
 unsafe impl<const SIZE: usize> Layout for types::DVec<SIZE>
 where
-    Const<SIZE>: VecSize
+    Const<SIZE>: VecSize,
 {
     const LOCATION_COUNT: usize = match SIZE {
         2 => 1,

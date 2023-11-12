@@ -37,7 +37,7 @@ impl Error {
             gl::OUT_OF_MEMORY => Self::OutOfMemory,
             gl::INVALID_FRAMEBUFFER_OPERATION => Self::InvalidFramebufferOperation,
             gl::CONTEXT_LOST => Self::ContextLost,
-            _ => panic!("unsupported OpenGL error code {error_code}")
+            _ => panic!("unsupported OpenGL error code {error_code}"),
         }
     }
 

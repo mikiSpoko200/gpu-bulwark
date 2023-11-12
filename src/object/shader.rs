@@ -75,13 +75,10 @@ where
     /// Create new shader from source
     pub fn source(source: &[&str]) -> Result<Self, CompilationError> {
         let mut result: Self = super::resource::manager::create();
-        let raw_strings: Vec<_> = source.into_iter()
-            .map(|input|
-                input.as_ptr()
-            )
-            .collect();
+        let raw_strings: Vec<_> = source.into_iter().map(|input| input.as_ptr()).collect();
         unsafe { result.source_from_raw(&raw_strings) };
-        result.info_log()
+        result
+            .info_log()
             .map_or(Ok(result), |msg| Err(CompilationError { msg }))
     }
 

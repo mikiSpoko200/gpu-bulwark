@@ -5,23 +5,22 @@ use crate::targets as target;
 
 mod buffer;
 mod prelude;
+pub mod program;
 mod resource;
 mod shader;
-pub mod program;
 mod vertex_array;
-
 
 use target::buffer::format;
 
 fn make<Data>() -> Handle<buffer::Buffer<target::buffer::Array, Data>>
-    where
-        (target::buffer::Array, Data): format::Valid
+where
+    (target::buffer::Array, Data): format::Valid,
 {
     Handle::new()
 }
 
 fn test() {
-    use buffer::{Static, Draw};
+    use buffer::{Draw, Static};
 
     let buffer = make();
     buffer.data::<(Static, Draw)>(&[[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]);

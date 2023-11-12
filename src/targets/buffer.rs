@@ -39,7 +39,7 @@ impl_target!(buffer, Uniform, UNIFORM_BUFFER);
 
 pub mod format {
     /// Relation of types being valid data formats for given target.
-    pub unsafe trait Valid { }
+    pub unsafe trait Valid {}
 
     /// This exploits the 3rd rule of unconstrained type parameter exceptions
     /// "be bound as an associated type."
@@ -51,7 +51,7 @@ pub mod format {
     // 1. DRY - relation between Gl/Glsl would be established only once and rest would follow.
     // 2. I forgot the second one.
 
-    unsafe impl Valid for (super::Array, [f32; 3]) { }
-    unsafe impl Valid for (super::Array, [f32; 4]) { }
-    unsafe impl Valid for (super::Array, f32) { }
+    unsafe impl Valid for (super::Array, [f32; 3]) {}
+    unsafe impl Valid for (super::Array, [f32; 4]) {}
+    unsafe impl Valid for (super::Array, f32) {}
 }

@@ -13,16 +13,15 @@ macro_rules! impl_const_super_trait {
         impl Const<crate::gl::types::GLenum> for $ty {
             const VALUE: crate::gl::types::GLenum = $value;
         }
-        impl $super_trait for $ty { }
+        impl $super_trait for $ty {}
     };
     ($super_trait:ident for $ty:ty, $value:expr, $const_type:path) => {
         impl Const<$const_type> for $ty {
             const VALUE: $const_type = $value;
         }
-        impl $super_trait for $ty { }
+        impl $super_trait for $ty {}
     };
 }
-
 
 /// Wrapper for calling opengl functions.
 ///

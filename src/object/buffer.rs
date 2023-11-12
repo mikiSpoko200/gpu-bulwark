@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 pub struct Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     base: Object,
     _target_phantom: PhantomData<Target>,
@@ -48,7 +48,7 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 impl<Target, Data> Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     pub fn data<U>(&self, data: &[Data])
     where
@@ -70,7 +70,7 @@ where
 impl<Target, Data> From<Object> for Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     fn from(base: Object) -> Self {
         Self {
@@ -84,7 +84,7 @@ where
 impl<Target, Data> Into<Object> for Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     fn into(self) -> Object {
         let Self { base, .. } = self;
@@ -95,7 +95,7 @@ where
 impl<Target, Data> Bindable for Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     fn bind(&self) {
         gl_call! {
@@ -115,7 +115,7 @@ where
 impl<Target, Data> Resource for Buffer<Target, Data>
 where
     Target: buffer::Target,
-    (Target, Data): format::Valid
+    (Target, Data): format::Valid,
 {
     type Ok = ();
 

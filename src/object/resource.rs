@@ -8,7 +8,7 @@ pub struct Handle<R: Resource> {
 
 impl<R> Handle<R>
 where
-    R: Resource
+    R: Resource,
 {
     pub fn new() -> Self {
         Self {
@@ -31,11 +31,16 @@ where
     }
 }
 
-impl<R> std::ops::Deref for Handle<R> where R: Resource {
+impl<R> std::ops::Deref for Handle<R>
+where
+    R: Resource,
+{
     type Target = R;
 
     fn deref(&self) -> &Self::Target {
-        self.resource.as_ref().expect("resource maybe None only in Drop")
+        self.resource
+            .as_ref()
+            .expect("resource maybe None only in Drop")
     }
 }
 
