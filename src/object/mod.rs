@@ -3,12 +3,12 @@
 use crate::object::resource::Handle;
 use crate::targets as target;
 
-mod buffer;
-mod prelude;
+pub(crate) mod buffer;
+pub mod prelude;
 pub mod program;
-mod resource;
-mod shader;
-mod vertex_array;
+pub mod resource;
+pub mod shader;
+pub mod vertex_array;
 
 use target::buffer::format;
 
