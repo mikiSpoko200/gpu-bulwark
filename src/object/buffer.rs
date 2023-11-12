@@ -1,17 +1,19 @@
 use super::prelude::*;
 use super::resource::{Bindable, Resource};
 use crate::prelude::Const;
-use crate::targets::buffer;
+use crate::targets::{buffer, buffer::format};
 use crate::{error, gl_call};
 use gl::types::{GLenum, GLuint};
 use std::marker::PhantomData;
 
-pub struct Buffer<Target>
+pub struct Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
     base: Object,
     _target_phantom: PhantomData<Target>,
+    _format_phantom: PhantomData<Data>,
 }
 
 pub trait Usage: Const<GLenum> {}
@@ -43,11 +45,12 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Draw), gl::DYNAMIC_DRAW);
 crate::impl_const_super_trait!(Usage for (Dynamic, Read), gl::DYNAMIC_READ);
 crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 
-impl<Target> Buffer<Target>
+impl<Target, Data> Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
-    fn data<U>(&self, data: &[u8])
+    pub fn data<U>(&self, data: &[Data])
     where
         U: Usage,
     {
@@ -64,21 +67,24 @@ where
     }
 }
 
-impl<Target> From<Object> for Buffer<Target>
+impl<Target, Data> From<Object> for Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
     fn from(base: Object) -> Self {
         Self {
             base,
             _target_phantom: Default::default(),
+            _format_phantom: Default::default(),
         }
     }
 }
 
-impl<Target> Into<Object> for Buffer<Target>
+impl<Target, Data> Into<Object> for Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
     fn into(self) -> Object {
         let Self { base, .. } = self;
@@ -86,9 +92,10 @@ where
     }
 }
 
-impl<Target> Bindable for Buffer<Target>
+impl<Target, Data> Bindable for Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
     fn bind(&self) {
         gl_call! {
@@ -105,9 +112,10 @@ where
     }
 }
 
-impl<Target> Resource for Buffer<Target>
+impl<Target, Data> Resource for Buffer<Target, Data>
 where
     Target: buffer::Target,
+    (Target, Data): format::Valid
 {
     type Ok = ();
 
