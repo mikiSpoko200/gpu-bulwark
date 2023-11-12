@@ -1,5 +1,5 @@
 use super::prelude::*;
-use super::resource::{Bindable, Resource};
+use super::resource::{Bindable, Resource, Handle};
 use crate::prelude::Const;
 use crate::targets::{buffer, buffer::format};
 use crate::{error, gl_call};
@@ -132,4 +132,11 @@ where
             unsafe { gl::DeleteBuffers(names.len() as _, names.as_ptr()); }
         }
     }
+}
+
+pub fn make<Data>() -> Handle<Buffer<buffer::Array, Data>>
+    where
+        (buffer::Array, Data): format::Valid,
+{
+    Handle::new()
 }
