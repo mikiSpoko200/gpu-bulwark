@@ -1,5 +1,5 @@
 use super::prelude::*;
-use super::resource::{Bindable, Resource, Handle};
+use super::resource::{Bindable, Handle, Resource};
 use crate::prelude::Const;
 use crate::targets::{buffer, buffer::format};
 use crate::{error, gl_call};
@@ -135,8 +135,8 @@ where
 }
 
 pub fn make<Data>() -> Handle<Buffer<buffer::Array, Data>>
-    where
-        (buffer::Array, Data): format::Valid,
+where
+    (buffer::Array, Data): format::Valid,
 {
     Handle::new()
 }
