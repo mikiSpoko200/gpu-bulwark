@@ -6,6 +6,17 @@ pub struct Handle<R: Resource> {
     resource: Option<R>,
 }
 
+impl<R> Handle<R>
+where
+    R: Resource
+{
+    pub fn new() -> Self {
+        Self {
+            resource: Some(manager::create()),
+        }
+    }
+}
+
 impl<R> Drop for Handle<R>
 where
     R: Resource,
@@ -20,8 +31,16 @@ where
     }
 }
 
+impl<R> std::ops::Deref for Handle<R> where R: Resource {
+    type Target = R;
+
+    fn deref(&self) -> &Self::Target {
+        self.resource.as_ref().expect("resource maybe None only in Drop")
+    }
+}
+
 /// Adapters that encapsulate Resource lifetime management.
-mod manager {
+pub(crate) mod manager {
     use crate::error;
     use crate::object::prelude::{Name, Object};
     use crate::object::resource::Resource;
@@ -72,7 +91,7 @@ pub(crate) trait Bindable: Sized {
     fn unbind(&self);
 }
 
-pub(crate) trait Resource: Sized + Into<Object> + From<Object> {
+pub trait Resource: Sized + Into<Object> + From<Object> {
     type Ok;
 
     fn initialize(names: &mut [Name]) -> error::Result<Self::Ok>;
