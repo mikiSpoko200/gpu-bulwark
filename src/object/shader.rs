@@ -36,32 +36,6 @@ impl_const_super_trait!(Stage for Geometry, gl::GEOMETRY_SHADER);
 impl_const_super_trait!(Stage for Fragment, gl::FRAGMENT_SHADER);
 impl_const_super_trait!(Stage for Compute, gl::COMPUTE_SHADER);
 
-pub trait ShaderInterface { }
-
-pub const fn locations(shader_interface: impl ShaderInterface) { }
-
-struct Entry<S>(pub Shader<S>)
-where
-    S: Stage;
-
-struct Subroutines<S>(pub Vec<Shader<S>>)
-where
-    S: Stage;
-
-/// Collection of shaders for given program stage with defined stage interface.
-///
-/// It contains exactly one shaders that contains main function
-/// and arbitrary many that are there just to supply subroutines.
-pub struct ShaderStage<S, Inputs, Outputs>
-where
-    S: Stage,
-{
-    entry: Entry<S>,
-    subroutines: Subroutines<S>,
-    _in_phantom: PhantomData<Inputs>,
-    _out_phantom: PhantomData<Outputs>,
-}
-
 pub struct Shader<S>
 where
     S: Stage,
@@ -89,17 +63,27 @@ impl<S> Shader<S>
 where
     S: Stage,
 {
-    pub unsafe fn source_from_raw(&mut self, source: &[*const i8]) {
+    pub unsafe fn source_from_raw(&mut self, source: &[*const u8]) {
         gl_call! {
             #[panic]
             unsafe {
-                gl::ShaderSource(self.base.0, 1, source.as_ptr(), std::ptr::null());
+                gl::ShaderSource(self.base.0, 1, source.as_ptr() as _, std::ptr::null());
             }
         }
     }
 
     /// Create new shader from source
-    pub fn source(&mut self, source: &[&str]) -> Result<Self, CompilationError> {}
+    pub fn source(source: &[&str]) -> Result<Self, CompilationError> {
+        let mut result: Self = super::resource::manager::create();
+        let raw_strings: Vec<_> = source.into_iter()
+            .map(|input|
+                input.as_ptr()
+            )
+            .collect();
+        unsafe { result.source_from_raw(&raw_strings) };
+        result.info_log()
+            .map_or(Ok(result), |msg| Err(CompilationError { msg }))
+    }
 
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl_call! {
@@ -294,7 +278,7 @@ pub mod program {
     ///
     /// This represents an ownership model of sorts though things might be different
     /// when using separable programs.
-    pub struct Program<'shader> {
+    pub struct Program {
         base: Object,
         config: ProgramConfiguration,
         vertex: Shader<Vertex>,
