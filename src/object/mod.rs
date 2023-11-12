@@ -23,6 +23,6 @@ fn make<Data>() -> Handle<buffer::Buffer<target::buffer::Array, Data>>
 fn test() {
     use buffer::{Static, Draw};
 
-    let buffer = make::<[f32; 3]>();
+    let buffer = make();
     buffer.data::<(Static, Draw)>(&[[1.0, 1.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]);
 }
