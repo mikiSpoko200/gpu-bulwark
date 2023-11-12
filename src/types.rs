@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 //! TODO: Add DebugOnly type
 
 use gl::types::GLenum;
