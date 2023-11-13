@@ -1,4 +1,4 @@
-use crate::object::shader::{Shader, Stage};
+use crate::object::shader::{Compiled, Shader, Stage};
 use std::marker::PhantomData;
 
 pub mod layout;
@@ -7,11 +7,11 @@ pub trait ShaderInterface {}
 
 // pub const fn locations(shader_interface: impl ShaderInterface) { }
 
-struct Entry<S>(pub Shader<S>)
+struct Entry<S>(pub Shader<S, Compiled>)
 where
     S: Stage;
 
-struct Subroutines<S>(pub Vec<Shader<S>>)
+struct Subroutines<S>(pub Vec<Shader<S, Compiled>>)
 where
     S: Stage;
 

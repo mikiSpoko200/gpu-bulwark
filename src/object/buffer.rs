@@ -55,6 +55,7 @@ where
         U: Usage,
     {
         // TODO: error handling
+        self.bind();
         gl_call! { #[panic] unsafe {
                 gl::BufferData(
                     Target::BIND_TARGET,
@@ -64,6 +65,7 @@ where
                 );
             }
         }
+        self.unbind();
     }
 }
 
@@ -138,5 +140,5 @@ pub fn make<Data>() -> Handle<Buffer<buffer::Array, Data>>
 where
     (buffer::Array, Data): format::Valid,
 {
-    Handle::new()
+    Handle::default()
 }

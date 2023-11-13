@@ -1,10 +1,11 @@
 use super::prelude::*;
-use crate::object::resource::Resource;
+use crate::object::resource::{Handle, Resource};
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
 use gl::types::GLenum;
 use std::marker::PhantomData;
 
+use crate::object::resource;
 use thiserror;
 
 pub trait Stage: Const<GLenum> {}
@@ -36,12 +37,22 @@ impl_const_super_trait!(Stage for Geometry, gl::GEOMETRY_SHADER);
 impl_const_super_trait!(Stage for Fragment, gl::FRAGMENT_SHADER);
 impl_const_super_trait!(Stage for Compute, gl::COMPUTE_SHADER);
 
-pub struct Shader<S>
+pub trait CompilationStatus {}
+
+pub struct Uncompiled;
+impl CompilationStatus for Uncompiled {}
+
+pub struct Compiled;
+impl CompilationStatus for Compiled {}
+
+pub struct Shader<S, C>
 where
     S: Stage,
+    C: CompilationStatus,
 {
     base: Object,
     _stage_phantom: PhantomData<S>,
+    _uncompiled_phantom: PhantomData<C>,
 }
 
 #[repr(u32)]
@@ -59,27 +70,37 @@ pub struct CompilationError {
     msg: String,
 }
 
-impl<S> Shader<S>
+impl CompilationError {
+    pub fn new(msg: String) -> Self {
+        Self { msg }
+    }
+}
+
+impl<S> Shader<S, Uncompiled>
 where
     S: Stage,
 {
-    pub unsafe fn source_from_raw(&mut self, source: &[*const u8]) {
+    /// Add source for shader.
+    pub fn source(&self, sources: &[&str]) -> &Self {
+        let pointers: Vec<_> = sources.iter()
+            .map(|s| s.as_ptr())
+            .collect();
+        let lengths: Vec<_> = sources.iter()
+            .map(|s| s.len())
+            .collect();
+
         gl_call! {
             #[panic]
             unsafe {
-                gl::ShaderSource(self.base.0, 1, source.as_ptr() as _, std::ptr::null());
+                gl::ShaderSource(
+                    self.base.0,
+                    sources.len() as _,
+                    pointers.as_ptr() as _,
+                    lengths.as_ptr() as _
+                );
             }
         }
-    }
-
-    /// Create new shader from source
-    pub fn source(source: &[&str]) -> Result<Self, CompilationError> {
-        let mut result: Self = super::resource::manager::create();
-        let raw_strings: Vec<_> = source.into_iter().map(|input| input.as_ptr()).collect();
-        unsafe { result.source_from_raw(&raw_strings) };
-        result
-            .info_log()
-            .map_or(Ok(result), |msg| Err(CompilationError { msg }))
+        self
     }
 
     pub fn query(&self, param: QueryParam, output: &mut i32) {
@@ -119,11 +140,36 @@ where
             unsafe { String::from_utf8_unchecked(buffer) }
         })
     }
+
+    unsafe fn convert(self) -> Shader<S, Compiled> {
+        Shader::<S, Compiled> {
+            base: self.into(),
+            _stage_phantom: Default::default(),
+            _uncompiled_phantom: Default::default(),
+        }
+    }
+
+    pub fn compile(self) -> Result<Shader<S, Compiled>, CompilationError> {
+        gl_call! {
+            #[propagate]
+            unsafe {
+                gl::CompileShader(self.base.0)
+            }
+        };
+        self
+            .info_log()
+            // SAFETY: we just checked if shader compiled successfully
+            .map_or(
+                Ok(unsafe { self.convert() }),
+                |msg| Err(CompilationError { msg })
+            )
+    }
 }
 
-impl<S> Into<Object> for Shader<S>
+impl<S, C> Into<Object> for Shader<S, C>
 where
     S: Stage,
+    C: CompilationStatus,
 {
     fn into(self) -> Object {
         let Self { base, .. } = self;
@@ -131,7 +177,7 @@ where
     }
 }
 
-impl<S> From<Object> for Shader<S>
+impl<S> From<Object> for Shader<S, Uncompiled>
 where
     S: Stage,
 {
@@ -139,13 +185,15 @@ where
         Self {
             base,
             _stage_phantom: Default::default(),
+            _uncompiled_phantom: Default::default()
         }
     }
 }
 
-impl<S> Resource for Shader<S>
+impl<S, C> Resource for Shader<S, C>
 where
     S: Stage,
+    C: CompilationStatus,
 {
     type Ok = ();
 
@@ -168,7 +216,7 @@ where
     }
 }
 
-impl<S> Shader<S>
+impl<S> Shader<S, Compiled>
 where
     S: Stage,
 {
@@ -178,58 +226,60 @@ where
 
 pub mod program {
     use crate::object::prelude::Object;
-    use crate::object::shader::{tesselation, Compute, Fragment, Geometry, Shader, Stage, Vertex};
+    use crate::object::shader::{tesselation, Compute, Fragment, Geometry, Shader, Stage, Vertex, Uncompiled, Compiled};
+
+    type CompiledShader<S> = Shader<S, Compiled>;
 
     // Sealed trait
     trait Attach<S>
     where
         S: Stage,
     {
-        fn attach(&mut self, shader: Shader<S>);
+        fn attach(&mut self, shader: CompiledShader<S>);
     }
 
     pub struct ProgramBuilder {
         base: Object,
-        vertex: Option<Shader<Vertex>>,
-        tesselation_control: Option<Shader<tesselation::Control>>,
-        tesselation_evaluation: Option<Shader<tesselation::Evaluation>>,
-        geometry: Option<Shader<Geometry>>,
-        fragment: Option<Shader<Fragment>>,
-        compute: Option<Shader<Compute>>,
+        vertex: Option<CompiledShader<Vertex>>,
+        tesselation_control: Option<CompiledShader<tesselation::Control>>,
+        tesselation_evaluation: Option<CompiledShader<tesselation::Evaluation>>,
+        geometry: Option<CompiledShader<Geometry>>,
+        fragment: Option<CompiledShader<Fragment>>,
+        compute: Option<CompiledShader<Compute>>,
     }
 
     impl Attach<Vertex> for ProgramBuilder {
-        fn attach(&mut self, vertex: Shader<Vertex>) {
+        fn attach(&mut self, vertex: CompiledShader<Vertex>) {
             self.vertex = Some(vertex);
         }
     }
 
     impl Attach<tesselation::Control> for ProgramBuilder {
-        fn attach(&mut self, tesselation_control: Shader<tesselation::Control>) {
+        fn attach(&mut self, tesselation_control: CompiledShader<tesselation::Control>) {
             self.tesselation_control = Some(tesselation_control);
         }
     }
 
     impl Attach<tesselation::Evaluation> for ProgramBuilder {
-        fn attach(&mut self, tesselation_evaluation: Shader<tesselation::Evaluation>) {
+        fn attach(&mut self, tesselation_evaluation: CompiledShader<tesselation::Evaluation>) {
             self.tesselation_evaluation = Some(tesselation_evaluation);
         }
     }
 
     impl Attach<Geometry> for ProgramBuilder {
-        fn attach(&mut self, geometry: Shader<Geometry>) {
+        fn attach(&mut self, geometry: CompiledShader<Geometry>) {
             self.geometry = Some(geometry);
         }
     }
 
     impl Attach<Fragment> for ProgramBuilder {
-        fn attach(&mut self, fragment: Shader<Fragment>) {
+        fn attach(&mut self, fragment: CompiledShader<Fragment>) {
             self.fragment = Some(fragment);
         }
     }
 
     impl Attach<Compute> for ProgramBuilder {
-        fn attach(&mut self, compute: Shader<Compute>) {
+        fn attach(&mut self, compute: CompiledShader<Compute>) {
             self.compute = Some(compute);
         }
     }
@@ -278,17 +328,24 @@ pub mod program {
     pub struct Program {
         base: Object,
         config: ProgramConfiguration,
-        vertex: Shader<Vertex>,
+        vertex: CompiledShader<Vertex>,
         tesselation: Option<(
-            Shader<tesselation::Control>,
-            Shader<tesselation::Evaluation>,
+            CompiledShader<tesselation::Control>,
+            CompiledShader<tesselation::Evaluation>,
         )>,
-        geometry: Option<Shader<Geometry>>,
-        fragment: Shader<Fragment>,
-        compute: Option<Shader<Compute>>,
+        geometry: Option<CompiledShader<Geometry>>,
+        fragment: CompiledShader<Fragment>,
+        compute: Option<CompiledShader<Compute>>,
     }
 }
 
 pub struct Compiler;
 
 pub struct Linker;
+
+pub fn make<S>() -> Handle<Shader<S, Uncompiled>>
+where
+    S: Stage,
+{
+    Handle::default()
+}

@@ -1,5 +1,24 @@
+use std::marker::PhantomData;
 use super::prelude::*;
 use crate::error;
+
+// note: this must use another trait that allows for binding of arbitrary
+// pub struct Binder<'obj, B>(&'obj Name, PhantomData<B>) where B: Bindable;
+//
+// impl<'obj, B> Binder<'obj, B> where B: Bindable {
+//     pub fn bind(object: &'obj Name) -> Self {
+//         Self(object, Default::default())
+//     }
+// }
+//
+// impl<'obj, B> Drop for Binder<'obj, B>
+// where
+//     B: Bindable
+// {
+//     fn drop(&mut self) {
+//         B::
+//     }
+// }
 
 pub struct Handle<R: Resource> {
     // this is needed to take R by value in drop which itself takes receiver by &mut self.
@@ -8,9 +27,18 @@ pub struct Handle<R: Resource> {
 
 impl<R> Handle<R>
 where
-    R: Resource,
+    R: Resource
 {
-    pub fn new() -> Self {
+    pub fn new(resource: R) -> Self {
+        Self { resource: Some(resource) }
+    }
+}
+
+impl<R> Default for Handle<R>
+where
+    R: Resource + From<Object>,
+{
+    fn default() -> Self {
         Self {
             resource: Some(manager::create()),
         }
@@ -44,6 +72,17 @@ where
     }
 }
 
+impl<R> std::ops::DerefMut for Handle<R>
+where
+    R: Resource,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.resource
+            .as_mut()
+            .expect("resource maybe None only in Drop")
+    }
+}
+
 /// Adapters that encapsulate Resource lifetime management.
 pub(crate) mod manager {
     use crate::error;
@@ -52,7 +91,7 @@ pub(crate) mod manager {
 
     pub fn create<R>() -> R
     where
-        R: Resource,
+        R: Resource + From<Object>,
     {
         let mut name = [Default::default()];
         R::initialize(&mut name).expect("glCreate functions do not error when n >= 0");
@@ -96,7 +135,7 @@ pub(crate) trait Bindable: Sized {
     fn unbind(&self);
 }
 
-pub trait Resource: Sized + Into<Object> + From<Object> {
+pub trait Resource: Sized + Into<Object> {
     type Ok;
 
     fn initialize(names: &mut [Name]) -> error::Result<Self::Ok>;
