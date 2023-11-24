@@ -11,7 +11,7 @@ pub mod shader;
 pub mod vertex_array;
 
 use target::buffer::format;
-use crate::object::shader::Vertex;
+use crate::object::shader::{Vertex, Shader};
 
 fn test() {
     use buffer::{Draw, Static};
@@ -43,12 +43,14 @@ fn test() {
         }
     };
 
-    let vs = shader::make::<Vertex>()
-        .source(&[vs_source])
+    let vs = Shader::<Vertex>::create();
+    vs.source(&[vs_source]);
+    let compiled_vs = vs
         .compile()
         .expect("valid shader code provided");
-    let fs = shader::make::<Fragment>()
-        .source(&[fs_source])
+    let fs = Shader::<Fragment>::create();
+    fs.source(&[fs_source]);
+    let compiled_fs = fs
         .compile()
         .expect("valid shader code provided");
 
@@ -58,8 +60,4 @@ fn test() {
         [ 0.5, -0.5, 0.0],
         [ 0.0,  0.5, 0.0],
     ]);
-
-
-
-
 }

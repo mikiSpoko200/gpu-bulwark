@@ -36,12 +36,10 @@ where
 
 impl<R> Default for Handle<R>
 where
-    R: Resource + From<Object>,
+    R: Resource + From<Object<R>>,
 {
     fn default() -> Self {
-        Self {
-            resource: Some(manager::create()),
-        }
+        todo!();
     }
 }
 
@@ -50,12 +48,7 @@ where
     R: Resource,
 {
     fn drop(&mut self) {
-        // unwrap does not panic since single value drop is well defined.
-        manager::delete(
-            // the only place that we move resource out of option is here in `Drop` so unwrap is ok.
-            self.resource.take().unwrap(),
-        )
-        .unwrap();
+        todo!();
     }
 }
 
@@ -83,48 +76,6 @@ where
     }
 }
 
-/// Adapters that encapsulate Resource lifetime management.
-pub(crate) mod manager {
-    use crate::error;
-    use crate::object::prelude::{Name, Object};
-    use crate::object::resource::Resource;
-
-    pub fn create<R>() -> R
-    where
-        R: Resource + From<Object>,
-    {
-        let mut name = [Default::default()];
-        R::initialize(&mut name).expect("glCreate functions do not error when n >= 0");
-        R::from(Object(name[0]))
-    }
-
-    pub fn delete<R>(r: R) -> error::Result<R::Ok>
-    where
-        R: Resource,
-    {
-        let name: Name = r.into().0;
-        R::free(&[name])
-    }
-
-    // unsafe: N mustn't be usize since there cannot be that many gl objects
-    pub fn static_bulk_delete<R, const N: usize>(resources: [R; N]) -> error::Result<R::Ok>
-    where
-        R: Resource,
-    {
-        let names = resources.map(|r| r.into().0);
-        R::free(&names)
-    }
-
-    pub fn dyn_bulk_delete<I, R>(resources: I) -> error::Result<R::Ok>
-    where
-        I: Iterator<Item = R>,
-        R: Resource,
-    {
-        let names: Vec<Name> = resources.map(|r| r.into().0).collect();
-        R::free(&names)
-    }
-}
-
 /// Handle to multiple homogeneous Resources.
 pub struct MHandle<R: Resource> {
     resources: Vec<R>,
@@ -135,7 +86,7 @@ pub(crate) trait Bindable: Sized {
     fn unbind(&self);
 }
 
-pub trait Resource: Sized + Into<Object> {
+pub trait Resource: Sized {
     type Ok;
 
     fn initialize(names: &mut [Name]) -> error::Result<Self::Ok>;

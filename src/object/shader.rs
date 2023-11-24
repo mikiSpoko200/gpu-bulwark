@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
 use gl::types::GLenum;
 use std::marker::PhantomData;
+use std::mem::ManuallyDrop;
 
 use crate::object::resource;
 use thiserror;
@@ -45,12 +46,12 @@ impl CompilationStatus for Uncompiled {}
 pub struct Compiled;
 impl CompilationStatus for Compiled {}
 
-pub struct Shader<S, C>
+pub struct Shader<S, C = Uncompiled>
 where
     S: Stage,
     C: CompilationStatus,
 {
-    base: Object,
+    base: Object<Self>,
     _stage_phantom: PhantomData<S>,
     _uncompiled_phantom: PhantomData<C>,
 }
@@ -80,6 +81,14 @@ impl<S> Shader<S, Uncompiled>
 where
     S: Stage,
 {
+    pub fn create() -> Self {
+        Self {
+            base: Object::default(),
+            _stage_phantom: PhantomData,
+            _uncompiled_phantom: PhantomData,
+        }
+    }
+
     /// Add source for shader.
     pub fn source(&self, sources: &[&str]) -> &Self {
         let pointers: Vec<_> = sources.iter()
@@ -93,7 +102,7 @@ where
             #[panic]
             unsafe {
                 gl::ShaderSource(
-                    self.base.0,
+                    self.base.name,
                     sources.len() as _,
                     pointers.as_ptr() as _,
                     lengths.as_ptr() as _
@@ -107,7 +116,7 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::GetShaderiv(self.base.0, param as _, output);
+                gl::GetShaderiv(self.base.name, param as _, output);
             }
         }
     }
@@ -124,7 +133,7 @@ where
                 // todo: notes on error situations
                 unsafe {
                     gl::GetShaderInfoLog(
-                        self.base.0,
+                        self.base.name,
                         buffer.capacity() as _,
                         &mut actual_length as *mut _,
                         buffer.as_mut_ptr() as _
@@ -142,8 +151,10 @@ where
     }
 
     unsafe fn convert(self) -> Shader<S, Compiled> {
+        let Self { base, .. } = self;
+        let _leak = unsafe { ManuallyDrop::new(base) };
         Shader::<S, Compiled> {
-            base: self.into(),
+            base: Object::new(_leak.name),
             _stage_phantom: Default::default(),
             _uncompiled_phantom: Default::default(),
         }
@@ -153,7 +164,7 @@ where
         gl_call! {
             #[propagate]
             unsafe {
-                gl::CompileShader(self.base.0)
+                gl::CompileShader(self.base.name)
             }
         };
         self
@@ -166,22 +177,22 @@ where
     }
 }
 
-impl<S, C> Into<Object> for Shader<S, C>
+impl<S, C> Into<Object<Self>> for Shader<S, C>
 where
     S: Stage,
     C: CompilationStatus,
 {
-    fn into(self) -> Object {
+    fn into(self) -> Object<Self> {
         let Self { base, .. } = self;
         base
     }
 }
 
-impl<S> From<Object> for Shader<S, Uncompiled>
+impl<S> From<Object<Self>> for Shader<S, Uncompiled>
 where
     S: Stage,
 {
-    fn from(base: Object) -> Self {
+    fn from(base: Object<Self>) -> Self {
         Self {
             base,
             _stage_phantom: Default::default(),
@@ -226,6 +237,7 @@ where
 
 pub mod program {
     use crate::object::prelude::Object;
+    use crate::object::resource::Resource;
     use crate::object::shader::{tesselation, Compute, Fragment, Geometry, Shader, Stage, Vertex, Uncompiled, Compiled};
 
     type CompiledShader<S> = Shader<S, Compiled>;
@@ -239,7 +251,7 @@ pub mod program {
     }
 
     pub struct ProgramBuilder {
-        base: Object,
+        base: Object<Program>,
         vertex: Option<CompiledShader<Vertex>>,
         tesselation_control: Option<CompiledShader<tesselation::Control>>,
         tesselation_evaluation: Option<CompiledShader<tesselation::Evaluation>>,
@@ -326,7 +338,7 @@ pub mod program {
     /// This represents an ownership model of sorts though things might be different
     /// when using separable programs.
     pub struct Program {
-        base: Object,
+        base: Object<Self>,
         config: ProgramConfiguration,
         vertex: CompiledShader<Vertex>,
         tesselation: Option<(
@@ -336,6 +348,18 @@ pub mod program {
         geometry: Option<CompiledShader<Geometry>>,
         fragment: CompiledShader<Fragment>,
         compute: Option<CompiledShader<Compute>>,
+    }
+
+    impl Resource for Program {
+        type Ok = ();
+
+        fn initialize(names: &mut [gl::types::GLuint]) -> crate::error::Result<Self::Ok> {
+            todo!()
+        }
+
+        fn free(names: &[gl::types::GLuint]) -> crate::error::Result<Self::Ok> {
+            todo!()
+        }
     }
 }
 

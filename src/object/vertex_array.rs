@@ -15,12 +15,12 @@ use crate::object::resource::Resource;
 
 
 pub struct VertexArray<Attributes> {
-    base: Object,
+    base: Object<Self>,
     attributes: Attributes,
 }
 
-impl<Attribute> Into<Object> for VertexArray<Attribute> {
-    fn into(self) -> Object {
+impl<Attribute> Into<Object<Self>> for VertexArray<Attribute> {
+    fn into(self) -> Object<Self> {
         let Self { base, .. } = self;
         base
     }

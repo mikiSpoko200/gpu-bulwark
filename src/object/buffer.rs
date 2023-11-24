@@ -11,7 +11,7 @@ where
     Target: buffer::Target,
     (Target, Data): format::Valid,
 {
-    base: Object,
+    base: Object<Self>,
     _target_phantom: PhantomData<Target>,
     _format_phantom: PhantomData<Data>,
 }
@@ -69,12 +69,12 @@ where
     }
 }
 
-impl<Target, Data> From<Object> for Buffer<Target, Data>
+impl<Target, Data> From<Object<Self>> for Buffer<Target, Data>
 where
     Target: buffer::Target,
     (Target, Data): format::Valid,
 {
-    fn from(base: Object) -> Self {
+    fn from(base: Object<Self>) -> Self {
         Self {
             base,
             _target_phantom: Default::default(),
@@ -83,12 +83,12 @@ where
     }
 }
 
-impl<Target, Data> Into<Object> for Buffer<Target, Data>
+impl<Target, Data> Into<Object<Self>> for Buffer<Target, Data>
 where
     Target: buffer::Target,
     (Target, Data): format::Valid,
 {
-    fn into(self) -> Object {
+    fn into(self) -> Object<Self> {
         let Self { base, .. } = self;
         base
     }
@@ -102,7 +102,7 @@ where
     fn bind(&self) {
         gl_call! {
             #[panic]
-            unsafe { gl::BindBuffer(Target::BIND_TARGET, self.base.0) }
+            unsafe { gl::BindBuffer(Target::BIND_TARGET, self.base.name) }
         }
     }
 
