@@ -1,6 +1,10 @@
+use gl::types::GLenum;
+
 pub trait Const<T> {
     const VALUE: T;
 }
+
+pub trait TypeEnum: Const<GLenum> { }
 
 /// Implement trait that **just** extends `Const<T>`
 ///
@@ -45,4 +49,8 @@ macro_rules! gl_call {
         let errors = crate::error::Error::poll_queue();
         if errors.len() > 0 { Err(errors) } else { Ok(()) }
     };
+}
+
+pub(crate) mod private {
+    pub trait Sealed { }
 }
