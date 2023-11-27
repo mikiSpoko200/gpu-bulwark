@@ -1,21 +1,12 @@
-use super::prelude::*;
-use super::resource::{Bindable, Handle, Resource};
+use super::{prelude::*, resource};
+use super::resource::{Bindable, Allocator};
 use crate::prelude::Const;
-use crate::targets::{buffer, buffer::format};
+use crate::target::{buffer, buffer::format};
 use crate::{error, gl_call};
 use gl::types::{GLenum, GLuint};
 use std::marker::PhantomData;
 
-pub struct Buffer<Target, Data>
-where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
-{
-    base: Object<Self>,
-    _target_phantom: PhantomData<Target>,
-    _format_phantom: PhantomData<Data>,
-}
-
+/// Type level enumeration of possible Buffer data Usage types
 pub trait Usage: Const<GLenum> {}
 
 pub struct Stream;
@@ -45,12 +36,51 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Draw), gl::DYNAMIC_DRAW);
 crate::impl_const_super_trait!(Usage for (Dynamic, Read), gl::DYNAMIC_READ);
 crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 
-impl<Target, Data> Buffer<Target, Data>
+/// Use to enforce semantics for OpenGL buffer object.
+#[derive(Default)]
+struct BufferSemantics<T, F>
 where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
+    T: buffer::Target,
+    (T, F): format::Valid
 {
-    pub fn data<U>(&self, data: &[Data])
+    _target_phantom: PhantomData<T>,
+    _format_phantom: PhantomData<F>,
+}
+
+/// Allocation strategy for OpenGL buffer objects.
+struct BufferAllocator;
+
+unsafe impl resource::Allocator for BufferAllocator {
+    fn allocate(names: &mut [Name]) {
+        unsafe {
+            gl::CreateBuffers(names.len() as _, names as _);
+        }
+    }
+
+    fn free(names: &[Name]) {
+        unsafe {
+            gl::DeleteBuffers(names.len() as _, names as _);
+        }
+    }
+}
+
+type BufferObject = Object<BufferAllocator>;
+
+pub struct Buffer<T, F>
+where
+    T: buffer::Target,
+    (T, F): format::Valid,
+{
+    object: BufferObject,
+    _semantic: BufferSemantics<T, F>
+}
+
+impl<T, F> Buffer<T, F>
+where
+    T: buffer::Target,
+    (T, F): format::Valid,
+{
+    pub fn data<U>(&self, data: &[F])
     where
         U: Usage,
     {
@@ -58,7 +88,7 @@ where
         self.bind();
         gl_call! { #[panic] unsafe {
                 gl::BufferData(
-                    Target::BIND_TARGET,
+                    T::BIND_TARGET,
                     data.len() as _,
                     data.as_ptr() as _,
                     U::VALUE,
@@ -69,76 +99,22 @@ where
     }
 }
 
-impl<Target, Data> From<Object<Self>> for Buffer<Target, Data>
+impl<T, F> Bindable for Buffer<T, F>
 where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
-{
-    fn from(base: Object<Self>) -> Self {
-        Self {
-            base,
-            _target_phantom: Default::default(),
-            _format_phantom: Default::default(),
-        }
-    }
-}
-
-impl<Target, Data> Into<Object<Self>> for Buffer<Target, Data>
-where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
-{
-    fn into(self) -> Object<Self> {
-        let Self { base, .. } = self;
-        base
-    }
-}
-
-impl<Target, Data> Bindable for Buffer<Target, Data>
-where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
+    T: buffer::Target,
+    (T, F): format::Valid,
 {
     fn bind(&self) {
         gl_call! {
             #[panic]
-            unsafe { gl::BindBuffer(Target::BIND_TARGET, self.base.name) }
+            unsafe { gl::BindBuffer(T::BIND_TARGET, self.object.name()) }
         }
     }
 
     fn unbind(&self) {
         gl_call! {
             #[panic]
-            unsafe { gl::BindBuffer(Target::BIND_TARGET, 0) }
+            unsafe { gl::BindBuffer(T::BIND_TARGET, 0) }
         }
     }
-}
-
-impl<Target, Data> Resource for Buffer<Target, Data>
-where
-    Target: buffer::Target,
-    (Target, Data): format::Valid,
-{
-    type Ok = ();
-
-    fn initialize(names: &mut [GLuint]) -> error::Result<Self::Ok> {
-        gl_call! {
-            #[propagate]
-            unsafe { gl::CreateBuffers(names.len() as _, names.as_mut_ptr()); }
-        }
-    }
-
-    fn free(names: &[GLuint]) -> error::Result<Self::Ok> {
-        gl_call! {
-            #[propagate]
-            unsafe { gl::DeleteBuffers(names.len() as _, names.as_ptr()); }
-        }
-    }
-}
-
-pub fn make<Data>() -> Handle<Buffer<buffer::Array, Data>>
-where
-    (buffer::Array, Data): format::Valid,
-{
-    Handle::default()
 }

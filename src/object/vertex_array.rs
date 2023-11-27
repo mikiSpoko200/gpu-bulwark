@@ -1,35 +1,43 @@
 #![allow(unused)]
 
-use frunk::hlist;
+use frunk::hlist::{HCons, HList, HNil};
 use gl::types::GLuint;
 use crate::gl_call;
-use crate::object::prelude::{Name, Object};
-use crate::object::resource::Resource;
-
-// pub trait Attribute {
-//     type Type;
-//     fn size() -> usize;
-//     fn relative_offset() -> usize;
-// }
-
-
+use super::prelude::{Name, Object};
+use super::resource::Allocator;
+use super::buffer::{Buffer};
+use super::buffer;
+use crate::target::buffer as target;
 
 pub struct VertexArray<Attributes> {
-    base: Object<Self>,
+    object: Object<Self>,
     attributes: Attributes,
 }
 
-impl<Attribute> Into<Object<Self>> for VertexArray<Attribute> {
-    fn into(self) -> Object<Self> {
-        let Self { base, .. } = self;
-        base
-    }
+pub struct AttributeDecl<'buffer, Format, const INDEX: usize> {
+    buffer: Buffer<target::Array, Format>
 }
 
-impl<Attribute> Resource for VertexArray<Attribute> {
+impl<Attributes> VertexArray<Attributes>
+where
+    Attributes: HList
+{
+    pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, Format>(self, attribute: &'buffer Buffer<target::Array, Format>)
+    -> VertexArray<HCons<AttributeDecl<'buffer, Format, ATTRIBUTE_INDEX>, Attributes>>
+    where
+        (target::Array, Format): target::format::Valid,
+    {
+        let Self { object, attributes } = self;
+
+
+    }
+    
+}
+
+impl<Attribute> Allocator for VertexArray<Attribute> {
     type Ok = ();
 
-    fn initialize(names: &mut [Name]) -> crate::error::Result<Self::Ok> {
+    fn allocate(names: &mut [Name]) -> crate::error::Result<Self::Ok> {
         gl_call! {
             #[panic]
             // TODO: SAFETY
