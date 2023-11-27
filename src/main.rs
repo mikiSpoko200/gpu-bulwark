@@ -5,7 +5,7 @@ mod error;
 mod glsl;
 mod object;
 mod prelude;
-mod targets;
+mod target;
 mod types;
 
 fn main() {
