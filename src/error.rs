@@ -3,6 +3,7 @@ use gl::types::GLenum;
 use std::fmt::Debug;
 use thiserror;
 
+#[allow(unused)]
 pub type Result<Ok> = std::result::Result<Ok, Box<[Error]>>;
 
 #[derive(thiserror::Error, Debug)]
