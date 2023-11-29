@@ -1,59 +1,94 @@
 #![allow(unused)]
 
-use frunk::hlist::{HCons, HList, HNil};
-use gl::types::GLuint;
-use crate::gl_call;
+use std::marker::PhantomData;
+
+use super::buffer;
+use super::buffer::Buffer;
 use super::prelude::{Name, Object};
 use super::resource::Allocator;
-use super::buffer::{Buffer};
-use super::buffer;
+use crate::gl_call;
 use crate::target::buffer as target;
+use frunk::hlist::{HCons, HList, HNil};
+use gl::types::GLuint;
 
-pub struct VertexArray<Attributes> {
-    object: Object<Self>,
-    attributes: Attributes,
+struct VertexArrayAllocator;
+
+unsafe impl Allocator for VertexArrayAllocator {
+    fn allocate(names: &mut [GLuint]) {
+        unsafe {
+            gl::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
+        }
+    }
+
+    fn free(names: &[GLuint]) {
+        unsafe {
+            gl::DeleteVertexArrays(names.len() as _, names.as_ptr());
+        }
+    }
 }
 
-pub struct AttributeDecl<'buffer, Format, const INDEX: usize> {
-    buffer: Buffer<target::Array, Format>
-}
-
-impl<Attributes> VertexArray<Attributes>
+#[derive(Default)]
+struct VertexArraySemantics<A>
 where
-    Attributes: HList
+    A: HList,
 {
-    pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, Format>(self, attribute: &'buffer Buffer<target::Array, Format>)
-    -> VertexArray<HCons<AttributeDecl<'buffer, Format, ATTRIBUTE_INDEX>, Attributes>>
+    pub attributes: A,
+}
+
+impl<A> VertexArraySemantics<A>
+where
+    A: HList,
+{
+    pub fn attach<T>(self, attribute: T) -> VertexArraySemantics<HCons<T, A>> {
+        VertexArraySemantics {
+            attributes: self.attributes.prepend(attribute),
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct VertexArray<A>
+where
+    A: HList,
+{
+    object: Object<VertexArrayAllocator>,
+    semantics: VertexArraySemantics<A>,
+}
+
+pub struct AttributeDecl<'buffer, F, const INDEX: usize>
+where
+    (target::Array, F): target::format::Valid,
+{
+    buffer: &'buffer Buffer<target::Array, F>,
+}
+
+impl<A> VertexArray<A>
+where
+    A: HList,
+{
+    // Idea: use curring?
+    pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, F>(
+        self,
+        buffer: &'buffer Buffer<target::Array, F>,
+    ) -> VertexArray<HCons<AttributeDecl<'buffer, F, ATTRIBUTE_INDEX>, A>>
     where
-        (target::Array, Format): target::format::Valid,
+        (target::Array, F): target::format::Valid,
     {
-        let Self { object, attributes } = self;
-
-
-    }
-    
-}
-
-impl<Attribute> Allocator for VertexArray<Attribute> {
-    type Ok = ();
-
-    fn allocate(names: &mut [Name]) -> crate::error::Result<Self::Ok> {
-        gl_call! {
-            #[panic]
-            // TODO: SAFETY
-            unsafe {
-                gl::CreateVertexArrays(
-                    names.len() as _,
-                    names.as_mut_ptr() as _,
-                )
-            }
-        };
-        Ok(())
-    }
-
-    fn free(names: &[Name]) -> crate::error::Result<Self::Ok> {
-        todo!("unimplemented")
+        let Self { object, semantics } = self;
+        let attribute: AttributeDecl<'buffer, F, ATTRIBUTE_INDEX> = AttributeDecl { buffer };
+        let semantics = semantics.attach(attribute);
+        VertexArray::<_> { object, semantics }
     }
 }
 
-pub fn draw_arrays<Attributes, Inputs>(program: (), vertex_array: VertexArray<Attributes>) {}
+impl VertexArray<HNil> {
+    pub fn create() -> Self {
+        Self::default()
+    }
+}
+
+pub fn draw_arrays<A, I>(program: (), vertex_array: VertexArray<A>)
+where
+    A: HList,
+{
+}
