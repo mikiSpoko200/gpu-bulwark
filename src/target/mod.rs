@@ -1,8 +1,20 @@
-use crate::{impl_const_super_trait, prelude::TypeEnum};
-
 /// Definitions of opengl bind targets
 pub mod buffer;
 pub mod prelude;
+pub mod shader;
 
 /// Common behaviour amongst all object specific targets
-pub unsafe trait Target: TypeEnum { }
+pub unsafe trait Target: Default {
+    const VALUE: u32;
+}
+
+#[macro_export]
+#[allow(unused)]
+macro_rules! impl_target {
+    ($target_object_module:ident, $target_type:ty, $gl_target_ident:ident) => {
+        unsafe impl crate::target::Target for $target_type {
+            const VALUE: u32 = gl::$gl_target_ident;
+        }
+        unsafe impl crate::target::$target_object_module::Target for $target_type {}
+    };
+}
