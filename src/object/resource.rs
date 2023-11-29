@@ -1,7 +1,7 @@
-use std::marker::PhantomData;
 use super::prelude::*;
 use crate::error;
 use crate::target;
+use std::marker::PhantomData;
 
 // note: this must use another trait that allows for binding of arbitrary
 // pub struct Binder<'obj, B>(&'obj Name, PhantomData<B>) where B: Bindable;
@@ -21,15 +21,14 @@ use crate::target;
 //     }
 // }
 
-
 pub(crate) trait Bindable: Sized {
     fn bind(&self);
     fn unbind(&self);
 }
 
-/// 
+///
 pub unsafe trait Allocator: Sized {
-    fn allocate(names: &mut [Name]);
+    fn allocate(names: &mut [u32]);
 
-    fn free(names: &[Name]);
+    fn free(names: &[u32]);
 }

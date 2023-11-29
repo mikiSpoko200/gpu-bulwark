@@ -4,7 +4,7 @@ pub trait Const<T> {
     const VALUE: T;
 }
 
-pub trait TypeEnum: Const<GLenum> { }
+pub trait TypeEnum: Const<GLenum> {}
 
 /// Implement trait that **just** extends `Const<T>`
 ///
@@ -51,6 +51,17 @@ macro_rules! gl_call {
     };
 }
 
+#[macro_export]
+macro_rules! impl_default_without_bounds {
+    ($type:ty) => {
+        impl std::default::Default for $type:ty {
+            fn default() -> Self {
+                Self { .. Default::default() }
+            }
+        }
+    };
+}
+
 pub(crate) mod private {
-    pub trait Sealed { }
+    pub trait Sealed {}
 }

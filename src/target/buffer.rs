@@ -1,22 +1,47 @@
 use crate::impl_target;
-use crate::prelude::*;
 
-/// A target marker for a buffer object
-pub unsafe trait Target: TypeEnum { }
+/// A target marker for a buffer object.
+pub(crate) unsafe trait Target: super::Target {}
 
+#[derive(Default)]
 pub struct Array;
+
+#[derive(Default)]
 pub struct AtomicCounter;
+
+#[derive(Default)]
 pub struct CopyRead;
+
+#[derive(Default)]
 pub struct CopyWrite;
+
+#[derive(Default)]
 pub struct DispatchIndirect;
+
+#[derive(Default)]
 pub struct DrawIndirect;
+
+#[derive(Default)]
 pub struct ElementArray;
+
+#[derive(Default)]
 pub struct PixelPack;
+
+#[derive(Default)]
 pub struct PixelUnpack;
+
+#[derive(Default)]
+
 pub struct Query;
+#[derive(Default)]
 pub struct ShaderStorage;
+
+#[derive(Default)]
 pub struct Texture;
+#[derive(Default)]
 pub struct TransformFeedback;
+
+#[derive(Default)]
 pub struct Uniform;
 
 impl_target!(buffer, Array, ARRAY_BUFFER);
@@ -35,9 +60,8 @@ impl_target!(buffer, TransformFeedback, TRANSFORM_FEEDBACK_BUFFER);
 impl_target!(buffer, Uniform, UNIFORM_BUFFER);
 
 pub mod format {
-    use crate::prelude::private;
-    /// Relation of types being valid data formats for given target.
-    pub unsafe trait Valid: private::Sealed {}
+    /// Relation of types eing valid data formats for given target.
+    pub unsafe trait Valid {}
 
     /// This exploits the 3rd rule of unconstrained type parameter exceptions
     /// "be bound as an associated type."

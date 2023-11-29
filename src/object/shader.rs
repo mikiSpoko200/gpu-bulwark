@@ -3,40 +3,14 @@ use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
 use gl::types::GLenum;
+use std::borrow::BorrowMut;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
 
+use crate::target::shader;
+
 use crate::object::resource;
 use thiserror;
-
-pub trait Target: crate::target::Target {}
-
-/// Zero-sized struct that represents Vertex Shader stage.
-pub struct Vertex;
-
-pub mod tesselation {
-    /// Zero-sized struct that represents Tesselation Control Shader stage.
-    pub struct Control;
-
-    /// Zero-sized struct that represents Tesselation Evaluation Shader stage.
-    pub struct Evaluation;
-}
-
-/// Zero-sized struct that represents Geometry Shader stage.
-pub struct Geometry;
-
-/// Zero-sized struct that represents Fragment Shader stage.
-pub struct Fragment;
-
-/// Zero-sized struct that represents Compute Shader stage.
-pub struct Compute;
-
-impl_const_super_trait!(Target for Vertex, gl::VERTEX_SHADER);
-impl_const_super_trait!(Target for tesselation::Control, gl::TESS_CONTROL_SHADER);
-impl_const_super_trait!(Target for tesselation::Evaluation, gl::TESS_EVALUATION_SHADER);
-impl_const_super_trait!(Target for Geometry, gl::GEOMETRY_SHADER);
-impl_const_super_trait!(Target for Fragment, gl::FRAGMENT_SHADER);
-impl_const_super_trait!(Target for Compute, gl::COMPUTE_SHADER);
 
 pub trait CompilationStatus {}
 
@@ -68,19 +42,34 @@ impl CompilationError {
     }
 }
 
-#[derive(Default)]
-struct ShaderSemantics<S, C>
+struct ShaderSemantics<T, C>
 where
-    S: Target,
+    T: shader::Target,
     C: CompilationStatus,
 {
-    _stage: PhantomData<S>,
+    _target: PhantomData<T>,
     _compilation_status: PhantomData<C>,
 }
 
-struct ShaderAllocator<S>;
+impl<T, C> Default for ShaderSemantics<T, C>
+where
+    T: shader::Target,
+    C: CompilationStatus,
+{
+    fn default() -> Self {
+        Self {
+            _target: Default::default(),
+            _compilation_status: Default::default(),
+        }
+    }
+}
 
-unsafe impl<T: Target> Allocator for ShaderAllocator<T> {
+/// Allocator for Shader Objects.
+struct ShaderAllocator<T>(PhantomData<T>)
+where
+    T: shader::Target;
+
+unsafe impl<T: shader::Target> Allocator for ShaderAllocator<T> {
     fn allocate(names: &mut [Name]) {
         for name in names {
             *name = unsafe { gl::CreateShader(T::VALUE) };
@@ -97,22 +86,33 @@ unsafe impl<T: Target> Allocator for ShaderAllocator<T> {
     }
 }
 
-pub type ShaderObject<T> = Object<ShaderAllocator<T>>;
+type ShaderObject<T> = Object<ShaderAllocator<T>>;
 
-#[derive(Default)]
-pub struct Shader<S, C = Uncompiled>
+pub struct Shader<T, C = Uncompiled>
 where
-    S: Target,
+    T: shader::Target,
     C: CompilationStatus,
 {
-    object: Object<Self>,
-    _semantics: ShaderSemantics<S, C>
+    object: ShaderObject<T>,
+    _semantics: ShaderSemantics<T, C>,
 }
 
-
-impl<S> Shader<S, Uncompiled>
+impl<T, C> Default for Shader<T, C>
 where
-    S: Target,
+    T: shader::Target,
+    C: CompilationStatus,
+{
+    fn default() -> Self {
+        Self {
+            object: Default::default(),
+            _semantics: Default::default(),
+        }
+    }
+}
+
+impl<T> Shader<T, Uncompiled>
+where
+    T: shader::Target,
 {
     pub fn create() -> Self {
         Self::default()
@@ -120,18 +120,14 @@ where
 
     /// Add source for shader.
     pub fn source(&self, sources: &[&str]) -> &Self {
-        let pointers: Vec<_> = sources.iter()
-            .map(|s| s.as_ptr())
-            .collect();
-        let lengths: Vec<_> = sources.iter()
-            .map(|s| s.len())
-            .collect();
+        let pointers: Vec<_> = sources.iter().map(|s| s.as_ptr()).collect();
+        let lengths: Vec<_> = sources.iter().map(|s| s.len()).collect();
 
         gl_call! {
             #[panic]
             unsafe {
                 gl::ShaderSource(
-                    self.base.name,
+                    self.object.name(),
                     sources.len() as _,
                     pointers.as_ptr() as _,
                     lengths.as_ptr() as _
@@ -145,7 +141,7 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::GetShaderiv(self.base.name, param as _, output);
+                gl::GetShaderiv(self.object.name(), param as _, output);
             }
         }
     }
@@ -162,7 +158,7 @@ where
                 // todo: notes on error situations
                 unsafe {
                     gl::GetShaderInfoLog(
-                        self.base.name,
+                        self.object.name(),
                         buffer.capacity() as _,
                         &mut actual_length as *mut _,
                         buffer.as_mut_ptr() as _
@@ -179,33 +175,34 @@ where
         })
     }
 
-    unsafe fn retype(self) -> Shader<S, Compiled> {
-        Self {
+    unsafe fn retype(self) -> Shader<T, Compiled> {
+        Shader::<_, _> {
             object: self.object,
-            _semantics: Default::default()
+            _semantics: ShaderSemantics {
+                _target: PhantomData,
+                _compilation_status: PhantomData,
+            },
         }
     }
 
-    pub fn compile(self) -> Result<Shader<S, Compiled>, CompilationError> {
+    pub fn compile(self) -> Result<Shader<T, Compiled>, CompilationError> {
         gl_call! {
             #[propagate]
             unsafe {
-                gl::CompileShader(self.base.name)
+                gl::CompileShader(self.object.name())
             }
         };
-        self
-            .info_log()
-            .map_or(
-                // SAFETY: we just checked if shader compiled successfully
-                Ok(unsafe { self.retype() }),
-                |msg| Err(CompilationError { msg })
-            )
+        self.info_log().map_or(
+            // SAFETY: we just checked if shader compiled successfully
+            Ok(unsafe { self.retype() }),
+            |msg| Err(CompilationError { msg }),
+        )
     }
 }
 
-impl<S> Shader<S, Compiled>
+impl<T> Shader<T, Compiled>
 where
-    S: Target,
+    T: shader::Target,
 {
     pub fn inputs() {}
     pub fn outputs() {}

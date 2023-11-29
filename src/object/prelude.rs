@@ -21,9 +21,9 @@ impl<A: Allocator> Default for Object<A> {
     fn default() -> Self {
         let mut name = 0;
         A::allocate(&mut [name]);
-        Self { 
+        Self {
             name,
-            .. Default::default()
+            _allocator: PhantomData,
         }
     }
 }
