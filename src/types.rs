@@ -2,7 +2,8 @@
 
 //! TODO: Add DebugOnly type
 
-use gl::types::GLenum;
+
+pub struct Unimplemented;
 
 #[derive(Debug, Clone, Copy, Hash, Default, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
@@ -52,30 +53,30 @@ pub struct float16(u16);
 /// Known size ang internal layout
 /// note: alignment is platform specific
 pub unsafe trait Primitive: PartialEq + Copy + Sized + std::fmt::Debug {
-    const GL_TYPE: GLenum;
+    const GL_TYPE: u32;
 }
 
 unsafe impl Primitive for u8 {
-    const GL_TYPE: GLenum = gl::UNSIGNED_BYTE;
+    const GL_TYPE: u32 = gl::UNSIGNED_BYTE;
 }
 unsafe impl Primitive for u16 {
-    const GL_TYPE: GLenum = gl::UNSIGNED_SHORT;
+    const GL_TYPE: u32 = gl::UNSIGNED_SHORT;
 }
 unsafe impl Primitive for u32 {
-    const GL_TYPE: GLenum = gl::UNSIGNED_INT;
+    const GL_TYPE: u32 = gl::UNSIGNED_INT;
 }
 unsafe impl Primitive for i8 {
-    const GL_TYPE: GLenum = gl::BYTE;
+    const GL_TYPE: u32 = gl::BYTE;
 }
 unsafe impl Primitive for i16 {
-    const GL_TYPE: GLenum = gl::SHORT;
+    const GL_TYPE: u32 = gl::SHORT;
 }
 unsafe impl Primitive for i32 {
-    const GL_TYPE: GLenum = gl::INT;
+    const GL_TYPE: u32 = gl::INT;
 }
 unsafe impl Primitive for f32 {
-    const GL_TYPE: GLenum = gl::FLOAT;
+    const GL_TYPE: u32 = gl::FLOAT;
 }
 unsafe impl Primitive for f64 {
-    const GL_TYPE: GLenum = gl::DOUBLE;
+    const GL_TYPE: u32 = gl::DOUBLE;
 }
