@@ -2,13 +2,17 @@
 
 //! Definitions of glsl types.
 
-use crate::object::program::layout::Layout;
+use crate::types::Unimplemented;
+
+use super::layout::Layout;
 use std::marker::PhantomData;
 
 pub unsafe trait Scalar {}
 
 /// Marker trait for glsl types.
 pub unsafe trait Type: Layout {}
+
+unsafe impl Type for Unimplemented {}
 
 unsafe impl Type for f32 {}
 
