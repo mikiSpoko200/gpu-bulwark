@@ -1,7 +1,9 @@
 use super::prelude::*;
+use super::program::{CompiledShader, parameters};
 use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
+use crate::glsl;
 use gl::types::GLenum;
 use std::borrow::BorrowMut;
 use std::marker::PhantomData;
@@ -33,7 +35,7 @@ pub enum QueryParam {
 #[derive(thiserror::Error, Debug)]
 #[error("shader compilation failed {msg}")]
 pub struct CompilationError {
-    msg: String,
+    pub msg: String,
 }
 
 impl CompilationError {
@@ -65,7 +67,7 @@ where
 }
 
 /// Allocator for Shader Objects.
-struct ShaderAllocator<T>(PhantomData<T>)
+pub(crate) struct ShaderAllocator<T>(PhantomData<T>)
 where
     T: shader::Target;
 
@@ -93,7 +95,7 @@ where
     T: shader::Target,
     C: CompilationStatus,
 {
-    object: ShaderObject<T>,
+    pub(crate) object: ShaderObject<T>,
     _semantics: ShaderSemantics<T, C>,
 }
 
@@ -168,7 +170,7 @@ where
             // GetShaderInfoLog does not account for null terminator in returned length.
             // SAFETY: nothing will panic here so it's safe to set length.
             unsafe {
-                buffer.set_len((actual_length + 1) as _);
+                buffer.set_len((actual_length) as _);
             }
             // SAFETY: todo will shader compiler should emmit valid ascii?
             unsafe { String::from_utf8_unchecked(buffer) }
@@ -204,6 +206,77 @@ impl<T> Shader<T, Compiled>
 where
     T: shader::Target,
 {
-    pub fn inputs() {}
-    pub fn outputs() {}
+    pub fn into_main(self) -> Main<T, (), ()> {
+        Main(self, PhantomData, PhantomData)
+    }
+
+    pub fn into_shared(self) -> Shared<T> {
+        Shared(self)
+    }
+}
+
+pub trait TargetProvider {
+    type Target: shader::Target;
+}
+
+// todo impl From<CompiledShader<T>>
+/// Shader that contains entry point for the stage
+pub struct Main<T, I, O>(pub(crate) CompiledShader<T>, PhantomData<I>, PhantomData<O>)
+where
+    T: shader::Target,
+    I: parameters::Parameters,
+    O: parameters::Parameters,
+;
+
+impl<T, I, O> Main<T, I, O>
+where
+    T: shader::Target,
+    I: parameters::Parameters,
+    O: parameters::Parameters,
+{
+    pub fn input<NI>(self) -> Main<T, (I, NI), O>
+    where
+        NI: glsl::types::Type,
+    {
+        let Self(shader, ..) = self;
+        Main(shader, PhantomData, PhantomData)
+    }
+
+    pub fn output<NO>(self) -> Main<T, I, (O, NO)>
+    where
+        NO: glsl::types::Type,
+    {
+        let Self(shader, ..) = self;
+        Main(shader, PhantomData, PhantomData)
+    }
+}
+
+impl<T, I, O> std::ops::Deref for Main<T, I, O>
+where
+    T: shader::Target,
+    I: parameters::Parameters,
+    O: parameters::Parameters,
+{
+    type Target = CompiledShader<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+// todo impl From<CompiledShader<T>>
+pub struct Shared<T>(pub(crate) CompiledShader<T>)
+where
+    T: shader::Target,
+;
+
+impl<T> std::ops::Deref for Shared<T>
+where
+    T: shader::Target,
+{
+    type Target = CompiledShader<T>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
 }
