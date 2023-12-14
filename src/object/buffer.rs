@@ -37,13 +37,14 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Read), gl::DYNAMIC_READ);
 crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 
 /// Use to enforce semantics for OpenGL buffer object.
-struct BufferSemantics<T, F>
+pub(crate) struct BufferSemantics<T, F>
 where
     T: buffer::Target,
     (T, F): format::Valid,
 {
     _target_phantom: PhantomData<T>,
     _format_phantom: PhantomData<F>,
+    pub(crate) length: usize,
 }
 
 impl<T, F> Default for BufferSemantics<T, F>
@@ -55,8 +56,9 @@ where
         Self {
             _target_phantom: PhantomData,
             _format_phantom: PhantomData,
+            length: 0,
         }
-    }
+        }
 }
 
 /// Allocation strategy for OpenGL buffer objects.
@@ -84,7 +86,7 @@ where
     (T, F): format::Valid,
 {
     object: BufferObject,
-    _semantic: BufferSemantics<T, F>,
+    pub(crate) semantics: BufferSemantics<T, F>,
 }
 
 impl<T, F> Default for Buffer<T, F>
@@ -95,7 +97,7 @@ where
     fn default() -> Self {
         Self {
             object: Default::default(),
-            _semantic: Default::default(),
+            semantics: Default::default(),
         }
     }
 }
