@@ -1,8 +1,6 @@
 #![allow(unused)]
 
-use crate::object::resource::Handle;
-use crate::{targets as target};
-
+pub mod attributes;
 pub(crate) mod buffer;
 pub mod prelude;
 pub mod program;
@@ -10,24 +8,50 @@ pub mod resource;
 pub mod shader;
 pub mod vertex_array;
 
-use target::buffer::format;
-use crate::object::shader::{Vertex, Shader};
+use crate::{
+    glsl,
+    object::{
+        program::{attach::AttachShared, Program},
+        vertex_array::VertexArray,
+    },
+    target::buffer::format,
+};
+use frunk::HList;
+use program::attach::AttachMain;
+
+use self::{program::parameters, resource::Bindable};
 
 fn test() {
+    use crate::target::shader::{Fragment, Vertex};
     use buffer::{Draw, Static};
-    use shader::{Vertex, Fragment};
     use shader;
+    use shader::Shader;
 
     let vs_source = stringify! {
         #version 330 core
-        layout (location = 0) in vec3 aPos;
+        layout (location = 0) in vec3 position;
 
         out vec4 vertexColor;
 
+        void add_one(const vec3* src, vec* dest);
+        void sub_one(const vec3* src, vec* dest);
+
         void main()
         {
-            gl_Position = vec4(aPos, 1.0);
+            gl_Position = vec4(position, 1.0);
             vertexColor = vec4(0.5, 0.0, 0.0, 1.0);
+        }
+    };
+
+    let common_source = stringify! {
+        #version 330 core
+
+        void add_one(const vec3* src, vec* dest) {
+            *dest = *src + vec3(1.0f, 1.0f, 1.0f);
+        }
+
+        void sub_one(const vec3* src, vec* dest) {
+            *dest = *src - vec3(1.0f, 1.0f, 1.0f);
         }
     };
 
@@ -43,21 +67,64 @@ fn test() {
         }
     };
 
-    let vs = Shader::<Vertex>::create();
-    vs.source(&[vs_source]);
-    let compiled_vs = vs
-        .compile()
-        .expect("valid shader code provided");
-    let fs = Shader::<Fragment>::create();
-    fs.source(&[fs_source]);
-    let compiled_fs = fs
-        .compile()
-        .expect("valid shader code provided");
+    let foo: usize = 1;
+    let uncompiled_vs = Shader::<Vertex>::create();
+    let uncompiled_fs = Shader::<Fragment>::create();
+    let common = Shader::<Vertex>::create();
 
-    let mut buffer = buffer::make();
-    buffer.data::<(Static, Draw)>(&[
-        [-0.5, -0.5, 0.0],
-        [ 0.5, -0.5, 0.0],
-        [ 0.0,  0.5, 0.0],
-    ]);
+    uncompiled_vs.source(&[vs_source]);
+    uncompiled_fs.source(&[fs_source]);
+    common.source(&[common_source]);
+
+    let vs = uncompiled_vs
+        .compile()
+        .expect("valid shader code provided")
+        .into_main()
+        .input::<glsl::types::Vec3>()
+        .output::<glsl::types::Vec4>();
+    let fs = uncompiled_fs
+        .compile()
+        .expect("valid shader code provided")
+        .into_main()
+        .input::<glsl::types::Vec4>()
+        .output::<glsl::types::Vec4>();
+    let common = common
+        .compile()
+        .expect("valid shader code provided")
+        .into_shared();
+
+    let vs_main = vs;
+
+    let program = Program::builder(&vs_main)
+        .vertex_shared(&common)
+        .fragment_main(&fs)
+        .build()
+        .expect("linking successful");
+
+    let mut positions = buffer::Buffer::create();
+    positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]]);
+
+    let mut colors = buffer::Buffer::create();
+    // colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]]);
+    colors.data::<(Static, Draw)>(&[1.0]);
+
+    let vao = VertexArray::create()
+        .attach::<0, _>(&positions)
+        .attach::<1, _>(&colors);
+
+    draw_arrays(&vao, &program);
+}
+
+fn draw_arrays<AS, PSI, PSO>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO>)
+where
+    AS: attributes::Attributes,
+    PSI: parameters::Parameters,
+    PSO: parameters::Parameters,
+    (AS, PSI): glsl::map::Compatible,
+{
+    vao.bind();
+    program.bind();
+    unsafe { gl::DrawArrays(gl::TRIANGLES, 0, vao.len() as _) }
+    vao.unbind();
+    program.unbind();
 }
