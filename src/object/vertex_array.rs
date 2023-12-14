@@ -5,11 +5,13 @@ use std::marker::PhantomData;
 use super::buffer;
 use super::buffer::Buffer;
 use super::prelude::{Name, Object};
-use super::resource::Allocator;
+use super::resource::{Allocator, Bindable};
 use crate::gl_call;
 use crate::target::buffer as target;
-use frunk::hlist::{HCons, HList, HNil};
+use crate::prelude::{HList, HListExt};
+use super::attributes::{Attribute, Attributes};
 use gl::types::GLuint;
+
 
 struct VertexArrayAllocator;
 
@@ -30,65 +32,94 @@ unsafe impl Allocator for VertexArrayAllocator {
 #[derive(Default)]
 struct VertexArraySemantics<A>
 where
-    A: HList,
+    A: Attributes,
 {
+    pub length: usize,
     pub attributes: A,
 }
 
 impl<A> VertexArraySemantics<A>
 where
-    A: HList,
+    A: Attributes,
 {
-    pub fn attach<T>(self, attribute: T) -> VertexArraySemantics<HCons<T, A>> {
+    pub fn attach<'buffer, F, const ATTRIBUTE_INDEX: usize>(
+        self,
+        buffer: &'buffer Buffer<target::Array, F>,
+    ) -> VertexArraySemantics<(A, Attribute<'buffer, F, ATTRIBUTE_INDEX>)>
+    where
+        (target::Array, F): target::format::Valid,
+    {
+        let attribute = Attribute { buffer };
         VertexArraySemantics {
-            attributes: self.attributes.prepend(attribute),
+            length: self.length,
+            attributes: self.attributes.append(attribute),
         }
     }
 }
 
 #[derive(Default)]
+/// Representation of Vertex Array Object.
 pub struct VertexArray<A>
 where
-    A: HList,
+    A: Attributes,
 {
     object: Object<VertexArrayAllocator>,
     semantics: VertexArraySemantics<A>,
 }
 
-pub struct AttributeDecl<'buffer, F, const INDEX: usize>
+
+impl<A> VertexArray<A>
 where
-    (target::Array, F): target::format::Valid,
+    A: Attributes
 {
-    buffer: &'buffer Buffer<target::Array, F>,
+    pub const fn len(&self) -> usize {
+        self.semantics.length
+    }
 }
 
 impl<A> VertexArray<A>
 where
-    A: HList,
+    A: Attributes,
 {
     // Idea: use curring?
     pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, F>(
         self,
         buffer: &'buffer Buffer<target::Array, F>,
-    ) -> VertexArray<HCons<AttributeDecl<'buffer, F, ATTRIBUTE_INDEX>, A>>
+    ) -> VertexArray<(A, Attribute<'buffer, F, ATTRIBUTE_INDEX>)>
     where
         (target::Array, F): target::format::Valid,
     {
         let Self { object, semantics } = self;
-        let attribute: AttributeDecl<'buffer, F, ATTRIBUTE_INDEX> = AttributeDecl { buffer };
-        let semantics = semantics.attach(attribute);
+        if semantics.length != buffer.semantics.length {
+            panic!("buffers must be the same length, current {} received {}", semantics.length, buffer.semantics.length);
+        }
+        let semantics = semantics.attach(buffer);
         VertexArray::<_> { object, semantics }
     }
 }
 
-impl VertexArray<HNil> {
+impl VertexArray<()> {
     pub fn create() -> Self {
         Self::default()
     }
 }
 
-pub fn draw_arrays<A, I>(program: (), vertex_array: VertexArray<A>)
-where
-    A: HList,
-{
+impl<A: Attributes> Bindable for VertexArray<A> {
+    fn bind(&self) {
+        gl_call! {
+            #[panic]
+            unsafe {
+                gl::BindVertexArray(self.object.name());
+            }
+        }
+    }
+
+    fn unbind(&self) {
+        gl_call! {
+            #[panic]
+            unsafe {
+                gl::BindVertexArray(0);
+            }
+        }
+    }
 }
