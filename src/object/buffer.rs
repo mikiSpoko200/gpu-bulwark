@@ -113,21 +113,24 @@ where
         }
     }
 
-    pub fn data<U>(&self, data: &[F])
+    pub fn data<U>(&mut self, data: &[F])
     where
         U: Usage,
     {
         // TODO: error handling
         self.bind();
-        gl_call! { #[panic] unsafe {
+        gl_call! { 
+            #[panic] 
+            unsafe {
                 gl::BufferData(
                     T::VALUE,
-                    data.len() as _,
+                    (std::mem::size_of::<F>() * data.len()) as _,
                     data.as_ptr() as _,
                     U::VALUE,
                 );
             }
         }
+        self.semantics.length = data.len();
         self.unbind();
     }
 }

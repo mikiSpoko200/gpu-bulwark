@@ -190,12 +190,18 @@ where
 
     pub(crate) fn attach<T: shader::Target>(&self, stage: &ShaderStage<T>) {
         let main = stage.main;
-        unsafe {
-            gl::AttachShader(self.object.name(), main.object.name());
+        gl_call! {
+            #[panic]
+            unsafe {
+                gl::AttachShader(self.object.name(), main.object.name());
+            }
         }
         for shared in &stage.shared {
-            unsafe {
-                gl::AttachShader(self.object.name(), shared.object.name());
+            gl_call! {
+                #[panic]
+                unsafe {
+                    gl::AttachShader(self.object.name(), shared.object.name());
+                }
             }
         }
     }

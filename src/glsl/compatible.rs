@@ -1,15 +1,15 @@
-use crate::{object::attributes::Attribute, target};
+use crate::{object::attributes::{AttributeDecl, Attribute}, target};
 
 use super::types;
 
-pub unsafe trait Compatible {}
+pub unsafe trait Compatible<A, T> {}
 
 macro_rules! compatible {
     ($gl: ty, $glsl: path) => {
-        unsafe impl Compatible for ($gl, $glsl) {}
+        unsafe impl Compatible<$gl, $glsl> for ($gl, $glsl) {}
     };
     ($gl: ty, $glsl: ty) => {
-        unsafe impl Compatible for ($gl, $glsl) {}
+        unsafe impl Compatible<$gl, $glsl> for ($gl, $glsl) {}
     };
 }
 
@@ -64,17 +64,18 @@ compatible!([f64; 8], types::DMat4x2);
 compatible!([f64; 12], types::DMat4x3);
 compatible!([f64; 16], types::DMat4x4);
 
-unsafe impl<Gl, Glsl, const N: usize> Compatible for ([Gl; N], types::Array<Glsl, N>) {}
+unsafe impl<Gl, Glsl, const N: usize> Compatible<[Gl; N], types::Array<Glsl, N>> for ([Gl; N], types::Array<Glsl, N>) {}
 
 // Lists of types - base case
 compatible!((), ());
 
 // List of types - inductive step
-unsafe impl<'buffers, AS, A, PS, P, const ATTRIBUTE_INDEX: usize> Compatible
-    for ((AS, Attribute<'buffers, A, ATTRIBUTE_INDEX>), (PS, P))
+unsafe impl<'buffers, AS, A, PS, P, const ATTRIBUTE_INDEX: usize> Compatible<(AS, AttributeDecl<'buffers, A, ATTRIBUTE_INDEX>), (PS, P)>
+    for ((AS, AttributeDecl<'buffers, A, ATTRIBUTE_INDEX>), (PS, P))
 where
-    (A, P): Compatible,
-    (AS, PS): Compatible,
+    A: Attribute,
+    (A, P): Compatible<A, P>,
+    (AS, PS): Compatible<AS, PS>,
     (target::buffer::Array, A): target::buffer::format::Valid,
     P: types::Type,
 {

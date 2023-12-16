@@ -8,4 +8,6 @@ gl = "0.14.0"
 thiserror = "1.0.49"
 frunk = "0.4.2"
 glutin = "0.31.1"
-winit = "0.29.4"
+raw-window-handle = "0.5"
+winit = { version = "0.29.2", default-features = false, features = ["rwh_05"] }
+anyhow = "1.0.75"

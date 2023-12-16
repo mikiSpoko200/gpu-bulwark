@@ -170,10 +170,11 @@ where
             // GetShaderInfoLog does not account for null terminator in returned length.
             // SAFETY: nothing will panic here so it's safe to set length.
             unsafe {
-                buffer.set_len((actual_length) as _);
+                buffer.set_len(actual_length as _);
             }
             // SAFETY: todo will shader compiler should emmit valid ascii?
-            unsafe { String::from_utf8_unchecked(buffer) }
+            let message = unsafe { String::from_utf8_unchecked(buffer) };
+            message
         })
     }
 

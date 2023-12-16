@@ -9,7 +9,7 @@ pub mod shader;
 pub mod vertex_array;
 
 use crate::{
-    glsl,
+    gl_call, glsl,
     object::{
         program::{attach::AttachShared, Program},
         vertex_array::VertexArray,
@@ -81,6 +81,7 @@ fn test() {
         .expect("valid shader code provided")
         .into_main()
         .input::<glsl::types::Vec3>()
+        .input::<glsl::types::Vec4>()
         .output::<glsl::types::Vec4>();
     let fs = uncompiled_fs
         .compile()
@@ -105,8 +106,11 @@ fn test() {
     positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]]);
 
     let mut colors = buffer::Buffer::create();
-    // colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]]);
-    colors.data::<(Static, Draw)>(&[1.0]);
+    colors.data::<(Static, Draw)>(&[
+        [1.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+    ]);
 
     let vao = VertexArray::create()
         .attach::<0, _>(&positions)
@@ -115,16 +119,23 @@ fn test() {
     draw_arrays(&vao, &program);
 }
 
-fn draw_arrays<AS, PSI, PSO>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO>)
+pub fn draw_arrays<AS, PSI, PSO>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO>)
 where
     AS: attributes::Attributes,
     PSI: parameters::Parameters,
     PSO: parameters::Parameters,
-    (AS, PSI): glsl::map::Compatible,
+    (AS, PSI): glsl::compatible::Compatible<AS, PSI>,
 {
     vao.bind();
     program.bind();
-    unsafe { gl::DrawArrays(gl::TRIANGLES, 0, vao.len() as _) }
+
+    
+    gl_call! {
+        #[panic]
+        unsafe {
+            gl::DrawArrays(gl::TRIANGLES, 0, vao.len() as _);
+        }
+    }
     vao.unbind();
     program.unbind();
 }

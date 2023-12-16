@@ -7,9 +7,10 @@ use super::buffer::Buffer;
 use super::prelude::{Name, Object};
 use super::resource::{Allocator, Bindable};
 use crate::gl_call;
+use crate::types::Primitive;
 use crate::target::buffer as target;
 use crate::prelude::{HList, HListExt};
-use super::attributes::{Attribute, Attributes};
+use super::attributes::{AttributeDecl, Attributes, Attribute};
 use gl::types::GLuint;
 
 
@@ -30,28 +31,29 @@ unsafe impl Allocator for VertexArrayAllocator {
 }
 
 #[derive(Default)]
-struct VertexArraySemantics<A>
+struct VertexArraySemantics<AS>
 where
-    A: Attributes,
+    AS: Attributes,
 {
+    pub attributes: AS,
     pub length: usize,
-    pub attributes: A,
 }
 
-impl<A> VertexArraySemantics<A>
+impl<AS> VertexArraySemantics<AS>
 where
-    A: Attributes,
+    AS: Attributes,
 {
-    pub fn attach<'buffer, F, const ATTRIBUTE_INDEX: usize>(
+    pub fn attach<'buffer, A, const ATTRIBUTE_INDEX: usize>(
         self,
-        buffer: &'buffer Buffer<target::Array, F>,
-    ) -> VertexArraySemantics<(A, Attribute<'buffer, F, ATTRIBUTE_INDEX>)>
+        buffer: &'buffer Buffer<target::Array, A>,
+    ) -> VertexArraySemantics<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        (target::Array, F): target::format::Valid,
+        A: Attribute,
+        (target::Array, A): target::format::Valid,
     {
-        let attribute = Attribute { buffer };
+        let attribute = AttributeDecl { buffer };
         VertexArraySemantics {
-            length: self.length,
+            length: buffer.semantics.length,
             attributes: self.attributes.append(attribute),
         }
     }
@@ -77,23 +79,49 @@ where
     }
 }
 
-impl<A> VertexArray<A>
+impl<AS> VertexArray<AS>
 where
-    A: Attributes,
+    AS: Attributes,
 {
+    pub fn bind_buffers(&self) {
+        // todo: Add Iteration over attributes to trait `Attributes`
+    }
+
     // Idea: use curring?
-    pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, F>(
+    pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, A>(
         self,
-        buffer: &'buffer Buffer<target::Array, F>,
-    ) -> VertexArray<(A, Attribute<'buffer, F, ATTRIBUTE_INDEX>)>
+        buffer: &'buffer Buffer<target::Array, A>,
+    ) -> VertexArray<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        (target::Array, F): target::format::Valid,
+        A: Attribute,
+        (target::Array, A): target::format::Valid,
     {
-        let Self { object, semantics } = self;
-        if semantics.length != buffer.semantics.length {
-            panic!("buffers must be the same length, current {} received {}", semantics.length, buffer.semantics.length);
+        if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
+            panic!("buffers must be the same length, current {} received {}", self.semantics.length, buffer.semantics.length);
         }
-        let semantics = semantics.attach(buffer);
+
+        self.bind();
+        buffer.bind();
+        gl_call! {
+            #[panic]
+            unsafe {
+                gl::VertexAttribPointer(
+                    ATTRIBUTE_INDEX as _,
+                    A::SIZE as _,
+                    <A::Primitive as Primitive>::GL_TYPE,
+                    gl::FALSE,
+                    0,
+                    std::ptr::null()
+                );
+                gl::EnableVertexAttribArray(ATTRIBUTE_INDEX as _);
+            }
+        }
+        self.unbind();
+        buffer.unbind();
+
+        let Self { object, semantics } = self;
+
+        let mut semantics = semantics.attach(buffer);
         VertexArray::<_> { object, semantics }
     }
 }
