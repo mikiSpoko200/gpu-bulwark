@@ -208,11 +208,11 @@ where
     T: shader::Target,
 {
     pub fn into_main(self) -> Main<T, (), ()> {
-        Main(self, PhantomData, PhantomData)
+        Main::new(self)
     }
 
     pub fn into_shared(self) -> Shared<T> {
-        Shared(self)
+        Shared(self, PhantomData::<T>::default())
     }
 }
 
@@ -222,41 +222,45 @@ pub trait TargetProvider {
 
 // todo impl From<CompiledShader<T>>
 /// Shader that contains entry point for the stage
-pub struct Main<T, I, O>(pub(crate) CompiledShader<T>, PhantomData<I>, PhantomData<O>)
+pub struct Main<T, IS, OS, US=()>(pub(crate) CompiledShader<T>, PhantomData<IS>, PhantomData<OS>, PhantomData<US>)
 where
     T: shader::Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
 ;
 
-impl<T, I, O> Main<T, I, O>
+impl<T, IS, OS, US> Main<T, IS, OS, US>
 where
     T: shader::Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
 {
-    pub fn input<NI>(self) -> Main<T, (I, NI), O>
-    where
-        NI: glsl::types::Type,
-    {
-        let Self(shader, ..) = self;
-        Main(shader, PhantomData, PhantomData)
+    fn new(shader: CompiledShader<T>) -> Self {
+        Main(shader, PhantomData, PhantomData, PhantomData)
     }
 
-    pub fn output<NO>(self) -> Main<T, I, (O, NO)>
+    pub fn input<NIS>(self) -> Main<T, (IS, NIS), OS, US>
     where
-        NO: glsl::types::Type,
+        NIS: glsl::types::Type,
     {
         let Self(shader, ..) = self;
-        Main(shader, PhantomData, PhantomData)
+        Main::new(shader)
+    }
+
+    pub fn output<NOS>(self) -> Main<T, IS, (OS, NOS), US>
+    where
+        NOS: glsl::types::Type,
+    {
+        let Self(shader, ..) = self;
+        Main::new(shader)
     }
 }
 
-impl<T, I, O> std::ops::Deref for Main<T, I, O>
+impl<T, IS, OS, US> std::ops::Deref for Main<T, IS, OS, US>
 where
     T: shader::Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
 {
     type Target = CompiledShader<T>;
 
@@ -266,12 +270,12 @@ where
 }
 
 // todo impl From<CompiledShader<T>>
-pub struct Shared<T>(pub(crate) CompiledShader<T>)
+pub struct Shared<T, US=()>(pub(crate) CompiledShader<T>, PhantomData<US>)
 where
     T: shader::Target,
 ;
 
-impl<T> std::ops::Deref for Shared<T>
+impl<T, US> std::ops::Deref for Shared<T, US>
 where
     T: shader::Target,
 {

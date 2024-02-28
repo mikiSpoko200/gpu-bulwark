@@ -34,7 +34,6 @@ use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::Ver
 use object::shader;
 use shader::Shader;
 
-
 fn main() -> anyhow::Result<()> {
     println!("opening event loop...");
     let event_loop = EventLoop::new().expect("window creation is possible");
@@ -87,7 +86,7 @@ fn main() -> anyhow::Result<()> {
             let transparency_check = config.supports_transparency().unwrap_or(false)
                 & !accum.supports_transparency().unwrap_or(false);
 
-            if transparency_check || config.num_samples() < accum.num_samples() {
+            if transparency_check || config.num_samples() > accum.num_samples() {
                 config
             } else {
                 accum

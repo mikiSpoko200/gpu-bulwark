@@ -179,14 +179,15 @@ where
         <Self as GenericAttach>::generic_attach(&mut self, &shader.0);
         Builder {
             _target_phantom: std::marker::PhantomData,
-            _input_phantom: std::marker::PhantomData,
-            _output_phantom: std::marker::PhantomData,
+            _inputs_phantom: std::marker::PhantomData,
+            _outputs_phantom: std::marker::PhantomData,
             vertex: self.vertex,
             tesselation_control: self.tesselation_control,
             tesselation_evaluation: self.tesselation_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
+            uniforms: todo!(),
         }
     }
 }

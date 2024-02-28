@@ -3,7 +3,7 @@ pub mod buffer;
 pub mod prelude;
 pub mod shader;
 
-/// Common behaviour amongst all object specific targets
+/// Common behavior amongst all object specific targets
 pub unsafe trait Target: Default {
     const VALUE: u32;
 }
