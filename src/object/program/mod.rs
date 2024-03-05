@@ -301,6 +301,17 @@ where
         }
     } 
 
+    // 3 kinds of API
+    // uniform_xyz_default -- assigns default values on creation
+    // uniform_xyz_initializer -- assigns values from registered callbacks
+    // uniform_xyz -- expects parameter in program creation
+    // just build list in builder?
+
+    // TODO: Add where U: Uniform Marker
+    pub fn uniform<U>(mut self, value: U) {
+        self.uniforms = (value, self.uniforms)
+    }
+
     pub fn uniform_1f(location: u32, v0: f32) { }
     pub fn uniform_2f(location: u32, v0: f32, v1: f32) { }
     pub fn uniform_3f(location: u32, v0: f32, v1: f32, v2: f32) { }
