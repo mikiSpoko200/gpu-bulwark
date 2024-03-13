@@ -28,6 +28,8 @@ mod object;
 mod prelude;
 mod target;
 mod types;
+mod hlist;
+mod builder;
 
 use crate::target::shader::{Fragment, Vertex};
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
