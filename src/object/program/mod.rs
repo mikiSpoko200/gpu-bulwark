@@ -1,16 +1,20 @@
 pub mod attach;
 pub mod stage;
 pub mod parameters;
+pub mod uniform;
 
 use frunk::labelled::chars::T;
 use gl;
 use glutin::error;
+
+use self::uniform::Index;
 
 use super::prelude::Object;
 use super::resource::{Allocator, self};
 use super::shader::{Compiled, Shader, Main, TargetProvider, Shared, CompilationError};
 use crate::gl_call;
 use crate::glsl;
+use crate::hlist::indexed;
 use crate::target::shader;
 use crate::target::shader::{tesselation, Compute, Fragment, Geometry, Vertex};
 use crate::types::Unimplemented;
@@ -94,22 +98,23 @@ impl<I: parameters::Parameters, O: parameters::Parameters> std::default::Default
 }
 
 #[doc = include_str!("../../../docs/object/program/Program.md")]
-pub struct Program<IS, OS>
+pub struct Program<IS, OS, DUS>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
 {
     object: Object<ProgramAllocator>,
     semantics: ProgramSemantics<IS, OS>,
+    defined_uniforms: DUS,
 }
 
-impl<IS, OS> std::default::Default for Program<IS, OS>
+impl<IS, OS> std::default::Default for Program<IS, OS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
 {
     fn default() -> Self {
-        Self { object: Default::default(), semantics: Default::default() }
+        Self { object: Default::default(), semantics: Default::default(), defined_uniforms: () }
     }
 }
 
@@ -143,16 +148,17 @@ pub struct LinkingError {
     msg: String
 }
 
-impl<IS, OS> Program<IS, OS>
+impl<IS, OS, DUS> Program<IS, OS, DUS>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
 {
     // consider intoducing no input / output types so this method is not accessible
-    pub fn builder<'s, US>(vertex_shader: &'s Main<Vertex, IS, OS, US>) -> Builder<'s, Vertex, IS, OS, US>
+    pub fn builder<'s, US>(vertex_shader: &'s Main<Vertex, IS, OS, US>) -> Builder<'s, Vertex, IS, OS, DUS, US>
     where
         IS: parameters::Parameters,
         OS: parameters::Parameters,
+        DUS: crate::hlist::lhlist::Append,
     {
         Builder::new(vertex_shader)
     }
@@ -220,7 +226,7 @@ where
         }
     }
 
-    pub(self) fn link(self) -> Result<Program<IS, OS>, LinkingError> {
+    pub(self) fn link(self) -> Result<Program<IS, OS, DUS>, LinkingError> {
         unsafe {
             gl::LinkProgram(self.object.name());
         }
@@ -233,7 +239,7 @@ where
     }
 }
 
-impl<IS, OS> resource::Bindable for Program<IS, OS>
+impl<IS, OS, DUS> resource::Bindable for Program<IS, OS, DUS>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
@@ -258,21 +264,80 @@ where
     }
 }
 
-pub struct Builder<'shaders, T, IS, OS, US>
+pub struct Data<IS, OS>
+where
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
+{
+    inputs: PhantomData<IS>,
+    outputs: PhantomData<OS>,
+}
+
+impl<IS, OS> Default for Data<IS, OS>
+where
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
+{
+    fn default() -> Self {
+        Self { inputs: Default::default(), outputs: Default::default() }
+    }
+}
+
+pub struct Uniforms<DUS, UUS> {
+    defined_uniforms: DUS,
+    unmatched_uniforms: PhantomData<UUS>,
+}
+
+impl<UUS> Uniforms<(), UUS> {
+    fn new() -> Self {
+        Self {
+            defined_uniforms: (),
+            unmatched_uniforms: PhantomData,
+        }
+    }
+}
+
+impl<DUS> Uniforms<DUS, ()> {
+    /// Definition a new uniform with specified index
+    pub fn define<const INDEX: usize, U>(self, u: U) -> Uniforms<(DUS, U), ()> {
+        let Self { defined_uniforms, unmatched_uniforms } = self;
+        Uniforms {
+            defined_uniforms: (defined_uniforms, u),
+            unmatched_uniforms
+        }
+    }
+
+    pub fn get<const INDEX: usize, U>(&self) -> &U 
+    where
+        DUS: indexed::lhlist::Get<U>
+    {
+        let index: &indexed::Indexed<INDEX, U> = self.defined_uniforms.get::<INDEX>();
+    }
+}
+
+impl<DUS> Uniforms<DUS, ()> {
+    /// Add collection of uniforms 
+    pub fn add_unmatched<UUS>(self) -> Uniforms<DUS, UUS> {
+        Uniforms {
+            defined_uniforms: self.defined_uniforms,
+            unmatched_uniforms: PhantomData,
+        }
+    }
+}
+
+pub struct Builder<'shaders, T, IS, OS, DUS, UUS>
 where
     T: shader::Target,
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append,
 {
     _target_phantom: PhantomData<T>,
-    _inputs_phantom: PhantomData<IS>,
-    _outputs_phantom: PhantomData<OS>,
-    vertex: ShaderStage<'shaders, Vertex>,
-    uniforms: US,
+    _data: Data<IS, OS>,
+    uniforms: Uniforms<DUS, UUS>,
 
-    // todo: It would be nice to implement type state here to avoid options
+    vertex: ShaderStage<'shaders, Vertex>,
     tesselation_control: Option<ShaderStage<'shaders, tesselation::Control>>,
-    // Attach relation assures correctness
     tesselation_evaluation: Option<ShaderStage<'shaders, tesselation::Evaluation>>,
     geometry: Option<ShaderStage<'shaders, Geometry>>,
     fragment: Option<ShaderStage<'shaders, Fragment>>,
@@ -280,26 +345,26 @@ where
 }
 
 
-impl<'s, T, IS, OS, US> Builder<'s, T, IS, OS, US>
+impl<'s, T, IS, OS, DUS, UUS> Builder<'s, T, IS, OS, DUS, UUS>
 where
     T: shader::Target,
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
-    fn retype<NT: shader::Target, NOS: parameters::Parameters>(self) -> Builder<'s, NT, IS, NOS, US> {
+    fn retype<NT: shader::Target, NOS: parameters::Parameters, NUUS>(self) -> Builder<'s, NT, IS, NOS, DUS, NUUS> {
         Builder {
-            _outputs_phantom: PhantomData,
             _target_phantom: PhantomData,
-            _inputs_phantom: PhantomData,
-            vertex: self.vertex,
+            _data: Default::default(),
             uniforms: self.uniforms,
+            vertex: self.vertex,
             tesselation_control: self.tesselation_control,
             tesselation_evaluation: self.tesselation_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
         }
-    } 
+    }
 
     // 3 kinds of API
     // uniform_xyz_default -- assigns default values on creation
@@ -308,7 +373,7 @@ where
     // just build list in builder?
 
     // TODO: Add where U: Uniform Marker
-    pub fn uniform<U>(mut self, value: U) {
+    pub fn uniform<U>(mut self, value: U) -> Builder<'s, T, IS, OS, DUS, (UUS, U)> {
         self.uniforms = (value, self.uniforms)
     }
 
@@ -353,17 +418,17 @@ where
     pub fn uniform_matrix_x3fv(location: u32, transpose: bool, value: &[f32]) { }
 }
 
-impl<'s, IS, OS, US> Builder<'s, Vertex, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, Vertex, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append,
 {
-    pub fn new(vertex_shader: &'s Main<Vertex, IS, OS, US>) -> Self {
+    pub fn new<US>(vertex_shader: &'s Main<Vertex, IS, OS, US>) -> Builder<'_, Vertex, IS, OS, DUS, US> {
         Self {
             _target_phantom: PhantomData,
-            _inputs_phantom: PhantomData,
-            _outputs_phantom: PhantomData,
-            uniforms: US,
+            _data: Default::default(),
+            uniforms: Uniforms<DUS, US>::de,
             vertex: ShaderStage::new(vertex_shader),
             tesselation_control: None,
             tesselation_evaluation: None,
@@ -374,38 +439,39 @@ where
     }
 
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
-    pub fn vertex_shared<NUS>(mut self, shader: &'s Shared<Vertex, NUS>) -> Builder<'_, Vertex, IS, OS, (US, NUS)> {
+    pub fn vertex_shared<US>(mut self, shader: &'s Shared<Vertex, US>) -> Builder<'_, Vertex, IS, OS, DUS, US> {
         self.vertex.shared.push(shader);
         self
     }
 
-    pub fn tesselation_control_main<TCO: parameters::Parameters, NUS>(mut self, shader: &'s Main<tesselation::Control, OS, TCO, NUS>) -> Builder<tesselation::Control, IS, TCO, NUS> {    
+    pub fn tesselation_control_main<TCO: parameters::Parameters, NUS>(mut self, shader: &'s Main<tesselation::Control, OS, TCO, NUS>) -> Builder<tesselation::Control, IS, TCO, DUS, NUS> {
         self.tesselation_control = Some(ShaderStage::new(shader));
         self.retype()
     }
 
-    pub fn geometry_main<GO: parameters::Parameters, NUS>(mut self, geometry: &'s Main<Geometry, OS, GO, NUS>) -> Builder<Geometry, IS, GO, NUS> {
+    pub fn geometry_main<GO: parameters::Parameters, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US> {
         self.geometry = Some(ShaderStage::new(geometry));
         self.retype()
     }
 
-    pub fn fragment_main<FO: parameters::Parameters, NUS>(mut self, fragment: &'s Main<Fragment, OS, FO, NUS>) -> Builder<Fragment, IS, FO, NUS> {
+    pub fn fragment_main<FO: parameters::Parameters, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US> {
         self.fragment.replace(ShaderStage::new(fragment));
         self.retype()
     }
 }
 
-impl<'s, IS, OS, US> Builder<'s, tesselation::Control, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, tesselation::Control, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
-    pub fn tesselation_control_shared<NUS>(mut self, shared: &'s Shared<tesselation::Control, NUS>) -> Builder<'_, tesselation::Control, IS, OS, NUS> {
+    pub fn tesselation_control_shared<US>(mut self, shared: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US> {
         self.tesselation_control.as_mut().expect("tesselation control was initialized").shared.push(shared);
         self
     }
 
-    pub fn tesselation_evaluation_main<TEO, NUS>(mut self, shader: &'s Main<tesselation::Evaluation, OS, TEO, NUS>) -> Builder<tesselation::Evaluation, IS, TEO, NUS>
+    pub fn tesselation_evaluation_main<TEO, US>(mut self, shader: &'s Main<tesselation::Evaluation, OS, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US>
     where
         TEO: parameters::Parameters,
     {    
@@ -414,54 +480,57 @@ where
     }
 }
 
-impl<'s, IS, OS, US> Builder<'s, tesselation::Evaluation, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, tesselation::Evaluation, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
-    pub fn tesselation_evaluation_shared<NUS>(mut self, shared: &'s Shared<tesselation::Evaluation, NUS>) -> Self {
+    pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Self {
         self.tesselation_evaluation.as_mut().expect("tesselation evaluation stage was initialized").shared.push(shared);
         self
     }
 
-    pub fn geometry_main<GO: parameters::Parameters, NUS>(mut self, geometry: &'s Main<Geometry, OS, GO, NUS>) -> Builder<Geometry, IS, GO, NUS> {
+    pub fn geometry_main<GO: parameters::Parameters, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US> {
         self.geometry = Some(ShaderStage::new(geometry));
         self.retype()
     }
 
-    pub fn fragment_main<FO: parameters::Parameters, NUS>(mut self, fragment: &'s Main<Fragment, OS, FO, NUS>) -> Builder<Fragment, IS, FO, NUS> {
+    pub fn fragment_main<FO: parameters::Parameters, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US> {
         self.fragment = Some(ShaderStage::new(fragment));
         self.retype()
     }
 }
 
-impl<'s, IS, OS, US> Builder<'s, Geometry, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, Geometry, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
-    pub fn geometry_shared<NUS>(mut self, shared: &'s Shared<Geometry, NUS>) -> Builder<'_, Geometry, IS, OS, NUS> {
+    pub fn geometry_shared<US>(mut self, shared: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US> {
         self.geometry.as_mut().expect("geometry stage was initialized").shared.push(shared);
         self
     }
 
-    pub fn fragment_main<FO: parameters::Parameters, NUS>(mut self, fragment: &'s Main<Fragment, OS, FO, NUS>) -> Builder<Fragment, IS, FO, NUS> {
+    pub fn fragment_main<FO: parameters::Parameters, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US> {
         self.fragment = Some(ShaderStage::new(fragment));
         self.retype()
     }
 }
 
-impl<'s, IS, OS, US> Builder<'s, Fragment, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, Fragment, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
-    pub fn fragment_shared<NUS>(mut self, shared: &'s Shared<Fragment, NUS>) -> Builder<'_, Fragment, IS, OS, NUS> {
+    pub fn fragment_shared<US>(mut self, shared: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US> {
         self.fragment.as_mut().expect("fragment stage was initialized").shared.push(shared);
         self
     }
 
-    pub fn build(&self) -> Result<Program<IS, OS>, LinkingError> {
+    pub fn build(&self) -> Result<Program<IS, OS, DUS>, LinkingError> {
         let program = Program::default();
         program.attach(&self.vertex);
 
@@ -482,10 +551,11 @@ where
     }
 }
 
-impl<'s, IS, OS, US> Builder<'s, Vertex, IS, OS, US>
+impl<'s, IS, OS, DUS> Builder<'s, Vertex, IS, OS, DUS, ()>
 where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append
 {
     
-} 
+}

@@ -7,7 +7,6 @@ use crate::{
 
 use shader::Target;
 
-//region NextTarget
 
 /// Relation that determines next type after attaching
 pub(crate) trait NextTarget {
@@ -37,23 +36,22 @@ impl_next_target! { Geometry , tesselation::Evaluation => Geometry }
 impl_next_target! { Fragment , tesselation::Evaluation => Fragment }
 
 impl_next_target! { Fragment , Geometry => Fragment }
-//endregion
 
-//region [ rgba(0, 205, 30, 0.1) ] TargetProvider
-impl<'s, T, I, O> TargetProvider for Builder<'s, T, I, O>
+impl<'s, T, IS, OS, DUS, US> TargetProvider for Builder<'s, T, IS, OS, DUS, US>
 where
     T: Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append,
 {
     type Target = T;
 }
 
-impl<T, I, O> TargetProvider for Main<T, I, O>
+impl<T, IS, OS> TargetProvider for Main<T, IS, OS>
 where
     T: Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
 {
     type Target = T;
 }
@@ -64,9 +62,7 @@ where
 {
     type Target = T;
 }
-//endregion
 
-//region GenericAttach
 /// Allows for specialization of attach based on type.
 trait GenericAttach<'s> {
     type Shader: Target;
@@ -76,10 +72,11 @@ trait GenericAttach<'s> {
 
 macro_rules! impl_generic_attach {
     ($target: ty, $accessor: ident) => {
-        impl<'s, I, O> GenericAttach<'s> for Builder<'s, $target, I, O>
+        impl<'s, IS, OS, DUS, UUS> GenericAttach<'s> for Builder<'s, $target, IS, OS, DUS, UUS>
         where
-            I: parameters::Parameters,
-            O: parameters::Parameters,
+            IS: parameters::Parameters,
+            OS: parameters::Parameters,
+            DUS: crate::hlist::lhlist::Append,
         {
             type Shader = <Self as TargetProvider>::Target;
 
@@ -105,10 +102,11 @@ macro_rules! impl_generic_attach {
     };
 }
 
-impl<'s, I, O> GenericAttach<'s> for Builder<'s, Vertex, I, O>
+impl<'s, IS, OS, DUS> GenericAttach<'s> for Builder<'s, Vertex, IS, OS, DUS, ()>
 where
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append,
 {
     type Shader = <Self as TargetProvider>::Target;
 
@@ -134,12 +132,13 @@ where
     fn attach(self, shader: &'s Shared<T>) -> Self;
 }
 
-impl<'s, T, I, O> AttachShared<'s, T> for Builder<'s, T, I, O>
+impl<'s, T, IS, OS, DUS> AttachShared<'s, T> for Builder<'s, T, IS, OS, DUS, ()>
 where
     Self: GenericAttach<'s, Shader = T>,
     T: Target,
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    IS: parameters::Parameters,
+    OS: parameters::Parameters,
+    DUS: crate::hlist::lhlist::Append,
 {
     fn attach(mut self, shader: &'s Shared<T>) -> Self {
         <Self as GenericAttach>::generic_attach(&mut self, &shader.0);
@@ -160,7 +159,7 @@ where
     fn attach(self, shader: &'s T) -> Self::Output;
 }
 
-impl<'s, CT, NT, CI, CO, NO> AttachMain<'s, Main<NT, CO, NO>> for Builder<'s, CT, CI, CO>
+impl<'s, CT, NT, CI, CO, NO, DUS> AttachMain<'s, Main<NT, CO, NO>> for Builder<'s, CT, CI, CO, DUS, ()>
 where
     CT: Target,
     NT: Target,
@@ -172,15 +171,15 @@ where
     Self: TargetProvider,
     (NT, Self::Target): NextTarget,
     Self: GenericAttach<'s, Shader = NT>,
+    DUS: crate::hlist::lhlist::Append,
 {
-    type Output = Builder<'s, <(NT, Self::Target) as NextTarget>::Next, CI, NO>;
+    type Output = Builder<'s, <(NT, Self::Target) as NextTarget>::Next, CI, NO, DUS, ()>;
 
     fn attach(mut self, shader: &'s Main<NT, CO, NO>) -> Self::Output {
         <Self as GenericAttach>::generic_attach(&mut self, &shader.0);
         Builder {
             _target_phantom: std::marker::PhantomData,
-            _inputs_phantom: std::marker::PhantomData,
-            _outputs_phantom: std::marker::PhantomData,
+            _data: super::Data::default(),
             vertex: self.vertex,
             tesselation_control: self.tesselation_control,
             tesselation_evaluation: self.tesselation_evaluation,

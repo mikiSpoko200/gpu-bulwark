@@ -119,7 +119,7 @@ fn test() {
     draw_arrays(&vao, &program);
 }
 
-pub fn draw_arrays<AS, PSI, PSO>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO>)
+pub fn draw_arrays<AS, PSI, PSO, US>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO, US>)
 where
     AS: attributes::Attributes,
     PSI: parameters::Parameters,
