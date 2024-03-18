@@ -112,17 +112,17 @@ where
     // just build list in builder?
 }
 
-impl<'s, T, IS, OS, DUS, HUUS, TUUS> Builder<'s, T, IS, OS, DUS, (HUUS, TUUS)>
+impl<'s, T, IS, OS, DUS, HUUS, TUUS> Builder<'s, T, IS, OS, DUS, (HUUS, uniform::Declaration<TUUS>)>
 where
     T: shader::target::Target,
     IS: parameters::Parameters,
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
-    HUUS: uniform::marker::Uniform,
-    TUUS: uniform::marker::Declarations,
-    (HUUS, TUUS): uniform::marker::Declarations + hlist::rhlist::Base
+    TUUS: uniform::marker::Uniform,
+    HUUS: uniform::marker::Declarations,
+    (HUUS, TUUS): uniform::marker::Declarations
 {
-    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (HUUS, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (HUUS, uniform::Declaration<TUUS>)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -138,9 +138,9 @@ where
     }
 
     // TODO: Add where U: Uniform Marker
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Builder<'s, T, IS, OS, DUS, TUUS>
+    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Builder<'s, T, IS, OS, DUS, HUUS>
     where
-        DUS: hlist::lhlist::Selector<uniform::Definition<INDEX, HUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<uniform::Definition<INDEX, TUUS>, IDX>,
         IDX: hlist::counters::Index,
     {
         Builder {

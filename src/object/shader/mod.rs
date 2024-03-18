@@ -8,7 +8,7 @@ pub mod prelude;
 use target as shader;
 
 use super::prelude::*;
-use super::program::uniform;
+use super::program::uniform::{self, Declaration};
 use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
@@ -90,6 +90,7 @@ impl<T> Shader<T, Uncompiled, ()>
 where
     T: shader::Target
 {
+
     pub fn create() -> Self {
         Self {
             _uniform_declarations: Declarations::default(),
@@ -112,6 +113,16 @@ where
     T: shader::Target,
     US: uniform::marker::Declarations
 {
+    pub fn uniform<U>(self, ) -> Shader<T, Uncompiled, (US, Declaration<U>)>
+    where
+        U: uniform::marker::Uniform
+    {
+        Shader {
+            internal: self.internal,
+            _uniform_declarations: Declarations(PhantomData),
+        }
+    }
+
     /// Add source for shader.
     pub fn source(&self, sources: &[&str]) -> &Self {
         self.internal.source(sources);

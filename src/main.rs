@@ -31,7 +31,7 @@ mod types;
 mod hlist;
 mod builder;
 
-use crate::shader::target::{Fragment, Vertex};
+use crate::{object::program::uniform::Uniforms, shader::target::{Fragment, Vertex}};
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
 use object::shader;
 use shader::Shader;
@@ -133,6 +133,9 @@ fn main() -> anyhow::Result<()> {
     common.source(&[&common_source]);
 
     let vs = uncompiled_vs
+        .uniform::<f32>()
+        .uniform::<f32>()
+        .uniform::<[[f32; 4]; 4]>()
         .compile()?
         .into_main()
         .input::<glsl::types::Vec3>()
@@ -160,9 +163,16 @@ fn main() -> anyhow::Result<()> {
         .define::<2, _>(camera)
         .define::<3, _>(perspective)
         .vertex_main(&vs_main)
+        .match_uniform(|defined_uniforms|{
+            Uniforms::new()
+                .match_uniform(defined_uniforms.get::<4, _>())
+                .match_uniform(defined_uniforms.get::<2, _>())
+        })
         .vertex_shared(&common)
         .fragment_main(&fs)
         .build()?;
+
+    program.uniform::<1, _>(&new_model);
 
     let mut positions = Buffer::create();
     positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]]);

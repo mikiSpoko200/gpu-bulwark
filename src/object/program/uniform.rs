@@ -41,7 +41,6 @@ pub mod marker {
     impl_uniform!(i32);
 
     pub trait Definitions: Clone { }
-    pub trait Declarations: Clone + Default { }
 
     impl Definitions for () { }
     impl<H, const INDEX: usize, U> Definitions for (H, Definition<INDEX, U>)
@@ -49,6 +48,8 @@ pub mod marker {
         H: Definitions,
         U: Uniform
     {}
+
+    pub trait Declarations: Clone + Default { }
 
     impl Declarations for () { }
     impl<H, U> Declarations for (H, Declaration<U>)
@@ -172,17 +173,17 @@ where
     }
 }
 
-impl<DUS, HUUS, TUUS> Uniforms<DUS, (HUUS, TUUS)>
+impl<DUS, HUUS, TUUS> Uniforms<DUS, (HUUS, Declaration<TUUS>)>
 where
     DUS: marker::Definitions,
-    HUUS: marker::Uniform,
-    TUUS: marker::Declarations,
+    TUUS: marker::Uniform,
+    HUUS: marker::Declarations,
     (HUUS, TUUS): marker::Declarations
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Uniforms<DUS, TUUS>
+    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Uniforms<DUS, HUUS>
     where
-        DUS: hlist::lhlist::Selector<Definition<INDEX, HUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<Definition<INDEX, TUUS>, IDX>,
         IDX: hlist::counters::Index,
     {
         let _ = self.definitions.0.get();
