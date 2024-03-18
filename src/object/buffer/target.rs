@@ -1,7 +1,7 @@
 use crate::impl_target;
 
 /// A target marker for a buffer object.
-pub(crate) unsafe trait Target: super::Target {}
+pub(crate) unsafe trait Target: crate::target::Target {}
 
 #[derive(Default)]
 pub struct Array;

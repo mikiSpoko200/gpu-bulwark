@@ -8,7 +8,6 @@ use super::prelude::{Name, Object};
 use super::resource::{Allocator, Bindable};
 use crate::gl_call;
 use crate::types::Primitive;
-use crate::target::buffer as target;
 use crate::prelude::{HList, HListExt};
 use super::attributes::{AttributeDecl, Attributes, Attribute};
 use gl::types::GLuint;
@@ -45,11 +44,11 @@ where
 {
     pub fn attach<'buffer, A, const ATTRIBUTE_INDEX: usize>(
         self,
-        buffer: &'buffer Buffer<target::Array, A>,
+        buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArraySemantics<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
         A: Attribute,
-        (target::Array, A): target::format::Valid,
+        (buffer::target::Array, A): buffer::target::format::Valid,
     {
         let attribute = AttributeDecl { buffer };
         VertexArraySemantics {
@@ -90,11 +89,11 @@ where
     // Idea: use curring?
     pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, A>(
         self,
-        buffer: &'buffer Buffer<target::Array, A>,
+        buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArray<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
         A: Attribute,
-        (target::Array, A): target::format::Valid,
+        (buffer::target::Array, A): buffer::target::format::Valid,
     {
         if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
             panic!("buffers must be the same length, current {} received {}", self.semantics.length, buffer.semantics.length);

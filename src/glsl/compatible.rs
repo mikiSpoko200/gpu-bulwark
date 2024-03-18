@@ -1,4 +1,5 @@
-use crate::{object::attributes::{AttributeDecl, Attribute}, target};
+use crate::object::attributes::{AttributeDecl, Attribute};
+use crate::object::buffer::target;
 
 use super::types;
 
@@ -76,7 +77,7 @@ where
     A: Attribute,
     (A, P): Compatible<A, P>,
     (AS, PS): Compatible<AS, PS>,
-    (target::buffer::Array, A): target::buffer::format::Valid,
+    (target::Array, A): target::format::Valid,
     P: types::Type,
 {
 }

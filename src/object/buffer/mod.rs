@@ -1,7 +1,9 @@
+pub mod target;
+
 use super::resource::{Allocator, Bindable};
 use super::{prelude::*, resource};
 use crate::prelude::Const;
-use crate::target::{buffer, buffer::format};
+use target as buffer;
 use crate::{error, gl_call};
 use gl::types::{GLenum, GLuint};
 use std::marker::PhantomData;
@@ -40,7 +42,7 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 pub(crate) struct BufferSemantics<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     _target_phantom: PhantomData<T>,
     _format_phantom: PhantomData<F>,
@@ -50,7 +52,7 @@ where
 impl<T, F> Default for BufferSemantics<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     fn default() -> Self {
         Self {
@@ -58,7 +60,7 @@ where
             _format_phantom: PhantomData,
             length: 0,
         }
-        }
+    }
 }
 
 /// Allocation strategy for OpenGL buffer objects.
@@ -83,7 +85,7 @@ type BufferObject = Object<BufferAllocator>;
 pub struct Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     object: BufferObject,
     pub(crate) semantics: BufferSemantics<T, F>,
@@ -92,7 +94,7 @@ where
 impl<T, F> Default for Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     fn default() -> Self {
         Self {
@@ -105,7 +107,7 @@ where
 impl<T, F> Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     pub fn create() -> Self {
         Self {
@@ -138,7 +140,7 @@ where
 impl<T, F> Bindable for Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): format::Valid,
+    (T, F): buffer::format::Valid,
 {
     fn bind(&self) {
         gl_call! {

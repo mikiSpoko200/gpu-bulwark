@@ -38,7 +38,7 @@ macro_rules! gl_call {
     (#[panic] $invocation:stmt) => {
         $invocation
         if cfg!(debug_assertions) {
-            let errors = crate::error::Error::poll_queue();
+            let errors = $crate::error::Error::poll_queue();
             if errors.len() > 0 {
                 let message = errors.into_iter().map(ToString::to_string).collect::<Vec<_>>().join("\n");
                 panic!("{message}");
@@ -47,7 +47,7 @@ macro_rules! gl_call {
     };
     (#[propagate] $invocation:stmt) => {
         $invocation
-        let errors = crate::error::Error::poll_queue();
+        let errors = $crate::error::Error::poll_queue();
         if errors.len() > 0 { Err(errors) } else { Ok(()) }
     };
 }

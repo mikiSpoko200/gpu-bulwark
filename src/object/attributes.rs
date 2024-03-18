@@ -1,16 +1,16 @@
 //! This module provides specialization of HLists for Vertex Array Object attributes.
 use crate::prelude::HList;
 use super::buffer::Buffer;
-use crate::target;
+use super::buffer::target as buffer;
 use crate::glsl;
 use crate::types;
 
 pub(crate) struct AttributeDecl<'buffer, F, const INDEX: usize>
 where
     F: Attribute,
-    (target::buffer::Array, F): target::buffer::format::Valid,
+    (buffer::Array, F): buffer::format::Valid,
 {
-    pub buffer: &'buffer Buffer<target::buffer::Array, F>,
+    pub buffer: &'buffer Buffer<buffer::Array, F>,
 }
 
 pub trait Attribute {
@@ -36,6 +36,6 @@ impl<'buffer, A, AS, const INDEX: usize> Attributes for (AS, AttributeDecl<'buff
 where
     A: Attribute,
     AS: Attributes,
-    (target::buffer::Array, A): target::buffer::format::Valid,
+    (buffer::Array, A): buffer::format::Valid,
 {
 }

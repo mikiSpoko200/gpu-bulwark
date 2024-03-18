@@ -31,7 +31,7 @@ mod types;
 mod hlist;
 mod builder;
 
-use crate::target::shader::{Fragment, Vertex};
+use crate::shader::target::{Fragment, Vertex};
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
 use object::shader;
 use shader::Shader;
@@ -149,7 +149,17 @@ fn main() -> anyhow::Result<()> {
 
     let vs_main = vs;
 
+    let aspect_ratio = 1f32;
+    let model = [[0f32; 4]; 4];
+    let camera = [[1f32; 4]; 4];
+    let perspective = [[2f32; 4]; 4];
+
     let program = Program::builder(&vs_main)
+        .define::<0, _>(aspect_ratio)
+        .define::<1, _>(model)
+        .define::<2, _>(camera)
+        .define::<3, _>(perspective)
+        .vertex_main(&vs_main)
         .vertex_shared(&common)
         .fragment_main(&fs)
         .build()?;
