@@ -8,6 +8,10 @@ use crate::builder;
 use super::builder::Builder;
 
 pub mod marker {
+    use crate::hlist;
+    use crate::hlist::lhlist::Invert;
+    use crate::hlist::rhlist::Append;
+
     use super::{Definition, Declaration};
 
     pub unsafe trait Uniform: Clone + Default { }
@@ -49,27 +53,64 @@ pub mod marker {
         U: Uniform
     {}
 
-    pub trait Declarations: Clone + Default { }
-
-    impl Declarations for () { }
-    impl<H, U> Declarations for (H, Declaration<U>)
+    pub trait Declarations<FD>: Clone + Default
     where
-        H: Declarations,
+        FD: hlist::FoldDirection
+    {}
+
+    impl<FD> Declarations<FD> for () where FD: hlist::FoldDirection {}
+
+    pub trait LDeclarations: Declarations<hlist::Left> { }
+
+    pub trait RDeclarations: Declarations<hlist::Right> { }
+
+    impl LDeclarations for () { }
+    /// Left folded Declarations
+    impl<H, U> Declarations<hlist::Left> for (H, Declaration<U>)
+    where
+        H: Declarations<hlist::Left>,
+        U: Uniform
+    {}
+
+    impl<H, U> LDeclarations for (H, Declaration<U>)
+    where
+        U: Uniform,
+        H: LDeclarations,
+    {}
+
+    /// Right folded Declarations
+    impl<T, U> Declarations<hlist::Right> for (Declaration<U>, T)
+    where
+        T: Declarations<hlist::Right>,
+        U: Uniform
+    {}
+
+    impl RDeclarations for () { }
+    impl<T, U> RDeclarations for (Declaration<U>, T)
+    where
+        T: Declarations<hlist::Right>,
         U: Uniform
     {}
 }
-
-// TODO: impl Uniform for appropriate rust types
 
 #[derive(Clone)]
 pub struct Definition<const INDEX: usize, U>(pub U) where U: marker::Uniform;
 
 #[derive(Clone)]
-pub struct Definitions<US>(pub US) where US: marker::Definitions;
+pub struct Definitions<US>
+where
+    US: marker::Definitions
+{
+    pub values: US,
+    pub locations: Vec<u32>,
+} 
 
 impl Definitions<()> {
     pub fn new() -> Self {
-        Self(())
+        Self {
+            values: (), 
+            locations: Vec::new()
+        }
     }
 }
 
@@ -87,14 +128,18 @@ where
     where
         U: marker::Uniform
     {
-        Definitions((self.0, Definition(u)))
+        Definitions {
+            values: (self.values, Definition(u)),
+            locations: self.locations,
+        }
     }
 
-    pub fn vertex_main<VI, VO, US>(self, vertex: &super::Main<super::Vertex, VI, VO, US>) -> Builder<super::Vertex, VI, VO, DUS, US>
+    pub fn vertex_main<VI, VO, US>(self, vertex: &super::Main<super::Vertex, VI, VO, US>) -> Builder<super::Vertex, VI, VO, DUS, US::Inverted>
     where
         VI: super::parameters::Parameters,
         VO: super::parameters::Parameters,
-        US: marker::Declarations
+        US: marker::LDeclarations + lhlist::Invert,
+        US::Inverted: marker::RDeclarations
     {
         Builder::<super::Vertex, VI, VO, DUS, ()>::new::<US>(vertex, self)
     }
@@ -110,11 +155,11 @@ impl<U: marker::Uniform> Default for Declaration<U> {
 }
 
 #[derive(Clone)]
-pub struct Declarations<US>(PhantomData<US>) where US: marker::Declarations;
+pub struct Declarations<US>(PhantomData<US>) where US: marker::RDeclarations;
 
 impl<US> Default for Declarations<US>
 where
-    US: marker::Declarations
+    US: marker::RDeclarations
 {
     fn default() -> Self {
         Self(PhantomData)
@@ -127,12 +172,11 @@ impl<const VALUE: usize> Index<VALUE> {
     pub const VALUE: usize = VALUE;
 }
 
-// TODO: Add `DUS` trait bound
 #[derive(Clone)]
 pub struct Uniforms<DUS, UUS>
 where
-UUS: marker::Declarations,
-DUS: marker::Definitions,
+    DUS: marker::Definitions,
+    UUS: marker::RDeclarations,
 {
     pub(super) definitions: Definitions<DUS>,
     pub(super) declarations: Declarations<UUS>,
@@ -141,7 +185,7 @@ DUS: marker::Definitions,
 impl<DUS, UUS> Uniforms<DUS, UUS> 
 where
     DUS: marker::Definitions,
-    UUS: marker::Declarations,
+    UUS: marker::RDeclarations,
 {
     pub fn new(definitions: Definitions<DUS>) -> Self {
         Self {
@@ -165,7 +209,7 @@ where
     }
   
     /// Add collection of uniforms 
-    pub fn add_unmatched<UUS: marker::Declarations>(self) -> Uniforms<DUS, UUS> {
+    pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> Uniforms<DUS, UUS> {
         Uniforms {
             definitions: self.definitions,
             declarations: Declarations::default(),
@@ -173,17 +217,17 @@ where
     }
 }
 
-impl<DUS, HUUS, TUUS> Uniforms<DUS, (HUUS, Declaration<TUUS>)>
+impl<DUS, HUUS, TUUS> Uniforms<DUS, (Declaration<HUUS>, TUUS)>
 where
     DUS: marker::Definitions,
-    TUUS: marker::Uniform,
-    HUUS: marker::Declarations,
-    (HUUS, TUUS): marker::Declarations
+    HUUS: marker::Uniform,
+    TUUS: marker::RDeclarations,
+    (Declaration<HUUS>, TUUS): marker::RDeclarations
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Uniforms<DUS, HUUS>
+    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Uniforms<DUS, TUUS>
     where
-        DUS: hlist::lhlist::Selector<Definition<INDEX, TUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<Definition<INDEX, HUUS>, IDX>,
         IDX: hlist::counters::Index,
     {
         let _ = self.definitions.0.get();
@@ -197,8 +241,6 @@ where
 
 
 // TODO?: Give access to the underlying HList
-
-// TODO: AUS to UniformDecls from ProgramBuilder
 
 // /// Type that implements uniform matching.
 // pub struct Matcher<'program, AUS, UUS, MUS, I>

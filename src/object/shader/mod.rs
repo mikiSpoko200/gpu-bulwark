@@ -9,6 +9,7 @@ use target as shader;
 
 use super::prelude::*;
 use super::program::uniform::{self, Declaration};
+use crate::hlist::indexed::rhlist;
 use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
@@ -70,7 +71,7 @@ pub struct Shader<T, C = Uncompiled, US = ()>
 where
     T: shader::Target,
     C: CompilationStatus,
-    US: uniform::marker::Declarations
+    US: uniform::marker::LDeclarations
 {
     internal: internal::Shader<T, C>,
     _uniform_declarations: Declarations<US>,
@@ -111,11 +112,11 @@ where
 impl<T, US> Shader<T, Uncompiled, US>
 where
     T: shader::Target,
-    US: uniform::marker::Declarations
+    US: uniform::marker::LDeclarations,
 {
-    pub fn uniform<U>(self, ) -> Shader<T, Uncompiled, (US, Declaration<U>)>
+    pub fn uniform<U>(self) -> Shader<T, Uncompiled, (US, Declaration<U>)>
     where
-        U: uniform::marker::Uniform
+        U: uniform::marker::Uniform,
     {
         Shader {
             internal: self.internal,
@@ -141,7 +142,7 @@ where
 impl<T, US> Shader<T, Compiled, US>
 where
     T: shader::Target,
-    US: uniform::marker::Declarations
+    US: uniform::marker::LDeclarations
 {
     pub fn into_main(self) -> Main<T, (), (), US> {
         Main::new(self.internal)

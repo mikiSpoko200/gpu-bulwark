@@ -34,7 +34,7 @@ where
     IS: parameters::Parameters,
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
-    UUS: uniform::marker::Declarations
+    UUS: uniform::marker::RDeclarations
 {
     _target_phantom: PhantomData<T>,
     _data: Data<IS, OS>,
@@ -54,9 +54,10 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
 {
-    pub fn new<US>(vertex: &'s Main<Vertex, IS, OS, US>, definitions: uniform::Definitions<DUS>) -> Builder<'s, Vertex, IS, OS, DUS, US>
+    pub fn new<US>(vertex: &'s Main<Vertex, IS, OS, US>, definitions: uniform::Definitions<DUS>) -> Builder<'s, Vertex, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         Builder {
             _target_phantom: PhantomData,
@@ -76,7 +77,7 @@ where
     where
         NT: shader::target::Target,
         NOS: parameters::Parameters,
-        NUS: uniform::marker::Declarations
+        NUS: uniform::marker::RDeclarations
     {
         Builder {
             _target_phantom: PhantomData,
@@ -91,7 +92,10 @@ where
         }
     }
 
-    fn retype_unmatched_uniforms<NUUS: uniform::marker::Declarations>(self, uniforms: Uniforms<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS> {
+    fn retype_unmatched_uniforms<NUUS>(self, uniforms: Uniforms<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
+    where
+        NUUS: uniform::marker::RDeclarations
+    {
         Builder {
             _target_phantom: PhantomData,
             _data: self._data,
@@ -112,17 +116,17 @@ where
     // just build list in builder?
 }
 
-impl<'s, T, IS, OS, DUS, HUUS, TUUS> Builder<'s, T, IS, OS, DUS, (HUUS, uniform::Declaration<TUUS>)>
+impl<'s, T, IS, OS, DUS, HUUS, TUUS> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS>, TUUS)>
 where
     T: shader::target::Target,
     IS: parameters::Parameters,
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
-    TUUS: uniform::marker::Uniform,
-    HUUS: uniform::marker::Declarations,
-    (HUUS, TUUS): uniform::marker::Declarations
+    HUUS: uniform::marker::Uniform,
+    TUUS: uniform::marker::RDeclarations,
+    (uniform::Declaration<HUUS>, TUUS): uniform::marker::RDeclarations
 {
-    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (HUUS, uniform::Declaration<TUUS>)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -137,10 +141,9 @@ where
         }
     }
 
-    // TODO: Add where U: Uniform Marker
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Builder<'s, T, IS, OS, DUS, HUUS>
+    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Builder<'s, T, IS, OS, DUS, TUUS>
     where
-        DUS: hlist::lhlist::Selector<uniform::Definition<INDEX, TUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<uniform::Definition<INDEX, HUUS>, IDX>,
         IDX: hlist::counters::Index,
     {
         Builder {
@@ -205,37 +208,41 @@ where
     DUS: uniform::marker::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
-    pub fn vertex_shared<US>(mut self, vertex: &'s Shared<Vertex, US>) -> Builder<'_, Vertex, IS, OS, DUS, US>
+    pub fn vertex_shared<US>(mut self, vertex: &'s Shared<Vertex, US>) -> Builder<'_, Vertex, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.vertex.shared.push(&vertex.0);
         let declarations = self.uniforms.clone().add_unmatched();
         self.retype_unmatched_uniforms(declarations)
     }
 
-    pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US>
+    pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
     where
         TCO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.tesselation_control = Some(internal::ShaderStage::new(&tesselation_control.0));
         self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US>
+    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
         GO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.geometry = Some(internal::ShaderStage::new(&geometry.0));
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.fragment.replace(internal::ShaderStage::new(&fragment.0));
         self.retype_attach()
@@ -249,18 +256,20 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
 {
-    pub fn tesselation_control_shared<US>(mut self, tesselation_control: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US>
+    pub fn tesselation_control_shared<US>(mut self, tesselation_control: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.tesselation_control.as_mut().expect("tesselation control was initialized").shared.push(&tesselation_control.0);
         self.retype_attach()
     }
 
-    pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US>
+    pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
     where
         TEO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {    
         self.tesselation_evaluation = Some(internal::ShaderStage::new(&tesselation_evaluation.0));
         self.retype_attach()
@@ -274,27 +283,30 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions
 {
-    pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Self
+    pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Builder<'_, tesselation::Evaluation, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.tesselation_evaluation.as_mut().expect("tesselation evaluation stage was initialized").shared.push(&shared.0);
-        self
+        self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US>
+    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
         GO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.geometry = Some(internal::ShaderStage::new(&geometry.0));
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.fragment = Some(internal::ShaderStage::new(&fragment.0));
         self.retype_attach()
@@ -308,18 +320,20 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions
 {
-    pub fn geometry_shared<US>(mut self, geometry: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US>
+    pub fn geometry_shared<US>(mut self, geometry: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.geometry.as_mut().expect("geometry stage was initialized").shared.push(&geometry.0);
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: parameters::Parameters,
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.fragment = Some(internal::ShaderStage::new(&fragment.0));
         self.retype_attach()
@@ -333,9 +347,10 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions
 {
-    pub fn fragment_shared<US>(mut self, fragment: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US>
+    pub fn fragment_shared<US>(mut self, fragment: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US::Inverted>
     where
-        US: uniform::marker::Declarations
+        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.fragment.as_mut().expect("fragment stage was initialized").shared.push(&fragment.0);
         self.retype_attach()
