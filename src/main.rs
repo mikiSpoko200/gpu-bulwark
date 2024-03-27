@@ -135,7 +135,7 @@ fn main() -> anyhow::Result<()> {
     let vs = uncompiled_vs
         .uniform::<f32>()
         .uniform::<f32>()
-        .uniform::<[[f32; 4]; 4]>()
+        .uniform::<[f32; 2]>()
         .compile()?
         .into_main()
         .input::<glsl::types::Vec3>()
@@ -150,29 +150,23 @@ fn main() -> anyhow::Result<()> {
         .compile()?
         .into_shared();
 
-    let vs_main = vs;
+    let aspect_ratio: f32 = 1f32;
+    let scale: f32 = 0.1;
+    let positions: [f32; 2] = [0.; 2];
 
-    let aspect_ratio = 1f32;
-    let model = [[0f32; 4]; 4];
-    let camera = [[1f32; 4]; 4];
-    let perspective = [[2f32; 4]; 4];
+    // TODO: store locations (untyped for now?)
 
-    let program = Program::builder(&vs_main)
+    let program = Program::builder()
         .define::<0, _>(aspect_ratio)
-        .define::<1, _>(model)
-        .define::<2, _>(camera)
-        .define::<3, _>(perspective)
-        .vertex_main(&vs_main)
-        .match_uniform(|defined_uniforms|{
-            Uniforms::new()
-                .match_uniform(defined_uniforms.get::<4, _>())
-                .match_uniform(defined_uniforms.get::<2, _>())
-        })
+        .define::<1, _>(scale)
+        .define::<2, _>(positions)
+        .vertex_main(&vs)
+            .match_uniform::<0, _>()
+            .match_uniform::<1, _>()
+            .match_uniform::<2, _>()
         .vertex_shared(&common)
         .fragment_main(&fs)
         .build()?;
-
-    program.uniform::<1, _>(&new_model);
 
     let mut positions = Buffer::create();
     positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]]);
