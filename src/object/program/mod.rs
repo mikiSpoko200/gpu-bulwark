@@ -111,6 +111,13 @@ where
     defined_uniforms: uniform::Definitions<DUS>,
 }
 
+impl Program<(), (), ()> {
+    // consider intoducing no input / output types so this method is not accessible
+    pub fn builder() -> Definitions<()> {
+        Definitions::new()
+    }
+}
+
 impl<IS, OS> Program<IS, OS, ()>
 where
     IS: parameters::Parameters,
@@ -130,15 +137,6 @@ where
             _phantoms: Default::default(),
             defined_uniforms: uniforms.definitions,
         }
-    }
-    
-    // consider intoducing no input / output types so this method is not accessible
-    pub fn builder<'s, US>(vertex_shader: &'s Main<Vertex, IS, OS, US>) -> Definitions<()>
-    where
-        IS: parameters::Parameters,
-        OS: parameters::Parameters,
-    {
-        Definitions::new()
     }
 }
 
