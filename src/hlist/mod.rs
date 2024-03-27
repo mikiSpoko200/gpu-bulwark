@@ -165,11 +165,11 @@ pub mod lhlist {
     
     /// LHList conversion to RHList
     pub trait Invert: Base {
-        type Inverted: super::rhlist::Base;
+        type Inverted: super::rhlist::Append;
     
         fn invert(self) -> Self::Inverted;
     }
-    
+
     /// Base case
     impl Invert for () {
         type Inverted = ();
@@ -179,20 +179,19 @@ pub mod lhlist {
         }
     }
     
-    /// Inductive step
     impl<H: Invert, E> Invert for (H, E)
     where
-        H::Inverted: super::rhlist::Append<E>
+        H: Invert,
+        <H::Inverted as super::rhlist::Append>::Appended<E>: super::rhlist::Append,
     {
-        type Inverted = <H::Inverted as super::rhlist::Append<E>>::Appended;
+        type Inverted = <H::Inverted as super::rhlist::Append>::Appended<E>;
     
         fn invert(self) -> Self::Inverted {
-            let (head, elem) = self;
-            <H::Inverted as super::rhlist::Append<E>>::append(head.invert(), elem)
+            let (head, tail) = self;
+            super::rhlist::Append::append(head.invert(), tail)
         }
     }
-
-
+    
     // --------==========[ HList Reversion ]==========--------
 
     /// Reverse LHList
@@ -301,26 +300,26 @@ pub mod rhlist {
     // --------==========[ Append ]==========--------
 
     /// Append for RHList.
-    pub trait Append<E>: Base {
-        type Appended: Base;
+    pub trait Append: Base {
+        type Appended<E>: Base;
 
-        fn append(self, elem: E) -> Self::Appended;
+        fn append<E>(self, elem: E) -> Self::Appended<E>;
     }
 
     /// Base case
-    impl<E> Append<E> for () {
-        type Appended = (E, ());
+    impl Append for () {
+        type Appended<E> = (E, ());
 
-        fn append(self, elem: E) -> Self::Appended {
+        fn append<E>(self, elem: E) -> Self::Appended<E> {
             (elem, ())
         }
     }
 
     /// Inductive step
-    impl<E, H, T: Append<E>> Append<E> for (H, T) {
-        type Appended = (H, <T as Append<E>>::Appended);
+    impl<H, T: Append> Append for (H, T) {
+        type Appended<E> = (H, <T as Append>::Appended<E>);
 
-        fn append(self, elem: E) -> Self::Appended {
+        fn append<E>(self, elem: E) -> Self::Appended<E> {
             let (head, tail) = self;
             (head, tail.append(elem))
         }
@@ -470,9 +469,9 @@ pub mod rhlist {
     /// Inductive step
     impl<E, T: Reverse> Reverse for (E, T)
     where
-        T::Reversed: Append<E>,
+        T::Reversed: Append,
     {
-        type Reversed = <T::Reversed as Append<E>>::Appended;
+        type Reversed = <T::Reversed as Append>::Appended<E>;
         
         fn reverse(self) -> Self::Reversed {
             let (elem, tail) = self;
@@ -521,8 +520,13 @@ pub mod rhlist {
 
 // --------==========[ Unified HList ]==========--------
 
+pub trait FoldDirection { }
+
 pub struct Left;
+impl FoldDirection for Left { }
+
 pub struct Right;
+impl FoldDirection for Right { }
 
 
 // TODO: impl for Nil and RCons / LCons ???
