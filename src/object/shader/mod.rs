@@ -9,11 +9,12 @@ use target as shader;
 
 use super::prelude::*;
 use super::program::uniform::{self, Declaration};
+use crate::glsl::location::{Location, Validated};
 use crate::hlist::indexed::rhlist;
 use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
-use crate::glsl;
+use crate::glsl::{self, location};
 use std::borrow::BorrowMut;
 use std::marker::PhantomData;
 use std::mem::ManuallyDrop;
@@ -114,9 +115,9 @@ where
     T: shader::Target,
     US: uniform::marker::LDeclarations,
 {
-    pub fn uniform<U>(self) -> Shader<T, Uncompiled, (US, Declaration<U>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &Location<U, LOCATION, Validated>) -> Shader<T, Uncompiled, (US, Declaration<U, LOCATION>)>
     where
-        U: uniform::marker::Uniform,
+        U: glsl::Uniform,
     {
         Shader {
             internal: self.internal,

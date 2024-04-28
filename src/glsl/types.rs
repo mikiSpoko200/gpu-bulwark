@@ -2,26 +2,33 @@
 
 //! Definitions of glsl types.
 
-use super::layout::Layout;
+use super::location;
 use std::marker::PhantomData;
 
-pub unsafe trait Scalar {}
 
 /// Marker trait for glsl types.
-pub unsafe trait Type: Layout {}
+pub unsafe trait Type: location::marker::Location + Default + Clone + Sized {}
+
+/// Marker trait for glsl scalar types.
+pub trait Scalar: Type {}
 
 unsafe impl Type for f32 {}
+impl Scalar for f32 {}
 
 unsafe impl Type for f64 {}
+impl Scalar for f64 {}
 
 unsafe impl Type for i32 {}
+impl Scalar for i32 {}
 
 unsafe impl Type for u32 {}
+impl Scalar for u32 {}
 
 unsafe impl Type for bool {}
+impl Scalar for bool {}
 
 /// Wrapper for integer values that moves them into type system.
-pub struct Const<const NUMBER: usize>;
+pub(crate) struct Const<const NUMBER: usize>;
 
 pub trait VecSize {}
 
@@ -31,27 +38,32 @@ impl VecSize for Const<3> {}
 
 impl VecSize for Const<4> {}
 
-/// GLSL Vectors can contain multiple data types but can only appear in sized of 2, 3 or 4.
-/// This constraint is represented by trait bound `VecSize` on `Const`.
-pub struct Vec<T, const SIZE: usize>(PhantomData<T>)
-where
-    Const<SIZE>: VecSize;
+pub mod base {
+    use super::{VecSize, Const, PhantomData, Type};
 
-/// Matrix is in fact just a Vector of Vectors.
-///
-/// Array is not used here since not all Array sizes are valid Matrices.
-/// Vectors on the contrary fit here perfectly.
-pub type Mat<T, const ROW: usize, const COL: usize = ROW> = Vec<Vec<T, COL>, ROW>;
+    /// Generic basis for GLSL Vectors. 
+    /// GLSL Vectors can contain multiple data types but can only appear in sized of 2, 3 or 4.
+    /// This constraint is represented by trait bound `VecSize` on `Const`.
+    #[derive(Clone, Debug, Default)]
+    pub struct Vec<T, const SIZE: usize>(PhantomData<T>)
+    where
+        Const<SIZE>: VecSize,
+        T: Type,
+    ;
+}
 
-pub type Vec2 = Vec<f32, 2>;
-pub type Vec3 = Vec<f32, 3>;
-pub type Vec4 = Vec<f32, 4>;
+/// Vector of single precision floats.
+pub type Vec<const N: usize> = base::Vec<f32, N>;
 
-/// Vector of single precision floats is a valid type.
-unsafe impl<const N: usize> Type for Vec<f32, N> where Const<N>: VecSize {}
+pub type Vec2 = Vec<2>;
+pub type Vec3 = Vec<3>;
+pub type Vec4 = Vec<4>;
+
+unsafe impl<const N: usize> Type for Vec<N> where Const<N>: VecSize {}
+
 
 /// Vector of signed integers.
-pub type IVec<const N: usize> = Vec<i32, N>;
+pub type IVec<const N: usize> = base::Vec<i32, N>;
 
 pub type IVec2 = IVec<2>;
 pub type IVec3 = IVec<3>;
@@ -61,7 +73,7 @@ pub type IVec4 = IVec<4>;
 unsafe impl<const N: usize> Type for IVec<N> where Const<N>: VecSize {}
 
 /// Vector of unsigned integers.
-pub type UVec<const N: usize> = Vec<u32, N>;
+pub type UVec<const N: usize> = base::Vec<u32, N>;
 
 pub type UVec2 = UVec<2>;
 pub type UVec3 = UVec<3>;
@@ -71,7 +83,7 @@ pub type UVec4 = UVec<4>;
 unsafe impl<const N: usize> Type for UVec<N> where Const<N>: VecSize {}
 
 /// Vector of Doubles.
-pub type DVec<const N: usize> = Vec<f64, N>;
+pub type DVec<const N: usize> = base::Vec<f64, N>;
 
 pub type DVec2 = DVec<2>;
 pub type DVec3 = DVec<3>;
@@ -81,7 +93,7 @@ pub type DVec4 = DVec<4>;
 unsafe impl<const N: usize> Type for DVec<N> where Const<N>: VecSize {}
 
 /// SAFETY: note bool here may be ABI incompatible
-pub type BVec<const N: usize> = Vec<bool, N>;
+pub type BVec<const N: usize> = base::Vec<bool, N>;
 
 pub type BVec2 = BVec<2>;
 pub type BVec3 = BVec<3>;
@@ -90,7 +102,15 @@ pub type BVec4 = BVec<4>;
 /// Vector of booleans is a valid type.
 unsafe impl<const N: usize> Type for BVec<N> where Const<N>: VecSize {}
 
-pub type Mat2 = Vec<Vec<f32, 2>, 2>;
+
+/// Matrix is in fact just a Vector of Vectors.
+///
+/// Array is not used here since not all Array sizes are valid Matrices.
+/// Vectors on the contrary fit here perfectly.
+pub type Mat<T, const ROW: usize, const COL: usize = ROW> = base::Vec<base::Vec<T, COL>, ROW>;
+/// Vector of single precision floats is a valid type.
+
+pub type Mat2 = Mat<f32, 2, 2>;
 pub type Mat2x2 = Mat<f32, 2, 2>;
 pub type Mat2x3 = Mat<f32, 2, 3>;
 pub type Mat2x4 = Mat<f32, 2, 4>;
@@ -132,8 +152,9 @@ where
 {
 }
 
-/// Layout for an Array of `T` where `T: Layout` of size `N` is `N * <T as Layout>::LOCATION_COUNT`,
-pub struct Array<T, const N: usize>(PhantomData<T>);
+/// GLSL array.
+#[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
+pub struct Array<T, const N: usize>(PhantomData<T>) where T: Type;
 
 /// Array of types is a valid type.
 unsafe impl<T, const N: usize> Type for Array<T, N> where T: Type {}

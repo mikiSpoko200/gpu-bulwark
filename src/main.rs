@@ -30,11 +30,12 @@ mod target;
 mod types;
 mod hlist;
 mod builder;
+use crate::shader::target::{Fragment, Vertex};
 
-use crate::{object::program::uniform::Uniforms, shader::target::{Fragment, Vertex}};
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
 use object::shader;
 use shader::Shader;
+use glsl::location::Locations;
 
 fn main() -> anyhow::Result<()> {
     println!("opening event loop...");
@@ -74,8 +75,7 @@ fn main() -> anyhow::Result<()> {
         )
     };
 
-    let surface_attributes =
-        SurfaceAttributesBuilder::<WindowSurface>::new().build(window_handle, width, height);
+    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(window_handle, width, height);
 
     let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
 
@@ -132,20 +132,27 @@ fn main() -> anyhow::Result<()> {
     uncompiled_fs.source(&[&fs_source]);
     common.source(&[&common_source]);
 
+    // TODO: add macro for pattern matching
+    let ((((), aspect_ratio_location), scale_location), position_location) = locations![
+        Location<f32, 0>,
+        Location<f32, 1>,
+        Location<glsl::Vec2, 2>,
+    ];
+
     let vs = uncompiled_vs
-        .uniform::<f32>()
-        .uniform::<f32>()
-        .uniform::<[f32; 2]>()
+        .uniform(&aspect_ratio_location)
+        .uniform(&scale_location)
         .compile()?
         .into_main()
-        .input::<glsl::types::Vec3>()
-        .input::<glsl::types::Vec4>()
-        .output::<glsl::types::Vec4>();
+        .input::<glsl::Vec3>()
+        .input::<glsl::Vec4>()
+        .output::<glsl::Vec4>();
     let fs = uncompiled_fs
+        .uniform(&position_location)
         .compile()?
         .into_main()
-        .input::<glsl::types::Vec4>()
-        .output::<glsl::types::Vec4>();
+        .input::<glsl::Vec4>()
+        .output::<glsl::Vec4>();
     let common = common
         .compile()?
         .into_shared();
@@ -157,15 +164,19 @@ fn main() -> anyhow::Result<()> {
     // TODO: store locations (untyped for now?)
 
     let program = Program::builder()
-        .define::<0, _>(aspect_ratio)
-        .define::<1, _>(scale)
-        .define::<2, _>(positions)
-        .vertex_main(&vs)
-            .match_uniform::<0, _>()
-            .match_uniform::<1, _>()
-            .match_uniform::<2, _>()
+        .uniforms(|definitions| definitions
+            .define(aspect_ratio, &aspect_ratio_location)
+            .define(scale, &scale_location)
+            .define(positions, &position_location)
+        )
+        .vertex_main(&vs).match_uniforms(|matcher| matcher
+            .match_uniform(&aspect_ratio_location)
+            .match_uniform(&scale_location)
+        )
         .vertex_shared(&common)
-        .fragment_main(&fs)
+        .fragment_main(&fs).match_uniforms(|uniforms| uniforms
+            .match_uniform(&position_location)
+        )
         .build()?;
 
     let mut positions = Buffer::create();

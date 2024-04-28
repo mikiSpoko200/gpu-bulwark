@@ -65,7 +65,10 @@ compatible!([f64; 8], types::DMat4x2);
 compatible!([f64; 12], types::DMat4x3);
 compatible!([f64; 16], types::DMat4x4);
 
-unsafe impl<Gl, Glsl, const N: usize> Compatible<[Gl; N], types::Array<Glsl, N>> for ([Gl; N], types::Array<Glsl, N>) {}
+unsafe impl<Gl, Glsl, const N: usize> Compatible<[Gl; N], types::Array<Glsl, N>> for ([Gl; N], types::Array<Glsl, N>)
+where
+    Glsl: super::Type
+{}
 
 // Lists of types - base case
 compatible!((), ());

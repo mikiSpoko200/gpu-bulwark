@@ -2,58 +2,32 @@
 use std::marker::PhantomData;
 
 use super::super::shader::target;
+use crate::glsl::location;
 use crate::{prelude::HList, glsl};
 use crate::hlist::{self, indexed, lhlist as lhlist, rhlist as rhlist};
 use crate::builder;
 use super::builder::Builder;
+use glsl::location::{Location, Validated, Unvalidated};
 
 pub mod marker {
-    use crate::hlist;
+    use crate::{glsl, hlist};
     use crate::hlist::lhlist::Invert;
     use crate::hlist::rhlist::Append;
 
     use super::{Definition, Declaration};
 
-    pub unsafe trait Uniform: Clone + Default { }
-
-    macro_rules! impl_uniform {
-        ($tt: ty) => {
-            unsafe impl Uniform for $tt { }
-        };
-    }
-
-    impl_uniform!(f32);
-    impl_uniform!([f32; 2]);
-    impl_uniform!([f32; 3]);
-    impl_uniform!([f32; 4]);
-
-    impl_uniform!([[f32; 2]; 2]);
-    impl_uniform!([[f32; 2]; 3]);
-    impl_uniform!([[f32; 2]; 4]);
-
-    impl_uniform!([[f32; 3]; 2]);
-    impl_uniform!([[f32; 3]; 3]);
-    impl_uniform!([[f32; 3]; 4]);
-
-    impl_uniform!([[f32; 4]; 2]);
-    impl_uniform!([[f32; 4]; 3]);
-    impl_uniform!([[f32; 4]; 4]);
-
-    // TODO: impl Uniform
-
-    impl_uniform!(u32);
-    impl_uniform!(i32);
-
     pub trait Definitions: Clone { }
 
     impl Definitions for () { }
-    impl<H, const INDEX: usize, U> Definitions for (H, Definition<INDEX, U>)
+    impl<H, const LOCATION: usize, GLU, GLSLU> Definitions for (H, Definition<GLU, GLSLU, LOCATION>)
     where
         H: Definitions,
-        U: Uniform
+        GLU: Clone,
+        GLSLU: glsl::Uniform,
+        (GLU, GLSLU): glsl::compatible::Compatible<GLU, GLSLU>
     {}
 
-    pub trait Declarations<FD>: Clone + Default
+    pub trait Declarations<FD>: Clone
     where
         FD: hlist::FoldDirection
     {}
@@ -66,35 +40,35 @@ pub mod marker {
 
     impl LDeclarations for () { }
     /// Left folded Declarations
-    impl<H, U> Declarations<hlist::Left> for (H, Declaration<U>)
+    impl<H, U, const LOCATION: usize> Declarations<hlist::Left> for (H, Declaration<U, LOCATION>)
     where
         H: Declarations<hlist::Left>,
-        U: Uniform
+        U: glsl::Uniform
     {}
 
-    impl<H, U> LDeclarations for (H, Declaration<U>)
+    impl<H, U, const LOCATION: usize> LDeclarations for (H, Declaration<U, LOCATION>)
     where
-        U: Uniform,
+        U: glsl::Uniform,
         H: LDeclarations,
     {}
 
     /// Right folded Declarations
-    impl<T, U> Declarations<hlist::Right> for (Declaration<U>, T)
+    impl<T, U, const LOCATION: usize> Declarations<hlist::Right> for (Declaration<U, LOCATION>, T)
     where
         T: Declarations<hlist::Right>,
-        U: Uniform
+        U: glsl::Uniform
     {}
 
     impl RDeclarations for () { }
-    impl<T, U> RDeclarations for (Declaration<U>, T)
+    impl<T, U, const LOCATION: usize> RDeclarations for (Declaration<U, LOCATION>, T)
     where
         T: Declarations<hlist::Right>,
-        U: Uniform
+        U: glsl::Uniform
     {}
 }
 
 #[derive(Clone)]
-pub struct Definition<const INDEX: usize, U>(pub U) where U: marker::Uniform;
+pub struct Definition<GLU, GLSLU, const LOCATION: usize>(pub GLU, PhantomData<GLSLU>);
 
 #[derive(Clone)]
 pub struct Definitions<US>
@@ -124,33 +98,38 @@ impl<DUS> Definitions<DUS>
 where
     DUS: marker::Definitions,
 {
-    pub fn define<const INDEX: usize, U>(self, u: U) -> Definitions<(DUS, Definition<INDEX, U>)>
+    pub fn define<const LOCATION: usize, GLU, GLSLU>(self, uniform: GLU, _: &Location<GLSLU, LOCATION, Validated>) -> Definitions<(DUS, Definition<GLU, GLSLU, LOCATION>)>
     where
-        U: marker::Uniform
+        GLSLU: glsl::Uniform,
+        GLU: Clone,
+        (GLU, GLSLU): glsl::compatible::Compatible<GLU, GLSLU>,
     {
         Definitions {
-            values: (self.values, Definition(u)),
+            values: (self.values, Definition(uniform, PhantomData)),
             locations: self.locations,
         }
     }
 
-    pub fn vertex_main<VI, VO, US>(self, vertex: &super::Main<super::Vertex, VI, VO, US>) -> Builder<super::Vertex, VI, VO, DUS, US::Inverted>
-    where
-        VI: super::parameters::Parameters,
-        VO: super::parameters::Parameters,
-        US: marker::LDeclarations + lhlist::Invert,
-        US::Inverted: marker::RDeclarations
-    {
-        Builder::<super::Vertex, VI, VO, DUS, ()>::new::<US>(vertex, self)
-    }
+    // pub fn vertex_main<VI, VO, US>(self, vertex: &super::Main<super::Vertex, VI, VO, US>) -> Builder<super::Vertex, VI, VO, DUS, US::Inverted>
+    // where
+    //     VI: super::parameters::Parameters,
+    //     VO: super::parameters::Parameters,
+    //     US: marker::LDeclarations + lhlist::Invert,
+    //     US::Inverted: marker::RDeclarations
+    // {
+    //     self.vertex_main(vertex)
+    // }
 }
 
 #[derive(Clone)]
-pub struct Declaration<U>(PhantomData<U>) where U: marker::Uniform;
+pub struct Declaration<U, const LOCATION: usize>(Location<U, LOCATION, Validated>) where U: glsl::Uniform;
 
-impl<U: marker::Uniform> Default for Declaration<U> {
-    fn default() -> Self {
-        Self(Default::default())
+impl<U, const LOCATION: usize> Declaration<U, LOCATION>
+where
+    U: glsl::Uniform
+{
+    pub const fn new(loaction: Location<U, LOCATION, Validated>) -> Self {
+        Self(loaction)
     }
 }
 
@@ -182,6 +161,12 @@ where
     pub(super) declarations: Declarations<UUS>,
 }
 
+impl Default for Uniforms<(), ()> {
+    fn default() -> Self {
+        Self { definitions: Default::default(), declarations: Default::default() }
+    }
+}
+
 impl<DUS, UUS> Uniforms<DUS, UUS> 
 where
     DUS: marker::Definitions,
@@ -200,8 +185,13 @@ where
     DUS: marker::Definitions,
 {
     /// Definition a new uniform with specified index
-    pub fn define<const INDEX: usize, U: marker::Uniform>(self, u: U) -> Uniforms<(DUS, Definition<INDEX, U>), ()> {
-        let extended = self.definitions.define(u);
+    pub fn define<GLU, GLSLU, const LOCATION: usize>(self, uniform: GLU, location: &Location<GLSLU, LOCATION, Validated>) -> Uniforms<(DUS, Definition<GLU, GLSLU, LOCATION>), ()>
+    where
+        GLSLU: glsl::Uniform,
+        GLU: Clone,
+        (GLU, GLSLU): glsl::compatible::Compatible<GLU, GLSLU>,
+    {
+        let extended = self.definitions.define(uniform, location);
         Uniforms {
             declarations: Declarations::default(),
             definitions: extended,
@@ -217,25 +207,20 @@ where
     }
 }
 
-impl<DUS, HUUS, TUUS> Uniforms<DUS, (Declaration<HUUS>, TUUS)>
+impl<DUS, HUUS, TUUS, const LOCATION: usize> Uniforms<DUS, (Declaration<HUUS, LOCATION>, TUUS)>
 where
     DUS: marker::Definitions,
-    HUUS: marker::Uniform,
+    HUUS: glsl::Uniform,
     TUUS: marker::RDeclarations,
-    (Declaration<HUUS>, TUUS): marker::RDeclarations
+    (Declaration<HUUS, LOCATION>, TUUS): marker::RDeclarations
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Uniforms<DUS, TUUS>
+    pub fn match_uniform<GLU, IDX>(self, _: &Location<HUUS, LOCATION, Validated>) -> Uniforms<DUS, TUUS>
     where
-        DUS: hlist::lhlist::Selector<Definition<INDEX, HUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<Definition<GLU, HUUS, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
-        let _ = self.definitions.0.get();
-
-        Uniforms {
-            definitions: self.definitions,
-            declarations: Declarations::default(),
-        }
+        Uniforms::new(self.definitions)
     }
 }
 

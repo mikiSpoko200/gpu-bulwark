@@ -2,7 +2,6 @@
 
 //! TODO: Add DebugOnly type
 
-
 pub struct Unimplemented;
 
 #[derive(Debug, Clone, Copy, Hash, Default, PartialEq, Eq)]

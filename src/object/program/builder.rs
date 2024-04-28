@@ -4,9 +4,15 @@ use super::shader;
 use super::shader::prelude::*;
 use super::shader::parameters;
 use super::internal;
+use super::uniform::Definitions;
 use super::uniform::Uniforms;
 use super::uniform;
+use crate::glsl;
+use crate::glsl::location;
+use crate::glsl::location::Location;
+use crate::glsl::location::Validated;
 use crate::hlist;
+use crate::hlist::lhlist;
 use crate::object::shader::parameters::Parameters;
 
 pub struct Data<IS, OS>
@@ -39,7 +45,7 @@ where
     _target_phantom: PhantomData<T>,
     _data: Data<IS, OS>,
     uniforms: Uniforms<DUS, UUS>,
-    vertex: internal::ShaderStage<'shaders, Vertex>,
+    vertex: Option<internal::ShaderStage<'shaders, Vertex>>,
     tesselation_control: Option<internal::ShaderStage<'shaders, tesselation::Control>>,
     tesselation_evaluation: Option<internal::ShaderStage<'shaders, tesselation::Evaluation>>,
     geometry: Option<internal::ShaderStage<'shaders, Geometry>>,
@@ -54,28 +60,29 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
 {
-    pub fn new<US>(vertex: &'s Main<Vertex, IS, OS, US>, definitions: uniform::Definitions<DUS>) -> Builder<'s, Vertex, IS, OS, DUS, US::Inverted>
-    where
-        US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
-        US::Inverted: uniform::marker::RDeclarations,
-    {
-        Builder {
-            _target_phantom: PhantomData,
-            _data: Data::default(),
-            uniforms: Uniforms::new(definitions),
-            vertex: internal::ShaderStage::new(&vertex.0),
-            tesselation_control: Default::default(),
-            tesselation_evaluation: Default::default(),
-            geometry: Default::default(),
-            fragment: Default::default(),
-            compute: Default::default(),
-        }
-    }
-
     // TODO: clean this up
     fn retype_attach<NT, NOS, NUS>(self) -> Builder<'s, NT, IS, NOS, DUS, NUS>
     where
         NT: shader::target::Target,
+        NOS: parameters::Parameters,
+        NUS: uniform::marker::RDeclarations
+    {
+        Builder {
+            _target_phantom: PhantomData,
+            _data: Default::default(),
+            uniforms: self.uniforms.add_unmatched(),
+            vertex: self.vertex,
+            tesselation_control: self.tesselation_control,
+            tesselation_evaluation: self.tesselation_evaluation,
+            geometry: self.geometry,
+            fragment: self.fragment,
+            compute: self.compute,
+        }
+    }
+
+    fn retype_vertex_attach<NIS, NOS, NUS>(self) -> Builder<'s, Vertex, NIS, NOS, DUS, NUS>
+    where
+        NIS: parameters::Parameters,
         NOS: parameters::Parameters,
         NUS: uniform::marker::RDeclarations
     {
@@ -109,6 +116,23 @@ where
         }
     }
 
+    fn retype_definitions<NDUS>(self, definitions: Definitions<NDUS>) -> Builder<'s, Vertex, (), (), NDUS, ()>
+    where
+        NDUS: uniform::marker::Definitions
+    {
+        Builder {
+            _target_phantom: PhantomData,
+            _data: Default::default(),
+            uniforms: Uniforms::new(definitions),
+            vertex: self.vertex,
+            tesselation_control: self.tesselation_control,
+            tesselation_evaluation: self.tesselation_evaluation,
+            geometry: self.geometry,
+            fragment: self.fragment,
+            compute: self.compute,
+        }
+    }
+
     // 3 kinds of API
     // uniform_xyz_default -- assigns default values on creation
     // uniform_xyz_initializer -- assigns values from registered callbacks
@@ -116,17 +140,17 @@ where
     // just build list in builder?
 }
 
-impl<'s, T, IS, OS, DUS, HUUS, TUUS> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS>, TUUS)>
+impl<'s, T, IS, OS, DUS, HUUS, TUUS, const LOCATION: usize> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>
 where
     T: shader::target::Target,
     IS: parameters::Parameters,
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions,
-    HUUS: uniform::marker::Uniform,
+    HUUS: glsl::Uniform,
     TUUS: uniform::marker::RDeclarations,
-    (uniform::Declaration<HUUS>, TUUS): uniform::marker::RDeclarations
+    (uniform::Declaration<HUUS, LOCATION>, TUUS): uniform::marker::RDeclarations
 {
-    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -141,13 +165,13 @@ where
         }
     }
 
-    pub fn match_uniform<const INDEX: usize, IDX>(self) -> Builder<'s, T, IS, OS, DUS, TUUS>
+    pub fn match_uniform<GLU, IDX>(self, location: &Location<HUUS, LOCATION, Validated>) -> Builder<'s, T, IS, OS, DUS, TUUS>
     where
-        DUS: hlist::lhlist::Selector<uniform::Definition<INDEX, HUUS>, IDX>,
+        DUS: hlist::lhlist::Selector<uniform::Definition<GLU, HUUS, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
         Builder {
-            uniforms: self.uniforms.match_uniform(),
+            uniforms: self.uniforms.match_uniform(location),
             _target_phantom: PhantomData,
             _data: self._data,
             vertex: self.vertex,
@@ -200,6 +224,52 @@ where
     pub fn uniform_matrix_x3fv(location: u32, transpose: bool, value: &[f32]) { }
 }
 
+impl Default for Builder<'_, Vertex, (), (), (), ()> {
+    fn default() -> Self {
+        Self { 
+            _target_phantom: Default::default(), 
+            _data: Default::default(), 
+            uniforms: Default::default(), 
+            vertex: Default::default(), 
+            tesselation_control: Default::default(), 
+            tesselation_evaluation: Default::default(), 
+            geometry: Default::default(), 
+            fragment: Default::default(), 
+            compute: Default::default()
+        }
+    }
+}
+
+impl<'s> Builder<'s, Vertex, (), (), (), ()> {
+    pub fn new() -> Self {
+        Self::default()
+    }
+   
+    pub fn uniforms<DUS>(self, definer: impl FnOnce(Definitions<()>) -> Definitions<DUS>) -> Builder<'s, Vertex, (), (), DUS, ()>
+    where
+        DUS: uniform::marker::Definitions,
+    {
+        let definitions = definer(Definitions::new());
+        self.retype_definitions(definitions)
+    }
+}
+
+impl<'s, DUS> Builder<'s, Vertex, (), (), DUS, ()>
+where
+    DUS: uniform::marker::Definitions,
+{
+    pub fn vertex_main<VI, VO, US>(mut self, vertex: &'s super::Main<Vertex, VI, VO, US>) -> Builder<Vertex, VI, VO, DUS, US::Inverted>
+    where
+        VI: super::parameters::Parameters,
+        VO: super::parameters::Parameters,
+        US: uniform::marker::LDeclarations + lhlist::Invert,
+        US::Inverted: uniform::marker::RDeclarations
+    {
+        self.vertex = Some(internal::ShaderStage::new(&vertex.0));
+        self.retype_vertex_attach()
+    }
+}
+
 /// impl for vertex stage
 impl<'s, IS, OS, DUS> Builder<'s, Vertex, IS, OS, DUS, ()>
 where
@@ -213,7 +283,7 @@ where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.vertex.shared.push(&vertex.0);
+        self.vertex.as_mut().expect("vertex stage is set").shared.push(&vertex.0);
         let declarations = self.uniforms.clone().add_unmatched();
         self.retype_unmatched_uniforms(declarations)
     }
@@ -360,7 +430,7 @@ where
 
         let program = super::Program::create_with_uniforms(self.uniforms.clone());
 
-        program.attach(&self.vertex);
+        program.attach(self.vertex.as_ref().expect("vertex shader stage is set"));
 
         if let (Some(control_stage), Some(evaluation_stage)) = (&self.tesselation_control, &self.tesselation_evaluation) {
             program.attach(control_stage);
@@ -371,10 +441,7 @@ where
             program.attach(geometry);
         }
 
-        if let Some(fragment) = &self.fragment {
-            program.attach(fragment);
-        }
-
+        program.attach(self.fragment.as_ref().expect("fragment shader stage is set"));
         program.link()
     }
 }

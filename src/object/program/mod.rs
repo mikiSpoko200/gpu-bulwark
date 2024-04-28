@@ -5,7 +5,6 @@ pub(super) mod internal;
 
 use std::marker::PhantomData;
 
-
 use frunk::labelled::chars::T;
 use gl;
 use glutin::error;
@@ -22,6 +21,7 @@ use super::shader::{parameters, parameters::Parameters};
 
 use super::prelude::Object;
 use super::resource::{Allocator, self};
+use crate::glsl::location::{Validated, Location};
 use crate::{gl_call, hlist};
 use crate::glsl;
 use crate::hlist::indexed;
@@ -112,9 +112,8 @@ where
 }
 
 impl Program<(), (), ()> {
-    // consider intoducing no input / output types so this method is not accessible
-    pub fn builder() -> Definitions<()> {
-        Definitions::new()
+    pub fn builder<'s>() -> Builder<'s, Vertex, (), (), (), ()> {
+        Builder::new()
     }
 }
 
@@ -156,15 +155,20 @@ where
     OS: parameters::Parameters,
     DUS: uniform::marker::Definitions
 {
+    // pub fn add_uniform_definition<GLU, GLSLU, const LOCATION: usize>(self, uniform: GLU, location: &Location<GLSLU, LOCATION, Validated>) -> Program<IS, OS, (DUS, Definition<GLU, GLSLU, LOCATION>)>
+    // where
+    //     GLSLU: glsl::Uniform,
+    //     GLU: Clone,
+    //     (GLU, GLSLU): glsl::compatible::Compatible<GLU, GLSLU>
     
-    pub fn add_uniform_definition<const INDEX: usize, U: uniform::marker::Uniform>(self, uniform: U) -> Program<IS, OS, (DUS, Definition<INDEX, U>)> {
-        let extended = self.defined_uniforms.define(uniform);
-        Program {
-            object: self.object,
-            _phantoms: self._phantoms,
-            defined_uniforms: extended,
-        }
-    }
+    // {
+    //     let extended = self.defined_uniforms.define(uniform, location);
+    //     Program {
+    //         object: self.object,
+    //         _phantoms: self._phantoms,
+    //         defined_uniforms: extended,
+    //     }
+    // }
 
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl_call! {
@@ -211,7 +215,7 @@ where
         })
     }
 
-    pub(crate) fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
+    fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
         let main = stage.main;
         gl_call! {
             #[panic]
