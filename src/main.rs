@@ -30,12 +30,12 @@ mod target;
 mod types;
 mod hlist;
 mod builder;
-use crate::shader::target::{Fragment, Vertex};
 
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
 use object::shader;
 use shader::Shader;
-use glsl::location::Locations;
+use glsl::prelude::MatchingInputs;
+use shader::target::{Fragment, Vertex};
 
 fn main() -> anyhow::Result<()> {
     println!("opening event loop...");
@@ -120,6 +120,9 @@ fn main() -> anyhow::Result<()> {
 
     println!("setting up rednering state...");
     
+
+    // ========================[ gpu-bulwark ]========================
+
     let vs_source = std::fs::read_to_string("samples/shaders/basic.vert")?;
     let common_source = std::fs::read_to_string("samples/shaders/basic-common.vert")?;
     let fs_source = std::fs::read_to_string("samples/shaders/basic.frag")?;
@@ -132,55 +135,79 @@ fn main() -> anyhow::Result<()> {
     uncompiled_fs.source(&[&fs_source]);
     common.source(&[&common_source]);
 
-    // TODO: add macro for pattern matching
-    let ((((), aspect_ratio_location), scale_location), position_location) = locations![
-        Location<f32, 0>,
-        Location<f32, 1>,
-        Location<glsl::Vec2, 2>,
-    ];
+    // let ((((((), aspect_ratio_location), scale_location), position_location), mvp_location), _)
+    let locations![
+        aspect_ratio_location, scale_location, position_location, mvp_location, _
+    ] = uniforms! {
+        layout(location = 0) f32;
+        layout(location = 1) glsl::Vec3;
+        layout(location = 2) glsl::Vec2;
+        layout(location = 3) glsl::Mat4;
+        layout(location = 7) f32;
+    };
+
+    let vs_inputs = inputs! {
+        layout(location = 0) glsl::Vec3;
+        layout(location = 1) glsl::Vec4;
+    };
+
+    let vs_outputs = outputs! {
+        layout(location = 0) glsl::Vec4;
+    };
+
+    let fs_inputs = vs_outputs.matching_intputs();
+    
+    let ((), fs_outputs) = outputs! {
+        layout(location = 0) glsl::Vec4;
+    };
 
     let vs = uncompiled_vs
         .uniform(&aspect_ratio_location)
         .uniform(&scale_location)
+        .uniform(&mvp_location)
         .compile()?
         .into_main()
-        .input::<glsl::Vec3>()
-        .input::<glsl::Vec4>()
-        .output::<glsl::Vec4>();
+        .inputs(&vs_inputs)
+        .outputs(&vs_outputs);
     let fs = uncompiled_fs
         .uniform(&position_location)
         .compile()?
         .into_main()
-        .input::<glsl::Vec4>()
-        .output::<glsl::Vec4>();
+        .inputs(&fs_inputs)
+        .output(&fs_outputs);
     let common = common
         .compile()?
         .into_shared();
 
-    let aspect_ratio: f32 = 1f32;
-    let scale: f32 = 0.1;
-    let positions: [f32; 2] = [0.; 2];
+    let mut aspect_ratio = 0f32;
+    let scale = [1.0f32, 1.0, 1.0];
+    let positions = [0.; 2];
+    let mvp = <[f32; 16]>::default();
 
-    // TODO: store locations (untyped for now?)
-
-    let program = Program::builder()
+    let mut program = Program::builder()
         .uniforms(|definitions| definitions
-            .define(aspect_ratio, &aspect_ratio_location)
-            .define(scale, &scale_location)
-            .define(positions, &position_location)
+            .define(&aspect_ratio_location, aspect_ratio)
+            .define(&scale_location, scale)
+            .define(&position_location, positions)
+            .define(&mvp_location, mvp)
         )
-        .vertex_main(&vs).match_uniforms(|matcher| matcher
-            .match_uniform(&aspect_ratio_location)
-            .match_uniform(&scale_location)
+        .vertex_main(&vs)
+        .bind_uniforms(|declarations| declarations
+            .bind(&aspect_ratio_location)
+            .bind(&scale_location)
+            .bind(&mvp_location)
         )
         .vertex_shared(&common)
-        .fragment_main(&fs).match_uniforms(|uniforms| uniforms
-            .match_uniform(&position_location)
+        .fragment_main(&fs)
+        .bind_uniforms(|declarations| declarations
+            .bind(&position_location)
         )
         .build()?;
 
+    program.uniform(&aspect_ratio_location, &2.0);
+
     let mut positions = Buffer::create();
-    positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]]);
+    positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0]]);
 
     let mut colors = Buffer::create();
     colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]]);
@@ -191,10 +218,16 @@ fn main() -> anyhow::Result<()> {
 
     println!("running main loop...");
 
+    unsafe {
+        gl::ClearColor(0.29, 0.48, 0.73, 0.5);
+        gl::Clear(gl::COLOR_BUFFER_BIT);
+    }
+
     event_loop.run(move |event, window_target| {
         match event {
             Event::Suspended => {
                 // todo read about context yielding on different platforms.
+                println!("suspended");
             }
             Event::WindowEvent { event, .. } => match event {
                 WindowEvent::Resized(size) => {
@@ -211,20 +244,19 @@ fn main() -> anyhow::Result<()> {
                         );
                     }
                 }
+                WindowEvent::CloseRequested => window_target.exit(),
                 WindowEvent::RedrawRequested => {
-                    // rgb(74, 123, 187)
-                    unsafe {
-                        gl::ClearColor(0.29, 0.48, 0.73, 0.5);
-                        gl::Clear(gl::COLOR_BUFFER_BIT);
-                    }
-
+                    aspect_ratio += if aspect_ratio > 1.0 { -1.0 } else { 0.01 };
+            
+                    program.uniform(&aspect_ratio_location, &aspect_ratio);
+            
                     object::draw_arrays(&vao, &program);
-
+            
                     surface
                         .swap_buffers(&gl_context)
                         .expect("buffer swapping is successful");
+                    window.request_redraw();
                 }
-                WindowEvent::CloseRequested => window_target.exit(),
                 _ => (),
             },
             Event::DeviceEvent { event, .. } => match event {
