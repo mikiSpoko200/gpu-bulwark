@@ -8,17 +8,18 @@ use super::uniform::Definitions;
 use super::uniform::Uniforms;
 use super::uniform;
 use crate::glsl;
+use crate::glsl::prelude::*;
 use crate::glsl::location;
-use crate::glsl::location::Location;
-use crate::glsl::location::Validated;
 use crate::hlist;
 use crate::hlist::lhlist;
 use crate::object::shader::parameters::Parameters;
 
+
+
 pub struct Data<IS, OS>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
 {
     inputs: PhantomData<IS>,
     outputs: PhantomData<OS>,
@@ -26,8 +27,8 @@ where
 
 impl<IS, OS> Default for Data<IS, OS>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
 {
     fn default() -> Self {
         Self { inputs: Default::default(), outputs: Default::default() }
@@ -37,8 +38,8 @@ where
 pub struct Builder<'shaders, T, IS, OS, DUS, UUS>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions,
     UUS: uniform::marker::RDeclarations
 {
@@ -56,15 +57,15 @@ where
 impl<'s, T, IS, OS, DUS> Builder<'s, T, IS, OS, DUS, ()>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions,
 {
     // TODO: clean this up
     fn retype_attach<NT, NOS, NUS>(self) -> Builder<'s, NT, IS, NOS, DUS, NUS>
     where
         NT: shader::target::Target,
-        NOS: parameters::Parameters,
+        NOS: parameters::Parameters<Out>,
         NUS: uniform::marker::RDeclarations
     {
         Builder {
@@ -82,8 +83,8 @@ where
 
     fn retype_vertex_attach<NIS, NOS, NUS>(self) -> Builder<'s, Vertex, NIS, NOS, DUS, NUS>
     where
-        NIS: parameters::Parameters,
-        NOS: parameters::Parameters,
+        NIS: parameters::Parameters<In>,
+        NOS: parameters::Parameters<Out>,
         NUS: uniform::marker::RDeclarations
     {
         Builder {
@@ -143,14 +144,14 @@ where
 impl<'s, T, IS, OS, DUS, HUUS, TUUS, const LOCATION: usize> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions,
     HUUS: glsl::Uniform,
     TUUS: uniform::marker::RDeclarations,
     (uniform::Declaration<HUUS, LOCATION>, TUUS): uniform::marker::RDeclarations
 {
-    pub fn match_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn bind_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -164,64 +165,6 @@ where
             compute: self.compute,
         }
     }
-
-    pub fn match_uniform<GLU, IDX>(self, location: &Location<HUUS, LOCATION, Validated>) -> Builder<'s, T, IS, OS, DUS, TUUS>
-    where
-        DUS: hlist::lhlist::Selector<uniform::Definition<GLU, HUUS, LOCATION>, IDX>,
-        IDX: hlist::counters::Index,
-    {
-        Builder {
-            uniforms: self.uniforms.match_uniform(location),
-            _target_phantom: PhantomData,
-            _data: self._data,
-            vertex: self.vertex,
-            tesselation_control: self.tesselation_control,
-            tesselation_evaluation: self.tesselation_evaluation,
-            geometry: self.geometry,
-            fragment: self.fragment,
-            compute: self.compute,
-        }
-    }
-
-    pub fn uniform_1f(location: u32, v0: f32) { }
-    pub fn uniform_2f(location: u32, v0: f32, v1: f32) { }
-    pub fn uniform_3f(location: u32, v0: f32, v1: f32, v2: f32) { }
-    pub fn uniform_4f(location: u32, v0: f32, v1: f32, v2: f32, v3: f32) { }
-
-    pub fn uniform_1i(location: u32, v0: i32) { }
-    pub fn uniform_2i(location: u32, v0: i32, v1: i32) { }
-    pub fn uniform_3i(location: u32, v0: i32, v1: i32, v2: i32) { }
-    pub fn uniform_4i(location: u32, v0: i32, v1: i32, v2: i32, v3: i32) { }
-    
-    pub fn uniform_1ui(location: u32, v0: u32) { }
-    pub fn uniform_2ui(location: u32, v0: u32, v1: u32) { }
-    pub fn uniform_3ui(location: u32, v0: u32, v1: u32, v2: u32) { }
-    pub fn uniform_4ui(location: u32, v0: u32, v1: u32, v2: u32, v3: u32) { }
-
-    pub fn uniform_1fv(location: u32, value: &[f32]) { }
-    pub fn uniform_2fv(location: u32, value: &[f32]) { }
-    pub fn uniform_3fv(location: u32, value: &[f32]) { }
-    pub fn uniform_4fv(location: u32, value: &[f32]) { }
-
-    pub fn uniform_1iv(location: u32, value: &[i32]) { }
-    pub fn uniform_2iv(location: u32, value: &[i32]) { }
-    pub fn uniform_3iv(location: u32, value: &[i32]) { }
-    pub fn uniform_4iv(location: u32, value: &[i32]) { }
-
-    pub fn uniform_1uiv(location: u32, value: &[u32]) { }
-    pub fn uniform_2uiv(location: u32, value: &[u32]) { }
-    pub fn uniform_3uiv(location: u32, value: &[u32]) { }
-    pub fn uniform_4uiv(location: u32, value: &[u32]) { }
-
-    pub fn uniform_matrix_2fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_3fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_4fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_2x3fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_3x2fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_2x4fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_4x2fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_3x4fv(location: u32, transpose: bool, value: &[f32]) { }
-    pub fn uniform_matrix_x3fv(location: u32, transpose: bool, value: &[f32]) { }
 }
 
 impl Default for Builder<'_, Vertex, (), (), (), ()> {
@@ -260,8 +203,8 @@ where
 {
     pub fn vertex_main<VI, VO, US>(mut self, vertex: &'s super::Main<Vertex, VI, VO, US>) -> Builder<Vertex, VI, VO, DUS, US::Inverted>
     where
-        VI: super::parameters::Parameters,
-        VO: super::parameters::Parameters,
+        VI: super::parameters::Parameters<In>,
+        VO: super::parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations
     {
@@ -273,8 +216,8 @@ where
 /// impl for vertex stage
 impl<'s, IS, OS, DUS> Builder<'s, Vertex, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
@@ -288,9 +231,9 @@ where
         self.retype_unmatched_uniforms(declarations)
     }
 
-    pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
+    pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS::Inputs, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
     where
-        TCO: parameters::Parameters,
+        TCO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -298,9 +241,9 @@ where
         self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
+    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
-        GO: parameters::Parameters,
+        GO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -308,9 +251,9 @@ where
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters,
+        FO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -322,8 +265,8 @@ where
 /// impl for tesselation control stage
 impl<'s, IS, OS, DUS> Builder<'s, tesselation::Control, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions,
 {
     pub fn tesselation_control_shared<US>(mut self, tesselation_control: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US::Inverted>
@@ -335,9 +278,9 @@ where
         self.retype_attach()
     }
 
-    pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
+    pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS::Inputs, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
     where
-        TEO: parameters::Parameters,
+        TEO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {    
@@ -349,8 +292,8 @@ where
 /// impl for tesselation evaluation stage
 impl<'s, IS, OS, DUS> Builder<'s, tesselation::Evaluation, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions
 {
     pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Builder<'_, tesselation::Evaluation, IS, OS, DUS, US::Inverted>
@@ -362,9 +305,9 @@ where
         self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
+    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
-        GO: parameters::Parameters,
+        GO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -372,9 +315,9 @@ where
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters,
+        FO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -386,8 +329,8 @@ where
 /// impl for geometry stage
 impl<'s, IS, OS, DUS> Builder<'s, Geometry, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions
 {
     pub fn geometry_shared<US>(mut self, geometry: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US::Inverted>
@@ -399,9 +342,9 @@ where
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters,
+        FO: parameters::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -413,8 +356,8 @@ where
 /// impl for fragment stage
 impl<'s, IS, OS, DUS> Builder<'s, Fragment, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
     pub fn fragment_shared<US>(mut self, fragment: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US::Inverted>
