@@ -75,30 +75,99 @@ pub mod lhlist {
     
     /// Preprended LHList with element.
     pub trait Prepend: Base {
-        type Preprended<E>: Base;
+        type Prepended<E>: Base;
     
-        fn prepend<E>(self, elem: E) -> Self::Preprended<E>;
+        fn prepend<E>(self, elem: E) -> Self::Prepended<E>;
     }
     
     /// Base case
     impl Prepend for () {
-        type Preprended<E> = ((), E);
+        type Prepended<E> = ((), E);
         
-        fn prepend<E>(self, elem: E) -> Self::Preprended<E> {
+        fn prepend<E>(self, elem: E) -> Self::Prepended<E> {
             (self, elem)
         }
     }
-    
+
     /// Inductive step
     impl<H: Prepend, T> Prepend for (H, T) {
-        type Preprended<E> = (<H as Prepend>::Preprended<E>, T);
+        type Prepended<E> = (<H as Prepend>::Prepended<E>, T);
         
-        fn prepend<E>(self, elem: E) -> Self::Preprended<E> {
+        fn prepend<E>(self, elem: E) -> Self::Prepended<E> {
             let (head, tail) = self;
             (head.prepend(elem), tail)
         }
     }
 
+    // --------==========[ Merge ]==========--------
+
+    pub trait Order { }
+    pub struct Front;
+    impl Order for Front { }
+    pub struct Back;
+    impl Order for Back { }
+
+    /// Merge two hlists into one by inserting elements from current list to either front or back of sceond list.
+    pub trait Concatenate<Other> {
+        type Concatenated: Base;
+
+        fn concatenate(self, other: Other) -> Self::Concatenated;
+    }
+
+    impl Concatenate<()> for () {
+        type Concatenated = ();
+    
+        fn concatenate(self, _: ()) -> Self::Concatenated {
+            ()
+        }
+    }
+
+    impl<H, T> Concatenate<(H, T)> for ()
+    where
+        H: Base,
+    {
+        type Concatenated = (H, T);
+    
+        fn concatenate(self, other: (H, T)) -> Self::Concatenated {
+            other
+        }
+    }
+    
+
+    impl<H, T> Concatenate<()> for (H, T)
+    where
+        H: Base,
+    {
+        type Concatenated = (H, T);
+    
+        fn concatenate(self, _: ()) -> Self::Concatenated {
+            self
+        }
+    }
+    
+    impl<CH, CT, T> Concatenate<((), T)> for (CH, CT)
+    where
+        CH: Base,
+    {
+        type Concatenated = ((CH, CT), T);
+    
+        fn concatenate(self, other: ((), T)) -> Self::Concatenated {
+            (self, other.1)
+        }
+    }
+    
+    impl<SH, ST, OH, OE, OT> Concatenate<((OH, OE), OT)> for (SH, ST)
+    where
+        SH: Base,
+        OH: Base,
+        Self: Concatenate<(OH, OE)>
+    {
+        type Concatenated = (<(SH, ST) as Concatenate<(OH, OE)>>::Concatenated, OT);
+    
+        fn concatenate(self, (head, tail): ((OH, OE), OT)) -> Self::Concatenated {
+            (<Self as Concatenate<(OH, OE)>>::concatenate(self, head), tail)
+        }
+    }
 
     // --------==========[ First ]==========--------
 
@@ -215,7 +284,7 @@ pub mod lhlist {
     where
         H::Reversed: Prepend
     {
-        type Reversed = <H::Reversed as Prepend>::Preprended<E>;
+        type Reversed = <H::Reversed as Prepend>::Prepended<E>;
         
         fn reverse(self) -> Self::Reversed {
             let (head, elem) = self;
@@ -226,7 +295,7 @@ pub mod lhlist {
 
     // --------==========[ HList Selectors ]==========--------
     
-    pub trait Selector<Needle, I>: Base
+    pub trait Find<Needle, I>: Base
     where
         I: counters::Index
     {
@@ -235,7 +304,7 @@ pub mod lhlist {
         fn get_mut(&mut self) ->&mut Needle;
     }
     
-    impl<H: Base, Needle> Selector<Needle, counters::Zero> for (H, Needle) {
+    impl<H: Base, Needle> Find<Needle, counters::Zero> for (H, Needle) {
         fn get(&self) -> &Needle {
             &self.1
         }
@@ -245,9 +314,9 @@ pub mod lhlist {
         }
     }
     
-    impl<H, T, Needle, I> Selector<Needle, counters::Successor<I>> for (H, T)
+    impl<H, T, Needle, I> Find<Needle, counters::Successor<I>> for (H, T)
     where
-        H: Selector<Needle, I>,
+        H: Find<Needle, I>,
         I: counters::Index,
     {
         fn get(&self) -> &Needle {
@@ -439,7 +508,7 @@ pub mod rhlist {
     where
         T::Inverted: super::lhlist::Prepend
     {
-        type Inverted = <T::Inverted as super::lhlist::Prepend>::Preprended<E>;
+        type Inverted = <T::Inverted as super::lhlist::Prepend>::Prepended<E>;
 
         fn invert(self) -> Self::Inverted {
             let (elem, tail) = self;

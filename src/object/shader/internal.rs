@@ -4,7 +4,7 @@ use super::{Compiled, Uncompiled, CompilationStatus};
 use super::target as shader;
 use super::target;
 use crate::object::prelude::*;
-use crate::object::resource::{Allocator, Bindable};
+use crate::object::resource::{Allocator, Bind};
 use super::parameters;
 use crate::glsl;
 use crate::gl_call;

@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use super::buffer;
 use super::buffer::Buffer;
 use super::prelude::{Name, Object};
-use super::resource::{Allocator, Bindable};
+use super::resource::{Allocator, Bind};
 use crate::gl_call;
 use crate::types::Primitive;
 use crate::prelude::{HList, HListExt};
@@ -131,7 +131,7 @@ impl VertexArray<()> {
     }
 }
 
-impl<A: Attributes> Bindable for VertexArray<A> {
+impl<A: Attributes> Bind for VertexArray<A> {
     fn bind(&self) {
         gl_call! {
             #[panic]

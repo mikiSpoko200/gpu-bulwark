@@ -41,7 +41,7 @@ macro_rules! gl_call {
             let errors = $crate::error::Error::poll_queue();
             if errors.len() > 0 {
                 let message = errors.into_iter().map(ToString::to_string).collect::<Vec<_>>().join("\n");
-                panic!("{message}");
+                panic!("gl error: {message}");
             }
         }
     };
@@ -66,8 +66,6 @@ macro_rules! impl_default_without_bounds {
 pub(crate) mod private {
     pub trait Sealed {}
 }
-
-
 
 pub trait HList: Sized {
     const LENGTH: usize;

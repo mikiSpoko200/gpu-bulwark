@@ -5,7 +5,6 @@ pub(super) mod internal;
 
 use std::marker::PhantomData;
 
-
 use frunk::labelled::chars::T;
 use gl;
 use glutin::error;
@@ -19,12 +18,15 @@ use super::shader;
 pub(self) use super::shader::prelude::*;
 use super::shader::{parameters, parameters::Parameters};
 
-
 use super::prelude::Object;
 use super::resource::{Allocator, self};
+use crate::hlist::counters::Index;
+use crate::hlist::lhlist::Find;
 use crate::{gl_call, hlist};
-use crate::glsl;
+use crate::glsl::{self, binding};
 use crate::hlist::indexed;
+
+use crate::glsl::prelude::*;
 
 #[repr(u32)]
 pub enum QueryParam {
@@ -86,14 +88,14 @@ unsafe impl Allocator for ProgramAllocator {
 
 struct ProgramPhantomData<I, O>
 where
-    I: parameters::Parameters,
-    O: parameters::Parameters,
+    I: parameters::Parameters<In>,
+    O: parameters::Parameters<Out>,
 {
     pub _input_phantom: PhantomData<I>,
     pub _output_phantom: PhantomData<O>,
 }
 
-impl<I: parameters::Parameters, O: parameters::Parameters> std::default::Default for ProgramPhantomData<I, O> {
+impl<I: parameters::Parameters<In>, O: parameters::Parameters<Out>> std::default::Default for ProgramPhantomData<I, O> {
     fn default() -> Self {
         Self { _input_phantom: Default::default(), _output_phantom: Default::default() }
     }
@@ -102,8 +104,8 @@ impl<I: parameters::Parameters, O: parameters::Parameters> std::default::Default
 #[doc = include_str!("../../../docs/object/program/Program.md")]
 pub struct Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
     object: Object<ProgramAllocator>,
@@ -112,16 +114,15 @@ where
 }
 
 impl Program<(), (), ()> {
-    // consider intoducing no input / output types so this method is not accessible
-    pub fn builder() -> Definitions<()> {
-        Definitions::new()
+    pub fn builder<'s>() -> Builder<'s, Vertex, (), (), (), ()> {
+        Builder::new()
     }
 }
 
 impl<IS, OS> Program<IS, OS, ()>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
 {
     pub fn create() -> Self {
         Self {
@@ -140,32 +141,12 @@ where
     }
 }
 
-impl<IS, OS> std::default::Default for Program<IS, OS, ()>
-where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
-{
-    fn default() -> Self {
-        Self::create()
-    }
-}
-
 impl<IS, OS, DUS> Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
-    
-    pub fn add_uniform_definition<const INDEX: usize, U: uniform::marker::Uniform>(self, uniform: U) -> Program<IS, OS, (DUS, Definition<INDEX, U>)> {
-        let extended = self.defined_uniforms.define(uniform);
-        Program {
-            object: self.object,
-            _phantoms: self._phantoms,
-            defined_uniforms: extended,
-        }
-    }
-
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl_call! {
             #[panic]
@@ -211,7 +192,7 @@ where
         })
     }
 
-    pub(crate) fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
+    fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
         let main = stage.main;
         gl_call! {
             #[panic]
@@ -240,12 +221,130 @@ where
             |msg| Err(LinkingError { msg }),
         )
     }
+
+    pub fn uniform<GLU, GLSLU, const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: &GLU)
+    where
+        GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive> + glsl::uniform::ops::Set,
+        GLU: glsl::compatible::Compatible<GLSLU>,
+        IDX: Index,
+        DUS: Find<Definition<GLU, GLSLU, LOCATION>, IDX>,
+    {
+        use crate::object::resource::Bind;
+
+        self.bind();
+        self.defined_uniforms.uniform(binding, uniform);
+    }
+
+    pub fn uniform_f<const SIZE: usize, const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<glsl::base::Vec<f32, SIZE>, LOCATION>, uniform: &[f32; SIZE])
+    where
+        glsl::base::Vec<f32, SIZE>: glsl::Uniform<Primitive = <[f32; SIZE] as glsl::FFI>::Primitive> + glsl::uniform::ops::Set,
+        [f32; SIZE]: glsl::compatible::Compatible<glsl::base::Vec<f32, SIZE>>,
+        glsl::Const<SIZE>: glsl::marker::VecSize,
+        IDX: Index,
+        DUS: Find<Definition<[f32; SIZE], glsl::base::Vec<f32, SIZE>, LOCATION>, IDX>,
+    {
+        self.uniform(binding, uniform);
+    }
+
+    pub fn uniform_i<const SIZE: usize, const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<glsl::base::Vec<i32, SIZE>, LOCATION>, uniform: &[i32; SIZE])
+    where
+        glsl::base::Vec<i32, SIZE>: glsl::Uniform<Primitive = <[i32; SIZE] as glsl::FFI>::Primitive> + glsl::uniform::ops::Set,
+        [i32; SIZE]: glsl::compatible::Compatible<glsl::base::Vec<i32, SIZE>>,
+        glsl::Const<SIZE>: glsl::marker::VecSize,
+        IDX: Index,
+        DUS: Find<Definition<[i32; SIZE], glsl::base::Vec<i32, SIZE>, LOCATION>, IDX>,
+    {
+        self.uniform(binding, uniform);
+    }
+
+    pub fn uniform_ui<const SIZE: usize, const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<glsl::base::Vec<u32, SIZE>, LOCATION>, uniform: &[u32; SIZE])
+    where
+        glsl::base::Vec<u32, SIZE>: glsl::Uniform<Primitive = <[u32; SIZE] as glsl::FFI>::Primitive> + glsl::uniform::ops::Set,
+        [u32; SIZE]: glsl::compatible::Compatible<glsl::base::Vec<u32, SIZE>>,
+        glsl::Const<SIZE>: glsl::marker::VecSize,
+        IDX: Index,
+        DUS: Find<Definition<[u32; SIZE], glsl::base::Vec<u32, SIZE>, LOCATION>, IDX>,
+    {
+        self.uniform(binding, uniform);
+    }
+
+    pub fn uniform_1f<const LOCATION: usize>(&mut self, _: &UniformBinding<f32, LOCATION>, uniform: f32) {
+        
+    }
+    pub fn uniform_2f<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Vec2, LOCATION>, uniform: &[f32; 2]) {
+
+    }
+    pub fn uniform_3f<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Vec3, LOCATION>, uniform: &[f32; 3]) {
+
+    }
+    pub fn uniform_4f<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Vec4, LOCATION>, uniform: &[f32; 4]) {
+
+    }
+
+    pub fn uniform_1i<const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<i32, LOCATION>, uniform: i32) where IDX: Index, DUS: Find<Definition<i32, i32, LOCATION>, IDX> {
+        self.uniform(binding, &uniform);
+    }
+    pub fn uniform_2i<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::IVec2, LOCATION>, uniform: &[i32; 2]) {
+
+    }
+    pub fn uniform_3i<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::IVec3, LOCATION>, uniform: &[i32; 3]) {
+
+    }
+    pub fn uniform_4i<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::IVec4, LOCATION>, uniform: &[i32; 4]) {
+
+    }
+    
+    pub fn uniform_1ui<const LOCATION: usize>(&mut self, _: &UniformBinding<u32, LOCATION>, uniform: u32) {
+
+    }
+    pub fn uniform_2ui<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::UVec2, LOCATION>, uniform: &[u32; 2]) {
+
+    }
+    pub fn uniform_3ui<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::UVec3, LOCATION>, uniform: &[u32; 3]) {
+
+    }
+    pub fn uniform_4ui<const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::UVec4, LOCATION>, uniform: &[u32; 4]) {
+
+    }
+
+    pub fn uniform_1fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<f32, N>, LOCATION>, value: &[f32; N]) {
+
+    }
+    pub fn uniform_2fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Vec2, N>, LOCATION>, value: &[[f32; 2]; N]) {
+
+    }
+    pub fn uniform_3fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Vec3, N>, LOCATION>, value: &[[f32; 3]; N]) {
+
+    }
+    pub fn uniform_4fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Vec4, N>, LOCATION>, value: &[[f32; 4]; N]) {
+
+    }
+
+    pub fn uniform_1iv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<i32        , N>, LOCATION>, value: &[i32     ; N]) { }
+    pub fn uniform_2iv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::IVec2, N>, LOCATION>, value: &[[i32; 2]; N]) { }
+    pub fn uniform_3iv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::IVec3, N>, LOCATION>, value: &[[i32; 3]; N]) { }
+    pub fn uniform_4iv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::IVec4, N>, LOCATION>, value: &[[i32; 4]; N]) { }
+
+    pub fn uniform_1uiv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<u32        , N>, LOCATION>, value: &[u32     ; N]) { }
+    pub fn uniform_2uiv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::UVec2, N>, LOCATION>, value: &[[u32; 2]; N]) { }
+    pub fn uniform_3uiv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::UVec3, N>, LOCATION>, value: &[[u32; 3]; N]) { }
+    pub fn uniform_4uiv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::UVec4, N>, LOCATION>, value: &[[u32; 4]; N]) { }
+
+    pub fn uniform_matrix_2fv  <const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat2  , N>, LOCATION>, transpose: bool, value: &[[f32; 2 * 2]; N]) { }
+    pub fn uniform_matrix_3fv  <const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat3  , N>, LOCATION>, transpose: bool, value: &[[f32; 3 * 3]; N]) { }
+    pub fn uniform_matrix_4fv  <const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat4  , N>, LOCATION>, transpose: bool, value: &[[f32; 4 * 4]; N]) { }
+    pub fn uniform_matrix_2x3fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat2x3, N>, LOCATION>, transpose: bool, value: &[[f32; 2 * 3]; N]) { }
+    pub fn uniform_matrix_2x4fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat2x4, N>, LOCATION>, transpose: bool, value: &[[f32; 2 * 4]; N]) { }
+    pub fn uniform_matrix_3x2fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat3x2, N>, LOCATION>, transpose: bool, value: &[[f32; 3 * 2]; N]) { }
+    pub fn uniform_matrix_3x4fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat3x4, N>, LOCATION>, transpose: bool, value: &[[f32; 3 * 4]; N]) { }
+    pub fn uniform_matrix_4x2fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat4x2, N>, LOCATION>, transpose: bool, value: &[[f32; 4 * 2]; N]) { }
+    pub fn uniform_matrix_4x3fv<const N: usize, const LOCATION: usize>(&mut self, _: &UniformBinding<glsl::Array<glsl::Mat4x3, N>, LOCATION>, transpose: bool, value: &[[f32; 4 * 3]; N]) { }
 }
 
-impl<IS, OS, DUS> resource::Bindable for Program<IS, OS, DUS>
+impl<IS, OS, DUS> resource::Bind for Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters,
-    OS: parameters::Parameters,
+    IS: parameters::Parameters<In>,
+    OS: parameters::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
     fn bind(&self) {
