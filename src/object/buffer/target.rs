@@ -60,8 +60,8 @@ impl_target!(buffer, TransformFeedback, TRANSFORM_FEEDBACK_BUFFER);
 impl_target!(buffer, Uniform, UNIFORM_BUFFER);
 
 pub mod format {
-    /// Relation of types eing valid data formats for given target.
-    pub unsafe trait Valid {}
+    /// Relation of types being valid data formats for given target.
+    pub unsafe trait Valid { }
 
     /// This exploits the 3rd rule of unconstrained type parameter exceptions
     /// "be bound as an associated type."
