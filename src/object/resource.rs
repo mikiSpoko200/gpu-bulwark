@@ -21,7 +21,7 @@ use std::marker::PhantomData;
 //     }
 // }
 
-pub(crate) trait Bindable: Sized {
+pub(crate) trait Bind: Sized {
     fn bind(&self);
     fn unbind(&self);
 }

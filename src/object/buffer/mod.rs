@@ -1,6 +1,6 @@
 pub mod target;
 
-use super::resource::{Allocator, Bindable};
+use super::resource::{Allocator, Bind};
 use super::{prelude::*, resource};
 use crate::prelude::Const;
 use target as buffer;
@@ -137,7 +137,7 @@ where
     }
 }
 
-impl<T, F> Bindable for Buffer<T, F>
+impl<T, F> Bind for Buffer<T, F>
 where
     T: buffer::Target,
     (T, F): buffer::format::Valid,
