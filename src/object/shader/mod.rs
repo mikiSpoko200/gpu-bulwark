@@ -7,9 +7,10 @@ pub mod prelude;
 
 use target as shader;
 
+use super::buffer::target::Uniform;
 use super::prelude::*;
 use super::program::uniform::{self, Declaration};
-use crate::glsl::location::{Location, Validated};
+use crate::glsl::prelude::UniformBinding;
 use crate::hlist::indexed::rhlist;
 use crate::object::resource::Allocator;
 use crate::prelude::*;
@@ -115,7 +116,7 @@ where
     T: shader::Target,
     US: uniform::marker::LDeclarations,
 {
-    pub fn uniform<U, const LOCATION: usize>(self, _: &Location<U, LOCATION, Validated>) -> Shader<T, Uncompiled, (US, Declaration<U, LOCATION>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformBinding<U, LOCATION>) -> Shader<T, Uncompiled, (US, Declaration<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
