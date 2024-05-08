@@ -1,7 +1,10 @@
 pub mod compatible;
-pub mod types;
+mod glsl;
 pub mod location;
 pub mod uniform;
+pub mod binding;
+pub mod prelude;
 
-pub use types::*;
-pub use uniform::marker::Uniform;
+pub use glsl::*;
+pub use glsl::marker::{Type, VecSize};
+pub use uniform::Uniform;
