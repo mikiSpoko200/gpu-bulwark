@@ -51,6 +51,7 @@ pub mod lhlist {
         }
     }
     
+    #[allow(unused)]
     pub fn new() -> impl Empty {
         <() as Empty>::default()
     }
@@ -143,6 +144,7 @@ pub mod rhlist {
         }
     }
 
+    #[allow(unused)]
     pub fn new() -> impl Empty {
         <() as Empty>::default()
     }
