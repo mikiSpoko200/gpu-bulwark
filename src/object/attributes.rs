@@ -13,29 +13,21 @@ where
     pub buffer: &'buffer Buffer<buffer::Array, F>,
 }
 
-pub trait Attribute {
-    type Primitive: crate::types::Primitive;
-    const SIZE: u8;
-}
+pub trait Attribute: Clone + Sized + glsl::FFI { }
 
 impl<T, const N: usize> Attribute for [T; N]
 where
-    T: types::Primitive,
-    glsl::types::Const<N>: glsl::types::VecSize,
-{
-    type Primitive = T;
+    T: glsl::marker::ScalarType,
+    glsl::Const<N>: glsl::VecSize,
+{ }
 
-    const SIZE: u8 = N as _;
-}
+pub(crate) trait Attributes: HList { }
 
-pub(crate) trait Attributes: HList {}
-
-impl Attributes for () {}
+impl Attributes for () { }
 
 impl<'buffer, A, AS, const INDEX: usize> Attributes for (AS, AttributeDecl<'buffer, A, INDEX>)
 where
     A: Attribute,
     AS: Attributes,
     (buffer::Array, A): buffer::format::Valid,
-{
-}
+{ }
