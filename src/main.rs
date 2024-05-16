@@ -20,7 +20,6 @@ use display::DisplayApiPreference;
 use event_loop::EventLoop;
 use glutin::prelude::*;
 use surface::{SurfaceAttributesBuilder, WindowSurface};
-use window::WindowBuilder;
 
 mod error;
 mod glsl;
@@ -30,12 +29,15 @@ mod target;
 mod types;
 mod hlist;
 mod builder;
+mod renderer;
 
 use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
 use object::shader;
 use shader::Shader;
 use glsl::prelude::MatchingInputs;
 use shader::target::{Fragment, Vertex};
+
+use nalgebra_glm as glm;
 
 fn main() -> anyhow::Result<()> {
     println!("opening event loop...");
@@ -45,7 +47,7 @@ fn main() -> anyhow::Result<()> {
     let height = 640;
 
     println!("creating window...");
-    let window = WindowBuilder::new()
+    let window = window::Window::bu
         .with_inner_size(dpi::PhysicalSize { width, height })
         .with_title("gpu-bulwark")
         .with_resizable(false)
@@ -68,14 +70,14 @@ fn main() -> anyhow::Result<()> {
         .with_profile(GlProfile::Core)
         .build(Some(window_handle));
 
-    let (width, height) = {
+    let (window_width, window_height) = {
         (
             NonZeroU32::new(width).unwrap(),
             NonZeroU32::new(height).unwrap(),
         )
     };
 
-    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(window_handle, width, height);
+    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(window_handle, window_width, window_height);
 
     let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
 
@@ -135,24 +137,19 @@ fn main() -> anyhow::Result<()> {
     uncompiled_fs.source(&[&fs_source]);
     common.source(&[&common_source]);
 
-    // let ((((((), aspect_ratio_location), scale_location), position_location), mvp_location), _)
-    let locations![
-        aspect_ratio_location, scale_location, position_location, mvp_location, _
-    ] = uniforms! {
-        layout(location = 0) f32;
-        layout(location = 1) glsl::Vec3;
-        layout(location = 2) glsl::Vec2;
-        layout(location = 3) glsl::Mat4;
-        layout(location = 7) f32;
+    let locations![view_matrix_location] = uniforms! {
+        layout(location = 0) glsl::Mat4;
     };
 
     let vs_inputs = inputs! {
         layout(location = 0) glsl::Vec3;
         layout(location = 1) glsl::Vec4;
+        layout(location = 2) glsl::Vec2;
     };
 
     let vs_outputs = outputs! {
         layout(location = 0) glsl::Vec4;
+        layout(location = 1) glsl::Vec2;
     };
 
     let fs_inputs = vs_outputs.matching_intputs();
@@ -161,16 +158,14 @@ fn main() -> anyhow::Result<()> {
         layout(location = 0) glsl::Vec4;
     };
 
+
     let vs = uncompiled_vs
-        .uniform(&aspect_ratio_location)
-        .uniform(&scale_location)
-        .uniform(&mvp_location)
+        .uniform(&view_matrix_location)
         .compile()?
         .into_main()
         .inputs(&vs_inputs)
         .outputs(&vs_outputs);
     let fs = uncompiled_fs
-        .uniform(&position_location)
         .compile()?
         .into_main()
         .inputs(&fs_inputs)
@@ -179,32 +174,21 @@ fn main() -> anyhow::Result<()> {
         .compile()?
         .into_shared();
 
-    let mut aspect_ratio = 0f32;
-    let scale = [1.0f32, 1.0, 1.0];
-    let positions = [0.; 2];
-    let mvp = <[f32; 16]>::default();
+    let mut scale = 0f32;
+    let mut camera = camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
+
 
     let mut program = Program::builder()
         .uniforms(|definitions| definitions
-            .define(&aspect_ratio_location, aspect_ratio)
-            .define(&scale_location, scale)
-            .define(&position_location, positions)
-            .define(&mvp_location, mvp)
+            .define(&view_matrix_location, camera.view_projection_matrix())
         )
-        .vertex_main(&vs)
+        .vertex_main(&vs)   
         .bind_uniforms(|declarations| declarations
-            .bind(&aspect_ratio_location)
-            .bind(&scale_location)
-            .bind(&mvp_location)
+            .bind(&view_matrix_location)
         )
         .vertex_shared(&common)
         .fragment_main(&fs)
-        .bind_uniforms(|declarations| declarations
-            .bind(&position_location)
-        )
         .build()?;
-
-    program.uniform(&aspect_ratio_location, &2.0);
 
     let mut positions = Buffer::create();
     positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0]]);
@@ -212,9 +196,13 @@ fn main() -> anyhow::Result<()> {
     let mut colors = Buffer::create();
     colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]]);
 
+    let mut texture_coords = Buffer::create();
+    texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
+
     let vao = VertexArray::create()
         .attach::<0, _>(&positions)
-        .attach::<1, _>(&colors);
+        .attach::<1, _>(&colors)
+        .attach::<2, _>(&texture_coords);
 
     println!("running main loop...");
 
@@ -223,6 +211,42 @@ fn main() -> anyhow::Result<()> {
         gl::Clear(gl::COLOR_BUFFER_BIT);
     }
 
+    let mut texture = 0;
+    gl_call! {
+        #[panic]
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0 + 8);
+            gl::CreateTextures(gl::TEXTURE_2D, 1, &mut texture);
+
+            let width = width as usize;
+            let height = height as usize;
+
+            let mut texture_test = Vec::<[u8; 3]>::with_capacity(width * height);
+            for i in 0..(width * height) {
+                let signed = i as i64 ;
+                texture_test.push([(signed % 256) as _, ((signed - 64) % 256) as _, (signed % 128) as _]);
+            }
+
+            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);	
+            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
+            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as _);
+            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGB as _,
+                width as _,
+                height as _,
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                texture_test.as_ptr() as *const _
+            );
+            gl::GenerateMipmap(gl::TEXTURE_2D);
+        }
+    }
+    
     event_loop.run(move |event, window_target| {
         match event {
             Event::Suspended => {
@@ -246,9 +270,7 @@ fn main() -> anyhow::Result<()> {
                 }
                 WindowEvent::CloseRequested => window_target.exit(),
                 WindowEvent::RedrawRequested => {
-                    aspect_ratio += if aspect_ratio > 1.0 { -1.0 } else { 0.01 };
-            
-                    program.uniform(&aspect_ratio_location, &aspect_ratio);
+                    scale += if scale > 1.0 { -1.0 } else { 0.01 };
             
                     object::draw_arrays(&vao, &program);
             
@@ -256,15 +278,22 @@ fn main() -> anyhow::Result<()> {
                         .swap_buffers(&gl_context)
                         .expect("buffer swapping is successful");
                     window.request_redraw();
+                    unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
                 }
                 _ => (),
             },
             Event::DeviceEvent { event, .. } => match event {
+                winit::event::DeviceEvent::MouseMotion { delta: (dx, dy) } => {
+                    camera.process_mouse(dx, dy);
+                    println!("camera yaw {}, pitch {}", camera.yaw, camera.pitch);
+                    program.uniform(&view_matrix_location, &camera.view_projection_matrix());
+                },
                 winit::event::DeviceEvent::Key(RawKeyEvent {
                     physical_key: PhysicalKey::Code(code),
                     state: ElementState::Pressed,
                 }) => {
-                    println!("pressed {:?}", code);
+                    println!("camera at {}", camera.position);
+                    camera.process_input(&code);
                 }
                 _ => (),
             },
@@ -273,4 +302,72 @@ fn main() -> anyhow::Result<()> {
     })?;
 
     Ok(())
+}
+
+mod camera {
+    use nalgebra_glm as glm;
+    use glm::Vec3;
+
+    const MOVEMENT_SPEED: f32 = 0.1;
+    const MOUSE_SENSITIVITY: f32 = 0.005;
+
+    pub struct Camera {
+        pub position: Vec3,
+        pub yaw: f32,
+        pub pitch: f32,
+        aspect_ratio: f32,
+    }
+
+    impl Camera {
+        pub fn new(position: Vec3, yaw: f32, pitch: f32, aspect_ratio: f32) -> Self {
+            Camera {
+                position,
+                yaw,
+                pitch,
+                aspect_ratio
+            }
+        }
+
+        fn view_matrix(&self) -> glm::Mat4 {
+            let front = Vec3::new(
+                self.yaw.cos() * self.pitch.cos(),
+                self.pitch.sin(),
+                self.yaw.sin() * self.pitch.cos(),
+            );
+            glm::look_at_rh(&self.position, &(self.position + front), &Vec3::y())
+        }
+
+        fn projection_matrix(&self) -> glm::Mat4 {
+            glm::perspective_rh_no(45.0 * std::f32::consts::FRAC_1_PI * 0.5, self.aspect_ratio, 0.1, 1000.0)
+        }
+
+        pub fn view_projection_matrix(&self) -> glm::Mat4 {
+            self.projection_matrix() * self.view_matrix()
+        }
+
+        pub fn process_input(&mut self, input: &winit::keyboard::KeyCode) {
+            match input {
+                winit::keyboard::KeyCode::KeyW => Some(Vec3::new(0.0, 0.0, -1.0)),
+                winit::keyboard::KeyCode::KeyS => Some(Vec3::new(0.0, 0.0, 1.0)),
+                winit::keyboard::KeyCode::KeyA => Some(Vec3::new(-1.0, 0.0, 0.0)),
+                winit::keyboard::KeyCode::KeyD => Some(Vec3::new(1.0, 0.0, 0.0)),
+                _ => None,
+            }.inspect(|movement| {
+                let rotation_matrix = glm::rotation(self.yaw, &Vec3::y());
+                self.position += (rotation_matrix * glm::vec4(movement.x, movement.y, movement.z, 1.0) * MOVEMENT_SPEED).xyz();
+            });
+        }
+
+        pub fn process_mouse(&mut self, dx: f64, dy: f64) {
+            self.yaw += dx as f32 * MOUSE_SENSITIVITY;
+            self.pitch += dy as f32 * MOUSE_SENSITIVITY;
+
+            if self.pitch > 1.5 {
+                self.pitch = 1.5;
+            }
+            if self.pitch < -1.5 {
+                self.pitch = -1.5;
+            }
+        }
+    }
 }

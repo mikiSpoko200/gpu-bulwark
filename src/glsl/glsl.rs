@@ -130,7 +130,6 @@ pub mod marker {
         Const<C>: VecSize,
     {
         type Subtype = Matrix;
-
     }
 
     unsafe impl<T, const R: usize, const C: usize> super::FFI for super::Mat<T, R, C>
@@ -166,6 +165,7 @@ pub use marker::Type;
 use self::marker::ScalarType;
 
 /// Wrapper for integer values that moves them into type system.
+/// Same trick is used in std here `https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html`
 pub(crate) struct Const<const NUMBER: usize>;
 
 

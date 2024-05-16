@@ -7,8 +7,7 @@ use crate::types;
 
 pub(crate) struct AttributeDecl<'buffer, F, const INDEX: usize>
 where
-    F: Attribute,
-    (buffer::Array, F): buffer::format::Valid,
+    F: Attribute + buffer::format::Valid<buffer::Array>,
 {
     pub buffer: &'buffer Buffer<buffer::Array, F>,
 }
@@ -27,7 +26,6 @@ impl Attributes for () { }
 
 impl<'buffer, A, AS, const INDEX: usize> Attributes for (AS, AttributeDecl<'buffer, A, INDEX>)
 where
-    A: Attribute,
+    A: Attribute + buffer::format::Valid<buffer::Array>,
     AS: Attributes,
-    (buffer::Array, A): buffer::format::Valid,
 { }

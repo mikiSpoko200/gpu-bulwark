@@ -7,8 +7,8 @@ pub mod program;
 pub mod resource;
 pub mod shader;
 pub mod vertex_array;
+pub mod texture;
 
-use shader::parameters;
 use resource::Bind;
 use program::Program;
 use vertex_array::VertexArray;
@@ -20,10 +20,10 @@ use self::program::uniform;
 pub fn draw_arrays<AS, PSI, PSO, US>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO, US>)
 where
     AS: attributes::Attributes,
-    PSI: parameters::Parameters<In>,
-    PSO: parameters::Parameters<Out>,
+    PSI: glsl::Parameters<In>,
+    PSO: glsl::Parameters<Out>,
     AS: glsl::compatible::hlist::Compatible<PSI>,
-    US: uniform::marker::Definitions
+    US: glsl::Uniforms,
 {
     vao.bind();
     program.bind();

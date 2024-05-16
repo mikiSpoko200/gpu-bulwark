@@ -47,8 +47,7 @@ where
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArraySemantics<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute,
-        (buffer::target::Array, A): buffer::target::format::Valid,
+        A: Attribute + buffer::target::format::Valid<buffer::target::Array>,
     {
         let attribute = AttributeDecl { buffer };
         VertexArraySemantics {
@@ -86,14 +85,12 @@ where
         // todo: Add Iteration over attributes to trait `Attributes`
     }
 
-    // Idea: use curring?
     pub fn attach<'buffer, const ATTRIBUTE_INDEX: usize, A>(
         self,
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArray<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute,
-        (buffer::target::Array, A): buffer::target::format::Valid,
+        A: Attribute + buffer::target::format::Valid<buffer::target::Array>,
     {
         if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
             panic!("buffers must be the same length, current {} received {}", self.semantics.length, buffer.semantics.length);

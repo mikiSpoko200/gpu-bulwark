@@ -2,7 +2,6 @@ pub(super) mod internal;
 pub mod target;
 pub mod main;
 pub mod shared;
-pub mod parameters;
 pub mod prelude;
 
 use target as shader;

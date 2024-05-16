@@ -2,24 +2,21 @@ use std::marker::PhantomData;
 
 use super::shader;
 use super::shader::prelude::*;
-use super::shader::parameters;
 use super::internal;
 use super::uniform::Definitions;
-use super::uniform::Uniforms;
+use super::uniform::UniformsBuilder;
 use super::uniform;
 use crate::glsl;
 use crate::glsl::prelude::*;
 use crate::glsl::location;
 use crate::hlist;
 use crate::hlist::lhlist;
-use crate::object::shader::parameters::Parameters;
-
 
 
 pub struct Data<IS, OS>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
 {
     inputs: PhantomData<IS>,
     outputs: PhantomData<OS>,
@@ -27,8 +24,8 @@ where
 
 impl<IS, OS> Default for Data<IS, OS>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
 {
     fn default() -> Self {
         Self { inputs: Default::default(), outputs: Default::default() }
@@ -38,14 +35,14 @@ where
 pub struct Builder<'shaders, T, IS, OS, DUS, UUS>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
-    DUS: uniform::marker::Definitions,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
+    DUS: glsl::Uniforms,
     UUS: uniform::marker::RDeclarations
 {
     _target_phantom: PhantomData<T>,
     _data: Data<IS, OS>,
-    uniforms: Uniforms<DUS, UUS>,
+    uniforms: UniformsBuilder<DUS, UUS>,
     vertex: Option<internal::ShaderStage<'shaders, Vertex>>,
     tesselation_control: Option<internal::ShaderStage<'shaders, tesselation::Control>>,
     tesselation_evaluation: Option<internal::ShaderStage<'shaders, tesselation::Evaluation>>,
@@ -57,15 +54,15 @@ where
 impl<'s, T, IS, OS, DUS> Builder<'s, T, IS, OS, DUS, ()>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
     DUS: uniform::marker::Definitions,
 {
     // TODO: clean this up
     fn retype_attach<NT, NOS, NUS>(self) -> Builder<'s, NT, IS, NOS, DUS, NUS>
     where
         NT: shader::target::Target,
-        NOS: parameters::Parameters<Out>,
+        NOS: glsl::Parameters<Out>,
         NUS: uniform::marker::RDeclarations
     {
         Builder {
@@ -83,8 +80,8 @@ where
 
     fn retype_vertex_attach<NIS, NOS, NUS>(self) -> Builder<'s, Vertex, NIS, NOS, DUS, NUS>
     where
-        NIS: parameters::Parameters<In>,
-        NOS: parameters::Parameters<Out>,
+        NIS: glsl::Parameters<In>,
+        NOS: glsl::Parameters<Out>,
         NUS: uniform::marker::RDeclarations
     {
         Builder {
@@ -100,7 +97,7 @@ where
         }
     }
 
-    fn retype_unmatched_uniforms<NUUS>(self, uniforms: Uniforms<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
+    fn retype_unmatched_uniforms<NUUS>(self, uniforms: UniformsBuilder<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
     where
         NUUS: uniform::marker::RDeclarations
     {
@@ -124,7 +121,7 @@ where
         Builder {
             _target_phantom: PhantomData,
             _data: Default::default(),
-            uniforms: Uniforms::new(definitions),
+            uniforms: UniformsBuilder::new(definitions),
             vertex: self.vertex,
             tesselation_control: self.tesselation_control,
             tesselation_evaluation: self.tesselation_evaluation,
@@ -144,14 +141,14 @@ where
 impl<'s, T, IS, OS, DUS, HUUS, TUUS, const LOCATION: usize> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>
 where
     T: shader::target::Target,
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
     DUS: uniform::marker::Definitions,
     HUUS: glsl::Uniform,
     TUUS: uniform::marker::RDeclarations,
     (uniform::Declaration<HUUS, LOCATION>, TUUS): uniform::marker::RDeclarations
 {
-    pub fn bind_uniforms(self, matcher: impl FnOnce(Uniforms<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> Uniforms::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn bind_uniforms(self, matcher: impl FnOnce(UniformsBuilder<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> UniformsBuilder::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -203,8 +200,8 @@ where
 {
     pub fn vertex_main<VI, VO, US>(mut self, vertex: &'s super::Main<Vertex, VI, VO, US>) -> Builder<Vertex, VI, VO, DUS, US::Inverted>
     where
-        VI: super::parameters::Parameters<In>,
-        VO: super::parameters::Parameters<Out>,
+        VI: super::glsl::Parameters<In>,
+        VO: super::glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations
     {
@@ -216,8 +213,8 @@ where
 /// impl for vertex stage
 impl<'s, IS, OS, DUS> Builder<'s, Vertex, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out> + MatchingInputs,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
@@ -233,7 +230,7 @@ where
 
     pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS::Inputs, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
     where
-        TCO: parameters::Parameters<Out>,
+        TCO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -243,7 +240,7 @@ where
 
     pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
-        GO: parameters::Parameters<Out>,
+        GO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -253,7 +250,7 @@ where
 
     pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters<Out>,
+        FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -265,8 +262,8 @@ where
 /// impl for tesselation control stage
 impl<'s, IS, OS, DUS> Builder<'s, tesselation::Control, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out> + MatchingInputs,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions,
 {
     pub fn tesselation_control_shared<US>(mut self, tesselation_control: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US::Inverted>
@@ -280,7 +277,7 @@ where
 
     pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS::Inputs, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
     where
-        TEO: parameters::Parameters<Out>,
+        TEO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {    
@@ -292,8 +289,8 @@ where
 /// impl for tesselation evaluation stage
 impl<'s, IS, OS, DUS> Builder<'s, tesselation::Evaluation, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out> + MatchingInputs,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions
 {
     pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Builder<'_, tesselation::Evaluation, IS, OS, DUS, US::Inverted>
@@ -307,7 +304,7 @@ where
 
     pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
-        GO: parameters::Parameters<Out>,
+        GO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -317,7 +314,7 @@ where
 
     pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters<Out>,
+        FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -329,8 +326,8 @@ where
 /// impl for geometry stage
 impl<'s, IS, OS, DUS> Builder<'s, Geometry, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out> + MatchingInputs,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions
 {
     pub fn geometry_shared<US>(mut self, geometry: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US::Inverted>
@@ -344,7 +341,7 @@ where
 
     pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
-        FO: parameters::Parameters<Out>,
+        FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
@@ -356,9 +353,9 @@ where
 /// impl for fragment stage
 impl<'s, IS, OS, DUS> Builder<'s, Fragment, IS, OS, DUS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
-    DUS: uniform::marker::Definitions
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
+    DUS: glsl::Uniforms,
 {
     pub fn fragment_shared<US>(mut self, fragment: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US::Inverted>
     where
@@ -431,8 +428,8 @@ where
 //     impl<'s, T, IS, OS, DUS, US> shader::TargetProvider for Builder<'s, T, IS, OS, DUS, US>
 //     where
 //         T: Target,
-//         IS: parameters::Parameters,
-//         OS: parameters::Parameters,
+//         IS: glsl::Parameters,
+//         OS: glsl::Parameters,
 //         DUS: crate::hlist::lhlist::Append,
 //     {
 //         type Target = T;
@@ -441,8 +438,8 @@ where
 //     impl<T, IS, OS, US> shader::TargetProvider for Main<T, IS, OS, US>
 //     where
 //         T: Target,
-//         IS: parameters::Parameters,
-//         OS: parameters::Parameters,
+//         IS: glsl::Parameters,
+//         OS: glsl::Parameters,
 //     {
 //         type Target = T;
 //     }
@@ -466,8 +463,8 @@ where
 //         ($target: ty, $accessor: ident) => {
 //             impl<'s, IS, OS, DUS> GenericAttach<'s> for Builder<'s, $target, IS, OS, DUS, ()>
 //             where
-//                 IS: parameters::Parameters,
-//                 OS: parameters::Parameters,
+//                 IS: glsl::Parameters,
+//                 OS: glsl::Parameters,
 //                 DUS: crate::hlist::lhlist::Append,
 //             {
 //                 type Shader = <Self as shader::TargetProvider>::Target;
@@ -486,8 +483,8 @@ where
 
 //     impl<'s, IS, OS, DUS> GenericAttach<'s> for Builder<'s, Vertex, IS, OS, DUS, ()>
 //     where
-//         IS: parameters::Parameters,
-//         OS: parameters::Parameters,
+//         IS: glsl::Parameters,
+//         OS: glsl::Parameters,
 //         DUS: crate::hlist::lhlist::Append,
 //     {
 //         type Shader = <Self as shader::TargetProvider>::Target;
@@ -523,8 +520,8 @@ where
 //     where
 //         Self: GenericAttach<'s, Shader = T>,
 //         T: Target + 's,
-//         IS: parameters::Parameters,
-//         OS: parameters::Parameters,
+//         IS: glsl::Parameters,
+//         OS: glsl::Parameters,
 //         DUS: crate::hlist::lhlist::Append,
 //     {
 //         type Result<US: 's> = Builder<'s, T, IS, OS, DUS, US>;
@@ -547,14 +544,14 @@ where
 //         type NextTarget;
 //         type Output<NO, US>: shader::TargetProvider<Target = Self::NextTarget> 
 //         where 
-//             NO: parameters::Parameters,
+//             NO: glsl::Parameters,
 //             US: 's,
 //         ;
 
 //         /// Attach new shader
 //         fn attach<NO, US>(self, shader: &'s T) -> Self::Output<NO, US>
 //         where
-//             NO: parameters::Parameters,
+//             NO: glsl::Parameters,
 //             US: 's,
 //         ;
 //     }
@@ -563,8 +560,8 @@ where
 //     where
 //         CT: Target,
 //         NT: Target,
-//         CI: parameters::Parameters,
-//         CO: parameters::Parameters,
+//         CI: glsl::Parameters,
+//         CO: glsl::Parameters,
 //         CT: shader::TargetProvider,
 //         NT: shader::TargetProvider,
 //         Self: shader::TargetProvider,
@@ -573,13 +570,13 @@ where
 //     {
 //         type Output<NO, US> = Builder<'s, (), CI, NO, DUS, US>
 //         where
-//             NO: parameters::Parameters,
+//             NO: glsl::Parameters,
 //             US: 's
 //         ;
 
 //         fn attach<NO, US>(mut self, shader: &'s Main<NT, CO, NO, US>) -> Self::Output<NO, US>
 //         where
-//             NO: parameters::Parameters,
+//             NO: glsl::Parameters,
 //             US: 's,
 //         {
 //             <Self as GenericAttach>::generic_attach::<US>(&mut self, &shader.0);

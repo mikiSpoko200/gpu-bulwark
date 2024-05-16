@@ -3,13 +3,14 @@ pub mod target;
 use super::resource::{Allocator, Bind};
 use super::{prelude::*, resource};
 use crate::prelude::Const;
+use crate::types::Primitive;
 use target as buffer;
-use crate::{error, gl_call};
+use crate::{error, gl_call, glsl};
 use gl::types::{GLenum, GLuint};
 use std::marker::PhantomData;
 
 /// Type level enumeration of possible Buffer data Usage types
-pub trait Usage: Const<GLenum> {}
+pub trait Usage: Const<u32> {}
 
 pub struct Stream;
 
@@ -42,7 +43,7 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
 pub(crate) struct BufferSemantics<T, F>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    F: buffer::format::Valid<T>,
 {
     _target_phantom: PhantomData<T>,
     _format_phantom: PhantomData<F>,
@@ -52,7 +53,7 @@ where
 impl<T, F> Default for BufferSemantics<T, F>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    F: buffer::format::Valid<T>,
 {
     fn default() -> Self {
         Self {
@@ -82,19 +83,19 @@ unsafe impl resource::Allocator for BufferAllocator {
 
 type BufferObject = Object<BufferAllocator>;
 
-pub struct Buffer<T, F>
+pub struct Buffer<T, GLSL>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    GLSL: buffer::format::Valid<T>,
 {
     object: BufferObject,
-    pub(crate) semantics: BufferSemantics<T, F>,
+    pub(crate) semantics: BufferSemantics<T, GLSL>,
 }
 
 impl<T, F> Default for Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    F: buffer::format::Valid<T>,
 {
     fn default() -> Self {
         Self {
@@ -104,10 +105,10 @@ where
     }
 }
 
-impl<T, F> Buffer<T, F>
+impl<T, GLSL> Buffer<T, GLSL>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    GLSL: buffer::format::Valid<T>,
 {
     pub fn create() -> Self {
         Self {
@@ -115,18 +116,19 @@ where
         }
     }
 
-    pub fn data<U>(&mut self, data: &[F])
+    pub fn data<U, GL>(&mut self, data: &[GL])
     where
         U: Usage,
+        GL: glsl::compatible::Compatible<GLSL, Primitive = GLSL::Primitive>
     {
         // TODO: error handling
         self.bind();
         gl_call! { 
-            #[panic] 
+            #[panic]
             unsafe {
                 gl::BufferData(
                     T::VALUE,
-                    (std::mem::size_of::<F>() * data.len()) as _,
+                    (std::mem::size_of::<GLSL::Primitive>() * data.len()) as _,
                     data.as_ptr() as _,
                     U::VALUE,
                 );
@@ -140,7 +142,7 @@ where
 impl<T, F> Bind for Buffer<T, F>
 where
     T: buffer::Target,
-    (T, F): buffer::format::Valid,
+    F: buffer::format::Valid<T>,
 {
     fn bind(&self) {
         gl_call! {

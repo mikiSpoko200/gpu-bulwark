@@ -19,6 +19,7 @@ pub mod marker {
     pub trait Definitions: Clone { }
 
     impl Definitions for () { }
+    
     impl<H, const LOCATION: usize, GLU, GLSLU> Definitions for (H, Definition<GLU, GLSLU, LOCATION>)
     where
         H: Definitions,
@@ -72,7 +73,7 @@ pub struct Definition<GLU, GLSLU, const LOCATION: usize>(pub GLU, PhantomData<GL
 #[derive(Clone)]
 pub struct Definitions<US>
 where
-    US: marker::Definitions
+    US: glsl::Uniforms
 {
     pub values: US,
 } 
@@ -146,24 +147,24 @@ impl<const VALUE: usize> Index<VALUE> {
 }
 
 #[derive(Clone)]
-pub struct Uniforms<DUS, UUS>
+pub struct UniformsBuilder<DUS, UUS>
 where
-    DUS: marker::Definitions,
+    DUS: marker::Definitions + glsl::Uniforms,
     UUS: marker::RDeclarations,
 {
     pub(super) definitions: Definitions<DUS>,
     pub(super) declarations: Declarations<UUS>,
 }
 
-impl Default for Uniforms<(), ()> {
+impl Default for UniformsBuilder<(), ()> {
     fn default() -> Self {
         Self { definitions: Default::default(), declarations: Default::default() }
     }
 }
 
-impl<DUS, UUS> Uniforms<DUS, UUS> 
+impl<DUS, UUS> UniformsBuilder<DUS, UUS> 
 where
-    DUS: marker::Definitions,
+    DUS: glsl::Uniforms,
     UUS: marker::RDeclarations,
 {
     pub fn new(definitions: Definitions<DUS>) -> Self {
@@ -174,33 +175,33 @@ where
     }
 }
 
-impl<DUS> Uniforms<DUS, ()>
+impl<DUS> UniformsBuilder<DUS, ()>
 where
     DUS: marker::Definitions,
 {
     /// Definition a new uniform with specified index
-    pub fn define<GLU, GLSLU, const LOCATION: usize>(self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> Uniforms<(DUS, Definition<GLU, GLSLU, LOCATION>), ()>
+    pub fn define<GLU, GLSLU, const LOCATION: usize>(self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> UniformsBuilder<(DUS, Definition<GLU, GLSLU, LOCATION>), ()>
     where
         GLU: glsl::compatible::Compatible<GLSLU>,
         GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
     {
         let extended = self.definitions.define(binding, uniform);
-        Uniforms {
+        UniformsBuilder {
             declarations: Declarations::default(),
             definitions: extended,
         }
     }
   
     /// Add collection of uniforms 
-    pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> Uniforms<DUS, UUS> {
-        Uniforms {
+    pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> UniformsBuilder<DUS, UUS> {
+        UniformsBuilder {
             definitions: self.definitions,
             declarations: Declarations::default(),
         }
     }
 }
 
-impl<DUS, HUUS, TUUS, const LOCATION: usize> Uniforms<DUS, (Declaration<HUUS, LOCATION>, TUUS)>
+impl<DUS, HUUS, TUUS, const LOCATION: usize> UniformsBuilder<DUS, (Declaration<HUUS, LOCATION>, TUUS)>
 where
     DUS: marker::Definitions,
     HUUS: glsl::Uniform,
@@ -208,12 +209,12 @@ where
     (Declaration<HUUS, LOCATION>, TUUS): marker::RDeclarations
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn bind<GLU, IDX>(self, _: &UniformBinding<HUUS, LOCATION>) -> Uniforms<DUS, TUUS>
+    pub fn bind<GLU, IDX>(self, _: &UniformBinding<HUUS, LOCATION>) -> UniformsBuilder<DUS, TUUS>
     where
         DUS: hlist::lhlist::Find<Definition<GLU, HUUS, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
-        Uniforms::new(self.definitions)
+        UniformsBuilder::new(self.definitions)
     }
 }
 

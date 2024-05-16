@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
-use crate::{glsl, object::shader::parameters, prelude::HList};
+use crate::glsl; 
+use crate::prelude::HList;
 
 mod marker {
     use crate::glsl;
@@ -9,10 +10,13 @@ mod marker {
     pub trait Target {
         type Type: glsl::Type;
     }
-
+    pub trait Storage {
+        type Store<T>;
+    }
 }
 
 pub use marker::ParameterQualifier;
+pub use marker::Storage;
 
 #[derive(Clone, Copy, Debug)]
 pub struct Unvalidated;
@@ -31,31 +35,54 @@ pub struct Out;
 impl marker::ParameterQualifier for In { }
 impl marker::ParameterQualifier for Out { }
 
+#[derive(Clone, Copy, Debug)]
+pub struct Phantom;
 
 #[derive(Clone, Copy, Debug)]
-pub struct Parameter<Q, T>(PhantomData<(Q, T)>)
+pub struct Inline;
+
+impl marker::Storage for Phantom {
+    type Store<T> = PhantomData<T>;
+}
+
+impl marker::Storage for Inline {
+    type Store<T> = T;
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Parameter<Q, T, S=Phantom>(S::Store<T>, PhantomData<Q>)
 where
     T: glsl::Type,
     Q: marker::ParameterQualifier,
+    S: marker::Storage,
 ;
 
-impl<T, Q> marker::Target for Parameter<Q, T>
+impl<T, Q, S> marker::Target for Parameter<Q, T, S>
 where 
     T: glsl::Type, 
-    Q: marker::ParameterQualifier
+    Q: marker::ParameterQualifier,
+    S: marker::Storage,
 {
     type Type = T;
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Uniform<T>(PhantomData<T>) where T: glsl::Uniform;
+pub struct Uniform<T, S=Phantom>(S::Store<T>)
+where
+    T: glsl::Uniform,
+    S: marker::Storage,
+;
 
-impl<T> marker::Target for Uniform<T> where T: glsl::Uniform {
+impl<T, S> marker::Target for Uniform<T, S>
+where
+    T: glsl::Uniform,
+    S: marker::Storage,
+{
     type Type = T;
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Binding<Target, const LOCATION: usize, Valid=Validated>(PhantomData<(Target, Valid)>)
+pub struct Binding<Target, const LOCATION: usize, Valid=Validated>(Target, PhantomData<Valid>)
 where 
     Target: marker::Target,
     Valid: marker::ValidationStatus,
@@ -76,17 +103,18 @@ where
     Target: marker::Target,
 {
     pub fn new() -> Self {
-        Self(PhantomData)
+        Self(Default::default(), PhantomData)
     }
-
+    
     fn validate(self) -> Binding<Target, LOCATION> {
-        Binding(PhantomData)
+        Binding(self.0, PhantomData)
     }
 }
 
-pub type UniformBinding<U, const LOCATION: usize, V=Validated> = Binding<Uniform<U>, LOCATION, V>;
-pub type InParameterBinding<T, const LOCATION: usize, V=Validated> = Binding<Parameter<In, T>, LOCATION, V>;
-pub type OutParameterBinding<T, const LOCATION: usize, V=Validated> = Binding<Parameter<Out, T>, LOCATION, V>;
+
+pub type UniformBinding<U, const LOCATION: usize, V=Validated, S=Phantom> = Binding<Uniform<U, S>, LOCATION, V>;
+pub type InParameterBinding<T, const LOCATION: usize, V=Validated, S=Phantom> = Binding<Parameter<In, T, S>, LOCATION, V>;
+pub type OutParameterBinding<T, const LOCATION: usize, V=Validated, S=Phantom> = Binding<Parameter<Out, T, S>, LOCATION, V>;
 
 impl<T, const LOCATION: usize> OutParameterBinding<T, LOCATION>
 where
@@ -172,7 +200,7 @@ where
 }
 
 pub trait MatchingInputs {
-    type Inputs: parameters::Parameters<In>;
+    type Inputs: glsl::Parameters<In>;
 
     fn matching_intputs(&self) -> Self::Inputs;
 }
@@ -212,57 +240,178 @@ macro_rules! binding_type {
 }
 
 #[macro_export]
+macro_rules! Bindings {
+    ([$kind: ident] layout (location=$location: expr) $type: ty ;) => {
+        ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+    };
+    ([$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::Bindings! {
+            @ ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+            =>
+            $([$kinds] layout (location=$locations) $types);*
+        }
+    };
+    (@ $acc: ty => [$kind: ident] layout (location=$location: expr) $type: ty) => {
+        ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+    };
+    (@ $acc: ty => [$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);*) => {
+        crate::Bindings! {
+            @ ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+            =>
+            $([$kinds] layout (location=$locations) $types);*
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! bindings {
+    ([$kind: ident] layout (location=$location: expr) $type: ty ;) => {
+        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
+            ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::new())
+        )
+    };
+    ([$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::bindings! {
+            @ 
+            crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
+                ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+            )
+            =>
+            $([$kinds] layout (location=$locations) $types);* 
+        }
+    };
+    (@ $acc: expr => [$kind: ident] layout (location=$location: expr) $type: ty) => {
+        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
+            ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+        )
+    };
+    (@ $acc: expr => [$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);*) => {
+        crate::bindings! {
+            @
+            crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
+                ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+            )
+            =>
+            $([$kinds] layout (location=$locations) $types);*
+        }
+    };
+}
+
+
+#[macro_export]
 macro_rules! inputs {
     (layout (location=$location: expr) $type: ty $(;)?) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(((), crate::glsl::binding::Binding::<binding_type!(in, $type), $location, _>::new()))
+        crate::bindings! {
+            [in] layout(location=$location) $type;
+        }
     };
     (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        inputs!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(((), crate::glsl::binding::Binding::<binding_type!(in, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+        crate::bindings! { 
+            [in] layout (location=$location) $type;
+            $([in] layout (location=$locations) $types);* ;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(in, $type), $location, _>::default()))
+}
+
+#[macro_export]
+macro_rules! Inputs {
+    (layout (location=$location: expr) $type: ty ;) => {
+        crate::Bindings!{
+            [in] layout (location=$location) $type;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);*) => {
-        inputs!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(in, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::Bindings!{
+            [in] layout (location=$location) $type;
+            $([in] layout (location=$locations) $types);* ;
+        }
     };
 }
 
 #[macro_export]
 macro_rules! outputs {
     (layout (location=$location: expr) $type: ty $(;)?) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(((), crate::glsl::binding::Binding::<binding_type!(out, $type), $location, _>::new()))
+        crate::bindings! {
+            [out] layout(location=$location) $type;
+        }
     };
     (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        inputs!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(((), crate::glsl::binding::Binding::<binding_type!(out, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+        crate::bindings! { 
+            [out] layout (location=$location) $type;
+            $([out] layout (location=$locations) $types);* ;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(out, $type), $location, _>::default()))
+}
+
+#[macro_export]
+macro_rules! Outputs {
+    (layout (location=$location: expr) $type: ty ;) => {
+        crate::Bindings!{
+            [out] layout (location=$location) $type;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);*) => {
-        inputs!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(out, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::Bindings!{
+            [out] layout (location=$location) $type;
+            $([out] layout (location=$locations) $types);* ;
+        }
     };
 }
 
 #[macro_export]
 macro_rules! uniforms {
     (layout (location=$location: expr) $type: ty $(;)?) => {
-        ((), crate::glsl::binding::Binding::<binding_type!(uniform, $type), $location, _>::new()).validate()
+        crate::bindings! {
+            [uniform] layout(location=$location) $type;
+        }
     };
     (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        uniforms!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(((), crate::glsl::binding::Binding::<binding_type!(uniform, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+        crate::bindings! { 
+            [uniform] layout (location=$location) $type;
+            $([uniform] layout (location=$locations) $types);* ;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(uniform, $type), $location, _>::default()))
+}
+
+#[macro_export]
+macro_rules! Uniforms {
+    (layout (location=$location: expr) $type: ty ;) => {
+        crate::Bindings!{
+            [uniform] layout (location=$location) $type;
+        }
     };
-    (@ $acc: expr, layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);*) => {
-        uniforms!(@ crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(($acc, crate::glsl::binding::Binding::<binding_type!(uniform, $type), $location, _>::default())), $(layout (location=$locations) $types);*)
+    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::Bindings!{
+            [uniform] layout (location=$location) $type;
+            $([uniform] layout (location=$locations) $types);* ;
+        }
+    };
+    (layout (location=$location: expr) $gl: ty as $glsl: ty ;) => {
+        ((), crate::glsl::uniform)
+    };
+    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+        crate::Bindings! {
+            @ ((), crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
+            =>
+            $(layout (location=$locations) $types);*
+        }
+    };
+    (@ $acc: ty => layout (location=$location: expr) $type: ty) => {
+        ($acc, crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
+    };
+    (@ $acc: ty => layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);*) => {
+        crate::Bindings! {
+            @ ($acc, crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
+            =>
+            $([$kinds] layout (location=$locations) $types);*
+        }
     };
 }
 
 #[macro_export]
 macro_rules! locations {
     ($ident: ident $(,)?) => {
-        $ident
+        ((), $ident)
     };
     ($ident: ident, $($idents: tt),* $(,)?) => {
         locations!(@ ((), $ident), $($idents),*)
@@ -291,11 +440,11 @@ macro_rules! glsl {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use super::glsl;
 
     #[test]
     fn check_multiple_one_sized_locations() {
-        let _ = inputs! {
+        let _ = crate::inputs! {
             layout(location=0) glsl::Vec3;
             layout(location=0) glsl::Vec3;
         };

@@ -16,7 +16,6 @@ use self::uniform::Definition;
 
 use super::shader;
 pub(self) use super::shader::prelude::*;
-use super::shader::{parameters, parameters::Parameters};
 
 use super::prelude::Object;
 use super::resource::{Allocator, self};
@@ -88,14 +87,14 @@ unsafe impl Allocator for ProgramAllocator {
 
 struct ProgramPhantomData<I, O>
 where
-    I: parameters::Parameters<In>,
-    O: parameters::Parameters<Out>,
+    I: glsl::Parameters<In>,
+    O: glsl::Parameters<Out>,
 {
     pub _input_phantom: PhantomData<I>,
     pub _output_phantom: PhantomData<O>,
 }
 
-impl<I: parameters::Parameters<In>, O: parameters::Parameters<Out>> std::default::Default for ProgramPhantomData<I, O> {
+impl<I: glsl::Parameters<In>, O: glsl::Parameters<Out>> std::default::Default for ProgramPhantomData<I, O> {
     fn default() -> Self {
         Self { _input_phantom: Default::default(), _output_phantom: Default::default() }
     }
@@ -104,13 +103,13 @@ impl<I: parameters::Parameters<In>, O: parameters::Parameters<Out>> std::default
 #[doc = include_str!("../../../docs/object/program/Program.md")]
 pub struct Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
-    DUS: uniform::marker::Definitions
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
+    DUS: glsl::Uniforms,
 {
     object: Object<ProgramAllocator>,
     _phantoms: ProgramPhantomData<IS, OS>,
-    defined_uniforms: uniform::Definitions<DUS>,
+    defined_uniforms: DUS,
 }
 
 impl Program<(), (), ()> {
@@ -121,8 +120,8 @@ impl Program<(), (), ()> {
 
 impl<IS, OS> Program<IS, OS, ()>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
 {
     pub fn create() -> Self {
         Self {
@@ -132,7 +131,7 @@ where
         }
     }
 
-    pub fn create_with_uniforms<DUS: uniform::marker::Definitions>(uniforms: uniform::Uniforms<DUS, ()>) -> Program<IS, OS, DUS> {
+    pub fn create_with_uniforms<DUS: glsl::Uniforms>(uniforms: uniform::UniformsBuilder<DUS, ()>) -> Program<IS, OS, DUS> {
         Program {
             object: Default::default(),
             _phantoms: Default::default(),
@@ -143,8 +142,8 @@ where
 
 impl<IS, OS, DUS> Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
     pub fn query(&self, param: QueryParam, output: &mut i32) {
@@ -167,7 +166,7 @@ where
         let mut log_size = 0;
         self.query(QueryParam::InfoLogLength, &mut log_size);
         (log_size > 0).then(|| {
-            let mut buffer: Vec<u8> = Vec::with_capacity(log_size as _);
+            let mut buffer = Vec::<u8>::with_capacity(log_size as _);
             let mut actual_length = 0;
             gl_call! {
                 #[panic]
@@ -177,7 +176,7 @@ where
                     gl::GetProgramInfoLog(
                         self.object.name(),
                         buffer.capacity() as _,
-                        &mut actual_length as *mut _,
+                        &mut actual_length,
                         buffer.as_mut_ptr() as _
                     )
                 }
@@ -225,7 +224,7 @@ where
     pub fn uniform<GLU, GLSLU, const LOCATION: usize, IDX>(&mut self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: &GLU)
     where
         GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive> + glsl::uniform::ops::Set,
-        GLU: glsl::compatible::Compatible<GLSLU>,
+        GLU: glsl::compatible::Compatible<GLSLU>, // Primitive = GLU::Primitive
         IDX: Index,
         DUS: Find<Definition<GLU, GLSLU, LOCATION>, IDX>,
     {
@@ -343,8 +342,8 @@ where
 
 impl<IS, OS, DUS> resource::Bind for Program<IS, OS, DUS>
 where
-    IS: parameters::Parameters<In>,
-    OS: parameters::Parameters<Out>,
+    IS: glsl::Parameters<In>,
+    OS: glsl::Parameters<Out>,
     DUS: uniform::marker::Definitions
 {
     fn bind(&self) {

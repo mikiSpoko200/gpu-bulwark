@@ -6,29 +6,29 @@ pub mod signature {
 }
 
 mod base {
+    use sealed::sealed;
     use crate::glsl;
     use super::signature;
 
     use super::marker::Uniform;
 
-    mod sealed {
-        pub trait Dispatch {
-            type Signature;
-            const FUNCTION: Self::Signature;
-            const COUNT: usize = 1;
-        }
+    #[sealed]
+    pub trait Dispatch {
+        type Signature;
+        const FUNCTION: Self::Signature;
+        const COUNT: usize = 1;
     }
-
-    pub use sealed::Dispatch;
 
     macro_rules! dispatch_uniform_functions {
         ($type: ty => $function: path) => {
+            #[sealed]
             impl Dispatch for $type {
                 type Signature = signature::UniformV<<$type as glsl::FFI>::Primitive>;
                 const FUNCTION: Self::Signature = $function;
             }
         };
         (matrix $type: ty => $function: path) => {
+            #[sealed]
             impl Dispatch for $type {
                 type Signature = signature::UniformMatrixV<<$type as glsl::FFI>::Primitive>;
                 const FUNCTION: Self::Signature = $function;
@@ -68,6 +68,7 @@ mod base {
     dispatch_uniform_functions!{ matrix glsl::Mat4x3 => gl::UniformMatrix4x3fv }
     dispatch_uniform_functions!{ matrix glsl::Mat4x4 => gl::UniformMatrix4fv   }
 
+    #[sealed]
     impl<U, const N: usize> Dispatch for glsl::Array<U, N>
     where
         U: Uniform + Dispatch,
@@ -79,10 +80,14 @@ mod base {
 }
 
 pub mod marker {
-    use crate::glsl;
+    use crate::hlist::lhlist as hlist;
+    use crate::glsl::{self, binding};
     use glsl::marker;
 
+    use sealed::sealed;
+
     /// Uniform must be glsl type and must be a specific subtype
+    #[sealed]
     pub trait Uniform: glsl::Type { }
 
     macro_rules! impl_uniform {
@@ -121,11 +126,27 @@ pub mod marker {
         U: glsl::Uniform<Subtype=S>,
     { }
 
+    #[sealed]
     impl<U, S> Uniform for U
     where
         U: glsl::Type<Subtype=S>,
         U: UniformDisjointHelper<S>,
         S: marker::Subtype
+    { }
+
+    /// Marker trait for types that represent program / shader uniforms. 
+    #[sealed]
+    pub trait Uniforms: hlist::Base { }
+
+    #[sealed]
+    impl Uniforms for () { }
+
+    #[sealed]
+    impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::binding::UniformBinding<T, LOCATION, binding::Validated, S>)
+    where
+        H: Uniforms,
+        T: glsl::Uniform,
+        S: binding::Storage,
     { }
 }
 
@@ -152,8 +173,7 @@ pub mod ops {
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
-            GLU: glsl::FFI<Primitive = Self::Primitive>,
-            GLU: glsl::compatible::Compatible<Self>,
+            GLU: glsl::FFI<Primitive = Self::Primitive> + glsl::compatible::Compatible<Self>,
         {
             gl_call! {
                 #[panic]
@@ -176,7 +196,6 @@ pub mod ops {
             gl_call! {
                 #[panic]
                 unsafe {
-                    println!("bind!");
                     Self::FUNCTION(LOCATION as _, Self::COUNT as _, uniform.as_pod().as_ptr());
                 }
             };
@@ -195,8 +214,7 @@ pub mod ops {
             gl_call! {
                 #[panic]
                 unsafe {
-                    println!("bind!");
-                    Self::FUNCTION(LOCATION as _, Self::COUNT as _, false as _, uniform.as_pod().as_ptr());
+                    Self::FUNCTION(LOCATION as _, Self::COUNT as _, true as _, uniform.as_pod().as_ptr());
                 }
             };
         }

@@ -1,6 +1,9 @@
 //! This module provides specialization of HLists for Program / Shader parameters.
 
-use crate::{hlist, hlist::lhlist::Base as HList, glsl, glsl::binding::{In, Out, ParameterQualifier, InParameterBinding, OutParameterBinding}};
+
+use crate::hlist::lhlist::Base as HList;
+use crate::glsl;
+use glsl::binding::{In, Out, ParameterQualifier, InParameterBinding, OutParameterBinding};
 
 /// Marker trait for types that represent program / shader inputs and outputs.
 pub trait Parameters<Qualifier>: HList where Qualifier: ParameterQualifier {}
