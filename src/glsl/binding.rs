@@ -3,13 +3,22 @@ use crate::glsl;
 use crate::prelude::HList;
 
 mod marker {
-    use crate::glsl;
+    use crate::{glsl, types::Primitive};
 
     pub trait ValidationStatus { }
     pub trait ParameterQualifier { }
-    pub trait Target {
-        type Type: glsl::Type;
+
+    /// GL / GLSL binding target -- 
+    pub trait Binding
+    where
+        Self::GlType: glsl::compatible::Compatible<Self::GlslType>,
+    
+    {
+        type GlslType: glsl::Type;
+        type GlType;
+        type Storage: Storage;
     }
+
     pub trait Storage {
         type Store<T>;
     }
@@ -23,8 +32,8 @@ pub struct Unvalidated;
 #[derive(Clone, Copy, Debug)]
 pub struct Validated;
 
-impl marker::ValidationStatus for Unvalidated {} 
-impl marker::ValidationStatus for Validated {} 
+impl marker::ValidationStatus for Unvalidated { } 
+impl marker::ValidationStatus for Validated { } 
 
 #[derive(Clone, Copy, Debug)]
 pub struct In;
@@ -57,14 +66,25 @@ where
     S: marker::Storage,
 ;
 
-impl<T, Q, S> marker::Target for Parameter<Q, T, S>
+impl<T, Q, S> marker::Binding for Parameter<Q, T, S>
 where 
     T: glsl::Type, 
     Q: marker::ParameterQualifier,
     S: marker::Storage,
 {
-    type Type = T;
+    type GlslType = T;
 }
+
+impl<T, Q> Default for Parameter<Q, T>
+where 
+    T: glsl::Type, 
+    Q: marker::ParameterQualifier,
+{
+    fn default() -> Self {
+        Self(Default::default(), PhantomData)
+    }
+}
+
 
 #[derive(Clone, Copy, Debug)]
 pub struct Uniform<T, S=Phantom>(S::Store<T>)
@@ -73,25 +93,25 @@ where
     S: marker::Storage,
 ;
 
-impl<T, S> marker::Target for Uniform<T, S>
+impl<T, S> marker::Binding for Uniform<T, S>
 where
     T: glsl::Uniform,
     S: marker::Storage,
 {
-    type Type = T;
+    type GlslType = T;
 }
 
 #[derive(Clone, Copy, Debug)]
 pub struct Binding<Target, const LOCATION: usize, Valid=Validated>(Target, PhantomData<Valid>)
 where 
-    Target: marker::Target,
+    Target: marker::Binding,
     Valid: marker::ValidationStatus,
 ;
 
 
 impl<Target, const LOCATION: usize> Default for Binding<Target, LOCATION, Unvalidated>
 where 
-    Target: marker::Target,
+    Target: marker::Binding,
 {
     fn default() -> Self {
         Self::new()
@@ -100,7 +120,7 @@ where
 
 impl<Target, const LOCATION: usize> Binding<Target, LOCATION, Unvalidated>
 where 
-    Target: marker::Target,
+    Target: marker::Binding,
 {
     pub fn new() -> Self {
         Self(Default::default(), PhantomData)
@@ -134,7 +154,7 @@ pub trait Bindings<ValidationStatus>: HList {
 
 impl<Target, const LOCATION: usize> Bindings<Unvalidated> for ((), Binding<Target, LOCATION, Unvalidated>)
 where
-    Target: marker::Target,
+    Target: marker::Binding,
 {
     const LOCATIONS_VALID: () = ();
     type Validated = ((), Binding<Target, LOCATION, Validated>);
@@ -147,7 +167,7 @@ where
 
 impl<Target, const LOCATION: usize> Bindings<Validated> for ((), Binding<Target, LOCATION, Validated>)
 where
-    Target: marker::Target,
+    Target: marker::Binding,
 {
     const LOCATIONS_VALID: () = ();
     type Validated = Self;
@@ -171,10 +191,10 @@ impl<H, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize> Bindings
 where
     (H, Binding<PT, PREV_LOCATION, Validated>): Bindings<Validated>,
     H: HList,
-    PT: marker::Target,
-    CT: marker::Target,
+    PT: marker::Binding,
+    CT: marker::Binding,
 {
-    const LOCATIONS_VALID: () = are_locations_valid::<PT::Type, PREV_LOCATION, CT::Type, CURR_LOCATION>();
+    const LOCATIONS_VALID: () = are_locations_valid::<PT::GlslType, PREV_LOCATION, CT::GlslType, CURR_LOCATION>();
     type Validated = (<(H, Binding<PT, PREV_LOCATION, Validated>) as Bindings<Validated>>::Validated, Binding<CT, CURR_LOCATION, Validated>);
     
     fn validate(self) -> Self::Validated {
@@ -188,8 +208,8 @@ impl<H, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize> Bindings
 where
     (H, Binding<PT, PREV_LOCATION, Validated>): Bindings<Validated>,
     H: HList,
-    PT: marker::Target,
-    CT: marker::Target,
+    PT: marker::Binding,
+    CT: marker::Binding,
 {
     const LOCATIONS_VALID: () = ();
     type Validated = Self;

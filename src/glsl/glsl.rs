@@ -8,6 +8,7 @@ mod sealed {
     pub unsafe trait FFI {
         type Primitive: super::ScalarType;
         const SIZE: usize;
+        type Memory;
     }
 }
 

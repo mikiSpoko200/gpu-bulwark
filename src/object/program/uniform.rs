@@ -14,17 +14,19 @@ pub mod marker {
     use crate::hlist::lhlist::{Invert, Find};
     use crate::hlist::rhlist::Append;
 
+    use glsl::binding::{UniformBinding, Validated, Inline, Phantom};
+
     use super::{Definition, Declaration};
 
-    pub trait Definitions: Clone { }
+    pub trait Definitions: glsl::Uniforms { }
 
     impl Definitions for () { }
     
-    impl<H, const LOCATION: usize, GLU, GLSLU> Definitions for (H, Definition<GLU, GLSLU, LOCATION>)
+    /// HList of validated bindings to uniforms with inline storage.
+    impl<H, const LOCATION: usize, GLSLU> Definitions for (H, UniformBinding<GLSLU, LOCATION, Validated, Inline>)
     where
         H: Definitions,
-        GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
-        GLU: glsl::compatible::Compatible<GLSLU>
+        GLSLU: glsl::Uniform,
     { }
 
     pub trait Declarations<FD>: Clone
