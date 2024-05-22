@@ -1,6 +1,16 @@
 use frunk::hlist::Selector;
 use gl::types::GLenum;
 
+pub trait ArrayExt {
+    const LENGTH: usize;
+    type T;
+}
+
+impl<T, const N: usize> ArrayExt for [T; N] {
+    const LENGTH: usize = N;
+    type T = T;
+}
+
 pub trait Const<T> {
     const VALUE: T;
 }

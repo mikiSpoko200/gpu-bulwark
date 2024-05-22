@@ -85,9 +85,8 @@ where
     }
 }
 
-
 #[derive(Clone, Copy, Debug)]
-pub struct Uniform<T, S=Phantom>(S::Store<T>)
+pub struct Uniform<T, K, S=Phantom>(S::Store<T>, PhantomData<K>)
 where
     T: glsl::Uniform,
     S: marker::Storage,
@@ -130,7 +129,6 @@ where
         Binding(self.0, PhantomData)
     }
 }
-
 
 pub type UniformBinding<U, const LOCATION: usize, V=Validated, S=Phantom> = Binding<Uniform<U, S>, LOCATION, V>;
 pub type InParameterBinding<T, const LOCATION: usize, V=Validated, S=Phantom> = Binding<Parameter<In, T, S>, LOCATION, V>;

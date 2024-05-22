@@ -5,16 +5,19 @@
 use std::marker::PhantomData;
 
 mod sealed {
+    
+
     pub unsafe trait FFI {
         type Primitive: super::ScalarType;
         const SIZE: usize;
-        type Memory;
     }
 }
 
 pub use sealed::FFI;
 
 pub mod marker {
+    use sealed::sealed;
+
     use super::Const;
 
     use crate::glsl::location;
@@ -38,9 +41,19 @@ pub mod marker {
     pub struct Matrix;
     impl Subtype for Matrix { }
 
+    #[sealed]
+    pub trait TypeGroup { }
+
+    #[derive(Clone, Copy, Debug)] pub struct Transparent;
+    #[sealed] impl TypeGroup for Transparent { }
+
+    #[derive(Clone, Copy, Debug)] pub struct Opaque;
+    #[sealed] impl TypeGroup for Opaque { }
+
     /// Marker trait for glsl types.
     pub trait Type: location::marker::Location + Default + Clone + Sized + super::FFI {
         type Subtype: Subtype;
+        type Group: TypeGroup;
     }
 
     pub trait ScalarType: Type<Subtype = Scalar> + Copy + crate::types::Primitive { }
@@ -55,28 +68,28 @@ pub mod marker {
     impl<S> Subtype for Array<S> where S: Subtype { }
 
     /// Marker trait for glsl scalar types.
-    impl Type for f32 { type Subtype = Scalar; }
+    impl Type for f32 { type Subtype = Scalar; type Group = Transparent; }
     unsafe impl super::FFI for f32 {
         type Primitive = Self;
         const SIZE: usize = 1;
     }
     impl ScalarType for f32 { }
 
-    impl Type for f64 { type Subtype = Scalar; }
+    impl Type for f64 { type Subtype = Scalar; type Group = Transparent; }
     unsafe impl super::FFI for f64 {
         type Primitive = Self;
         const SIZE: usize = 1;
     }
     impl ScalarType for f64 { }
 
-    impl Type for i32 { type Subtype = Scalar; }
+    impl Type for i32 { type Subtype = Scalar; type Group = Transparent; }
     unsafe impl super::FFI for i32 {
         type Primitive = Self;
         const SIZE: usize = 1;
     }
     impl ScalarType for i32 { }
 
-    impl Type for u32 {type Subtype = Scalar; }
+    impl Type for u32 {type Subtype = Scalar; type Group = Transparent; }
     unsafe impl super::FFI for u32 {
         type Primitive = Self;
         const SIZE: usize = 1;
@@ -95,7 +108,8 @@ pub mod marker {
         T: ScalarType,
         Const<N>: VecSize,
     {
-        type Subtype = Vector;    
+        type Subtype = Vector;
+        type Group = Transparent;
     }
 
     unsafe impl<T, const N: usize> super::FFI for super::base::Vec<T, N>
@@ -122,6 +136,7 @@ pub mod marker {
         Const<C>: VecSize,
     {
         type Subtype = Matrix;
+        type Group = Transparent;
     }
 
     /// Double precision matrix is a valid type.
@@ -131,6 +146,7 @@ pub mod marker {
         Const<C>: VecSize,
     {
         type Subtype = Matrix;
+        type Group = Transparent;
     }
 
     unsafe impl<T, const R: usize, const C: usize> super::FFI for super::Mat<T, R, C>
@@ -153,7 +169,7 @@ pub mod marker {
     { }
 
     /// Array of types is a valid type.
-    impl<T, const N: usize> Type for super::Array<T, N> where T: Type { type Subtype = Array<T::Subtype>; }
+    impl<T, const N: usize> Type for super::Array<T, N> where T: Type { type Subtype = Array<T::Subtype>; type Group = Transparent; }
     unsafe impl<T, const N: usize> super::FFI for super::Array<T, N> where T: Type {
         type Primitive = T::Primitive;
         const SIZE: usize = N * T::SIZE;

@@ -9,14 +9,24 @@ use crate::hlist::{self, indexed, lhlist as lhlist, rhlist as rhlist};
 use crate::builder;
 use super::builder::Builder;
 
+pub mod collections {
+    use super::marker;
+
+    // typical contents of such module / interface come with
+    // - Trait for single HList item
+    // - Trait for collection of items
+    // - Facade wrapper around collection
+
+    /// Facade that provides operations on `Definitions` HLists.
+    pub struct Definitions<US>(US) where US: marker::Definitions;
+}
+
 pub mod marker {
     use crate::{glsl, hlist};
     use crate::hlist::lhlist::{Invert, Find};
     use crate::hlist::rhlist::Append;
 
     use glsl::binding::{UniformBinding, Validated, Inline, Phantom};
-
-    use super::{Definition, Declaration};
 
     pub trait Definitions: glsl::Uniforms { }
 
@@ -69,84 +79,22 @@ pub mod marker {
     { }
 }
 
-#[derive(Clone)]
-pub struct Definition<GLU, GLSLU, const LOCATION: usize>(pub GLU, PhantomData<GLSLU>);
 
-#[derive(Clone)]
-pub struct Definitions<US>
+pub fn define<const LOCATION: usize, GLU, GLSLU>(_: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> Definitions<(DUS, Definition<GLU, GLSLU, LOCATION>)>
 where
-    US: glsl::Uniforms
+    GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
+    GLU: glsl::compatible::Compatible<GLSLU>,
 {
-    pub values: US,
-} 
-
-impl Definitions<()> {
-    pub fn new() -> Self {
-        Self {
-            values: (), 
-        }
-    }
 }
 
-impl Default for Definitions<()> {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<DUS> Definitions<DUS>
+pub fn uniform<GLU, GLSLU, const LOCATION: usize>(binding: &UniformBinding<GLSLU, LOCATION>, uniform: &GLU)
 where
-    DUS: marker::Definitions,
+    GLU: glsl::compatible::Compatible<GLSLU>,
+    GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
+    GLSLU: glsl::uniform::ops::Set,
 {
-    pub fn define<const LOCATION: usize, GLU, GLSLU>(self, _: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> Definitions<(DUS, Definition<GLU, GLSLU, LOCATION>)>
-    where
-        GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
-        GLU: glsl::compatible::Compatible<GLSLU>,
-    {
-        Definitions {
-            values: (self.values, Definition(uniform, PhantomData)),
-        }
-    }
-
-    pub fn uniform<GLU, GLSLU, const LOCATION: usize>(&mut self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: &GLU)
-    where
-        GLU: glsl::compatible::Compatible<GLSLU>,
-        GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
-        GLSLU: glsl::uniform::ops::Set,
-    {
-        <GLSLU as glsl::uniform::ops::Set<GLSLU::Subtype>>::set(binding, uniform)
-    }
 }
 
-#[derive(Clone)]
-pub struct Declaration<U, const LOCATION: usize>(UniformBinding<U, LOCATION>) where U: glsl::Uniform;
-
-impl<U, const LOCATION: usize> Declaration<U, LOCATION>
-where
-    U: glsl::Uniform
-{
-    pub const fn new(loaction: UniformBinding<U, LOCATION>) -> Self {
-        Self(loaction)
-    }
-}
-
-#[derive(Clone)]
-pub struct Declarations<US>(PhantomData<US>) where US: marker::RDeclarations;
-
-impl<US> Default for Declarations<US>
-where
-    US: marker::RDeclarations
-{
-    fn default() -> Self {
-        Self(PhantomData)
-    }
-}
-
-pub struct Index<const VALUE: usize>;
-
-impl<const VALUE: usize> Index<VALUE> {
-    pub const VALUE: usize = VALUE;
-}
 
 #[derive(Clone)]
 pub struct UniformsBuilder<DUS, UUS>
@@ -154,8 +102,7 @@ where
     DUS: marker::Definitions + glsl::Uniforms,
     UUS: marker::RDeclarations,
 {
-    pub(super) definitions: Definitions<DUS>,
-    pub(super) declarations: Declarations<UUS>,
+    pub(super) definitions: DUS,
 }
 
 impl Default for UniformsBuilder<(), ()> {
@@ -189,7 +136,6 @@ where
     {
         let extended = self.definitions.define(binding, uniform);
         UniformsBuilder {
-            declarations: Declarations::default(),
             definitions: extended,
         }
     }
@@ -198,7 +144,6 @@ where
     pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> UniformsBuilder<DUS, UUS> {
         UniformsBuilder {
             definitions: self.definitions,
-            declarations: Declarations::default(),
         }
     }
 }

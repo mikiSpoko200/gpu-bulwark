@@ -5,6 +5,7 @@ pub mod uniform;
 pub mod binding;
 pub mod prelude;
 pub mod parameters;
+pub mod sampler;
 
 pub use glsl::*;
 pub use glsl::marker::{Type, VecSize};

@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use super::shader;
 use super::shader::prelude::*;
 use super::internal;
-use super::uniform::Definitions;
 use super::uniform::UniformsBuilder;
 use super::uniform;
 use crate::glsl;
@@ -97,7 +96,8 @@ where
         }
     }
 
-    fn retype_unmatched_uniforms<NUUS>(self, uniforms: UniformsBuilder<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
+    /// Retype only unmatched uniforms
+    fn retype_only_unmatched_uniforms<NUUS>(self, uniforms: UniformsBuilder<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
     where
         NUUS: uniform::marker::RDeclarations
     {
@@ -185,6 +185,7 @@ impl<'s> Builder<'s, Vertex, (), (), (), ()> {
         Self::default()
     }
    
+    /// Add definitions for 
     pub fn uniforms<DUS>(self, definer: impl FnOnce(Definitions<()>) -> Definitions<DUS>) -> Builder<'s, Vertex, (), (), DUS, ()>
     where
         DUS: uniform::marker::Definitions,
@@ -225,7 +226,7 @@ where
     {
         self.vertex.as_mut().expect("vertex stage is set").shared.push(&vertex.0);
         let declarations = self.uniforms.clone().add_unmatched();
-        self.retype_unmatched_uniforms(declarations)
+        self.retype_only_unmatched_uniforms(declarations)
     }
 
     pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS::Inputs, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
