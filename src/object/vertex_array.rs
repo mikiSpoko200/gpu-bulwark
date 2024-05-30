@@ -2,16 +2,15 @@
 
 use std::marker::PhantomData;
 
+use super::attributes::{Attribute, AttributeDecl, Attributes};
 use super::buffer;
 use super::buffer::Buffer;
 use super::prelude::{Name, Object};
 use super::resource::{Allocator, Bind};
 use crate::gl_call;
-use crate::types::Primitive;
 use crate::prelude::{HList, HListExt};
-use super::attributes::{AttributeDecl, Attributes, Attribute};
+use crate::types::Primitive;
 use gl::types::GLuint;
-
 
 struct VertexArrayAllocator;
 
@@ -67,10 +66,9 @@ where
     semantics: VertexArraySemantics<A>,
 }
 
-
 impl<A> VertexArray<A>
 where
-    A: Attributes
+    A: Attributes,
 {
     pub const fn len(&self) -> usize {
         self.semantics.length
@@ -93,7 +91,10 @@ where
         A: Attribute + buffer::target::format::Valid<buffer::target::Array>,
     {
         if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
-            panic!("buffers must be the same length, current {} received {}", self.semantics.length, buffer.semantics.length);
+            panic!(
+                "buffers must be the same length, current {} received {}",
+                self.semantics.length, buffer.semantics.length
+            );
         }
 
         self.bind();

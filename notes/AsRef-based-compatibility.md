@@ -27,3 +27,10 @@ Ugly, produces boilerplate.
 
 3. Provide `Compatible` impls using macro rather than 
 
+4. Expose unsafe `Compatible` 
+
+
+## Decision
+
+I'm going with 3. and 4. as it seems right and can be in the future extended to `#[derive]`.
+

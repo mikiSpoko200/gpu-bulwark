@@ -12,10 +12,9 @@ use super::CompiledShader;
 pub struct Shared<T, US>(pub(crate) internal::CompiledShader<T>, PhantomData<US>)
 where
     T: shader::Target,
-    US: uniform::marker::LDeclarations,
-;
+    US: uniform::marker::LDeclarations;
 
-impl<T> Shared<T, ()> 
+impl<T> Shared<T, ()>
 where
     T: shader::Target,
 {

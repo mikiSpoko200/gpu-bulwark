@@ -21,21 +21,28 @@ use event_loop::EventLoop;
 use glutin::prelude::*;
 use surface::{SurfaceAttributesBuilder, WindowSurface};
 
+mod builder;
+mod constraint;
 mod error;
+mod ext;
 mod glsl;
+mod hlist;
 mod object;
 mod prelude;
+mod renderer;
 mod target;
 mod types;
-mod hlist;
-mod builder;
-mod renderer;
+mod ffi;
 
-use object::{buffer::{Draw, Static, Buffer}, program::Program, vertex_array::VertexArray};
-use object::shader;
-use shader::Shader;
 use glsl::prelude::MatchingInputs;
+use object::shader;
+use object::{
+    buffer::{Buffer, Draw, Static},
+    program::Program,
+    vertex_array::VertexArray,
+};
 use shader::target::{Fragment, Vertex};
+use shader::Shader;
 
 use nalgebra_glm as glm;
 
@@ -77,7 +84,11 @@ fn main() -> anyhow::Result<()> {
         )
     };
 
-    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(window_handle, window_width, window_height);
+    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(
+        window_handle,
+        window_width,
+        window_height,
+    );
 
     let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
 
@@ -99,7 +110,12 @@ fn main() -> anyhow::Result<()> {
         .expect("at least one configuration is compatible with given template");
 
     println!("using config:");
-    println!("  color attachment: {:?}", config.color_buffer_type().expect("selected config contains color attachment"));
+    println!(
+        "  color attachment: {:?}",
+        config
+            .color_buffer_type()
+            .expect("selected config contains color attachment")
+    );
     println!("  alpha bits: {}", config.alpha_size());
     println!("  hardware acceleration: {}", config.hardware_accelerated());
     println!("  sample count: {}", config.num_samples());
@@ -111,8 +127,7 @@ fn main() -> anyhow::Result<()> {
     let surface = unsafe { display.create_window_surface(&config, &surface_attributes)? };
 
     println!("making context current");
-    let gl_context = gl_context
-        .make_current(&surface)?;
+    let gl_context = gl_context.make_current(&surface)?;
 
     println!("loading function pointers...");
     gl::load_with(|symbol| {
@@ -121,7 +136,6 @@ fn main() -> anyhow::Result<()> {
     });
 
     println!("setting up rednering state...");
-    
 
     // ========================[ gpu-bulwark ]========================
 
@@ -153,11 +167,10 @@ fn main() -> anyhow::Result<()> {
     };
 
     let fs_inputs = vs_outputs.matching_intputs();
-    
+
     let ((), fs_outputs) = outputs! {
         layout(location = 0) glsl::Vec4;
     };
-
 
     let vs = uncompiled_vs
         .uniform(&view_matrix_location)
@@ -170,22 +183,18 @@ fn main() -> anyhow::Result<()> {
         .into_main()
         .inputs(&fs_inputs)
         .output(&fs_outputs);
-    let common = common
-        .compile()?
-        .into_shared();
+    let common = common.compile()?.into_shared();
 
     let mut scale = 0f32;
-    let mut camera = camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
-
+    let mut camera =
+        camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
 
     let mut program = Program::builder()
-        .uniforms(|definitions| definitions
-            .define(&view_matrix_location, camera.view_projection_matrix())
-        )
-        .vertex_main(&vs)   
-        .bind_uniforms(|declarations| declarations
-            .bind(&view_matrix_location)
-        )
+        .uniforms(|definitions| {
+            definitions.define(&view_matrix_location, camera.view_projection_matrix())
+        })
+        .vertex_main(&vs)
+        .bind_uniforms(|declarations| declarations.bind(&view_matrix_location))
         .vertex_shared(&common)
         .fragment_main(&fs)
         .build()?;
@@ -194,7 +203,11 @@ fn main() -> anyhow::Result<()> {
     positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0]]);
 
     let mut colors = Buffer::create();
-    colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0]]);
+    colors.data::<(Static, Draw)>(&[
+        [1.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+    ]);
 
     let mut texture_coords = Buffer::create();
     texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
@@ -227,7 +240,7 @@ fn main() -> anyhow::Result<()> {
                 texture_test.push([(signed % 256) as _, ((signed - 64) % 256) as _, (signed % 128) as _]);
             }
 
-            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);	
+            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
             // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
             // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as _);
             // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
@@ -246,7 +259,7 @@ fn main() -> anyhow::Result<()> {
             gl::GenerateMipmap(gl::TEXTURE_2D);
         }
     }
-    
+
     event_loop.run(move |event, window_target| {
         match event {
             Event::Suspended => {
@@ -271,14 +284,16 @@ fn main() -> anyhow::Result<()> {
                 WindowEvent::CloseRequested => window_target.exit(),
                 WindowEvent::RedrawRequested => {
                     scale += if scale > 1.0 { -1.0 } else { 0.01 };
-            
+
                     object::draw_arrays(&vao, &program);
-            
+
                     surface
                         .swap_buffers(&gl_context)
                         .expect("buffer swapping is successful");
                     window.request_redraw();
-                    unsafe { gl::Clear(gl::COLOR_BUFFER_BIT); }
+                    unsafe {
+                        gl::Clear(gl::COLOR_BUFFER_BIT);
+                    }
                 }
                 _ => (),
             },
@@ -287,7 +302,7 @@ fn main() -> anyhow::Result<()> {
                     camera.process_mouse(dx, dy);
                     println!("camera yaw {}, pitch {}", camera.yaw, camera.pitch);
                     program.uniform(&view_matrix_location, &camera.view_projection_matrix());
-                },
+                }
                 winit::event::DeviceEvent::Key(RawKeyEvent {
                     physical_key: PhysicalKey::Code(code),
                     state: ElementState::Pressed,
@@ -305,8 +320,8 @@ fn main() -> anyhow::Result<()> {
 }
 
 mod camera {
-    use nalgebra_glm as glm;
     use glm::Vec3;
+    use nalgebra_glm as glm;
 
     const MOVEMENT_SPEED: f32 = 0.1;
     const MOUSE_SENSITIVITY: f32 = 0.005;
@@ -324,7 +339,7 @@ mod camera {
                 position,
                 yaw,
                 pitch,
-                aspect_ratio
+                aspect_ratio,
             }
         }
 
@@ -338,7 +353,12 @@ mod camera {
         }
 
         fn projection_matrix(&self) -> glm::Mat4 {
-            glm::perspective_rh_no(45.0 * std::f32::consts::FRAC_1_PI * 0.5, self.aspect_ratio, 0.1, 1000.0)
+            glm::perspective_rh_no(
+                45.0 * std::f32::consts::FRAC_1_PI * 0.5,
+                self.aspect_ratio,
+                0.1,
+                1000.0,
+            )
         }
 
         pub fn view_projection_matrix(&self) -> glm::Mat4 {
@@ -352,9 +372,13 @@ mod camera {
                 winit::keyboard::KeyCode::KeyA => Some(Vec3::new(-1.0, 0.0, 0.0)),
                 winit::keyboard::KeyCode::KeyD => Some(Vec3::new(1.0, 0.0, 0.0)),
                 _ => None,
-            }.inspect(|movement| {
+            }
+            .inspect(|movement| {
                 let rotation_matrix = glm::rotation(self.yaw, &Vec3::y());
-                self.position += (rotation_matrix * glm::vec4(movement.x, movement.y, movement.z, 1.0) * MOVEMENT_SPEED).xyz();
+                self.position += (rotation_matrix
+                    * glm::vec4(movement.x, movement.y, movement.z, 1.0)
+                    * MOVEMENT_SPEED)
+                    .xyz();
             });
         }
 
@@ -370,78 +394,4 @@ mod camera {
             }
         }
     }
-}
-
-
-
-
-
-
-
-
-mod micro_cosm {
-    
-    use std::marker::PhantomData;
-
-
-    pub trait Fulfiled { }
-
-    pub trait Constraint {
-        type Constrainer<T>: Fulfiled;
-    }
-
-    pub mod marker {
-        pub trait Uniform { }
-        
-        impl Uniform for f32 { }
-        impl Uniform for i32 { }
-    }
-
-    // Facade types that allow for picking constraints
-    pub mod constraint {
-        pub struct Vector;
-        pub struct Uniform;
-    }
-
-    // Types here implement bounds for generic parameters
-    mod constrainer {
-        use std::marker::PhantomData;
-        use super::Fulfiled;
-        use super::marker;
-
-        pub struct Vector<T>(PhantomData<T>);
-        pub struct Uniform<T>(PhantomData<T>) where T: marker::Uniform;
-        
-        impl<T> Fulfiled for Vector<T> { }
-        impl<T> Fulfiled for Uniform<T> where T: marker::Uniform { }
-    }
-
-    impl Constraint for constraint::Vector {
-        type Constrainer<T> = constrainer::Vector<T>;
-    }
-
-    impl<T_> Constraint for constraint::Uniform
-    where
-        // T_: marker::Uniform,
-        Self::Constrainer<T_>:
-    {
-        type Constrainer<T> = constrainer::Uniform<T>;
-    }
-
-    pub trait Buffer<C, T> where C: Constraint, C::Constrainer<T>: Fulfiled { }
-
-
-
-    pub struct VertexBuffer<T>(PhantomData<T>);
-
-    impl<T> Buffer<constraint::Vector, T> for VertexBuffer<T> { }
-
-    pub struct UniformBuffer<T>(PhantomData<T>);
-
-    impl<T> Buffer<constraint::Uniform, T> for UniformBuffer<T> where T: marker::Uniform { }
-
-
-
-
-
 }

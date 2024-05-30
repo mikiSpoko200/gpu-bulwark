@@ -7,12 +7,15 @@ use super::resource::Allocator;
 pub mod marker {
     use crate::prelude::Const;
 
-    pub unsafe trait Target: Const<u32> { }
+    pub unsafe trait Target: Const<u32> {}
 }
 
-pub struct TextureAllocator<T>(PhantomData<T>) where;
+pub struct TextureAllocator<T>(PhantomData<T>);
 
-unsafe impl<T> Allocator for TextureAllocator<T> where T: marker::Target {
+unsafe impl<T> Allocator for TextureAllocator<T>
+where
+    T: marker::Target,
+{
     fn allocate(names: &mut [u32]) {
         gl_call! {
             #[panic]

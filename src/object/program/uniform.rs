@@ -1,13 +1,12 @@
-
 use std::marker::PhantomData;
 
 use super::super::shader::target;
-use crate::{prelude::HList, glsl};
-use glsl::location;
-use glsl::binding::{Uniform, UniformBinding, Validated};
-use crate::hlist::{self, indexed, lhlist as lhlist, rhlist as rhlist};
-use crate::builder;
 use super::builder::Builder;
+use crate::builder;
+use crate::hlist::{self, indexed, lhlist, rhlist};
+use crate::{glsl, prelude::HList};
+use glsl::binding::{Uniform, UniformBinding, Validated};
+use glsl::location;
 
 pub mod collections {
     use super::marker;
@@ -18,100 +17,117 @@ pub mod collections {
     // - Facade wrapper around collection
 
     /// Facade that provides operations on `Definitions` HLists.
-    pub struct Definitions<US>(US) where US: marker::Definitions;
+    pub struct Definitions<US>(US)
+    where
+        US: marker::Definitions;
+
+    // this is analogous to impl Definitions
 }
 
 pub mod marker {
-    use crate::{glsl, hlist};
-    use crate::hlist::lhlist::{Invert, Find};
+    use crate::hlist::lhlist::{Find, Invert};
     use crate::hlist::rhlist::Append;
+    use crate::{glsl, hlist};
 
-    use glsl::binding::{UniformBinding, Validated, Inline, Phantom};
+    use glsl::binding::{Inline, Phantom, UniformBinding, Validated};
 
-    pub trait Definitions: glsl::Uniforms { }
+    pub trait Definitions: glsl::Uniforms {}
 
-    impl Definitions for () { }
-    
+    impl Definitions for () {}
+
     /// HList of validated bindings to uniforms with inline storage.
-    impl<H, const LOCATION: usize, GLSLU> Definitions for (H, UniformBinding<GLSLU, LOCATION, Validated, Inline>)
+    impl<H, const LOCATION: usize, GLSLU> Definitions
+        for (H, UniformBinding<GLSLU, LOCATION, Validated, Inline>)
     where
         H: Definitions,
         GLSLU: glsl::Uniform,
-    { }
+    {
+    }
 
     pub trait Declarations<FD>: Clone
     where
-        FD: hlist::FoldDirection
-    { }
+        FD: hlist::FoldDirection,
+    {
+    }
 
-    impl<FD> Declarations<FD> for () where FD: hlist::FoldDirection { }
+    impl<FD> Declarations<FD> for () where FD: hlist::FoldDirection {}
 
-    pub trait LDeclarations: Declarations<hlist::Left> { }
+    pub trait LDeclarations: Declarations<hlist::Left> {}
 
-    pub trait RDeclarations: Declarations<hlist::Right> { }
+    pub trait RDeclarations: Declarations<hlist::Right> {}
 
-    impl LDeclarations for () { }
+    impl LDeclarations for () {}
     /// Left folded Declarations
     impl<H, U, const LOCATION: usize> Declarations<hlist::Left> for (H, Declaration<U, LOCATION>)
     where
         H: Declarations<hlist::Left>,
-        U: glsl::Uniform
-    { }
+        U: glsl::Uniform,
+    {
+    }
 
     impl<H, U, const LOCATION: usize> LDeclarations for (H, Declaration<U, LOCATION>)
     where
         U: glsl::Uniform,
         H: LDeclarations,
-    { }
+    {
+    }
 
     /// Right folded Declarations
     impl<T, U, const LOCATION: usize> Declarations<hlist::Right> for (Declaration<U, LOCATION>, T)
     where
         T: Declarations<hlist::Right>,
-        U: glsl::Uniform
-    { }
+        U: glsl::Uniform,
+    {
+    }
 
-    impl RDeclarations for () { }
+    impl RDeclarations for () {}
     impl<T, U, const LOCATION: usize> RDeclarations for (Declaration<U, LOCATION>, T)
     where
         T: Declarations<hlist::Right>,
-        U: glsl::Uniform
-    { }
+        U: glsl::Uniform,
+    {
+    }
 }
 
-
-pub fn define<const LOCATION: usize, GLU, GLSLU>(_: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> Definitions<(DUS, Definition<GLU, GLSLU, LOCATION>)>
+pub fn define<const LOCATION: usize, GLU, GLSLU>(
+    _: &UniformBinding<GLSLU, LOCATION>,
+    uniform: GLU,
+) -> Definitions<(DUS, UniformBinding<GLU, GLSLU, LOCATION, Inline>)>
 where
-    GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
+    GLSLU: glsl::Uniform<Layout = GLU::Layout>,
     GLU: glsl::compatible::Compatible<GLSLU>,
 {
 }
 
-pub fn uniform<GLU, GLSLU, const LOCATION: usize>(binding: &UniformBinding<GLSLU, LOCATION>, uniform: &GLU)
-where
+pub fn uniform<GLU, GLSLU, const LOCATION: usize>(
+    binding: &UniformBinding<GLSLU, LOCATION>,
+    uniform: &GLU,
+) where
     GLU: glsl::compatible::Compatible<GLSLU>,
-    GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
+    GLSLU: glsl::Uniform<Layout = GLU::Layout>,
     GLSLU: glsl::uniform::ops::Set,
 {
 }
 
-
 #[derive(Clone)]
-pub struct UniformsBuilder<DUS, UUS>
+pub struct UniformBinder<DUS, UUS>
 where
-    DUS: marker::Definitions + glsl::Uniforms,
-    UUS: marker::RDeclarations,
+    DUS: marker::Definitions,
+    UUS: marker::Declarations<hlist::Right>,
 {
     pub(super) definitions: DUS,
 }
 
-impl Default for UniformsBuilder<(), ()> {
+impl Default for UniformBinder<(), ()> {
     fn default() -> Self {
-        Self { definitions: Default::default(), declarations: Default::default() }
+        Self {
+            definitions: Default::default(),
+            declarations: Default::default(),
+        }
     }
 }
 
-impl<DUS, UUS> UniformsBuilder<DUS, UUS> 
+impl<DUS, UUS> UniformBinder<DUS, UUS>
 where
     DUS: glsl::Uniforms,
     UUS: marker::RDeclarations,
@@ -124,47 +140,51 @@ where
     }
 }
 
-impl<DUS> UniformsBuilder<DUS, ()>
+impl<DUS> UniformBinder<DUS, ()>
 where
     DUS: marker::Definitions,
 {
     /// Definition a new uniform with specified index
-    pub fn define<GLU, GLSLU, const LOCATION: usize>(self, binding: &UniformBinding<GLSLU, LOCATION>, uniform: GLU) -> UniformsBuilder<(DUS, Definition<GLU, GLSLU, LOCATION>), ()>
+    pub fn define<GLU, GLSLU, const LOCATION: usize>(
+        self,
+        binding: &UniformBinding<GLSLU, LOCATION>,
+        uniform: GLU,
+    ) -> UniformBinder<(DUS, Definition<GLU, GLSLU, LOCATION>), ()>
     where
         GLU: glsl::compatible::Compatible<GLSLU>,
-        GLSLU: glsl::Uniform<Primitive = <GLU as glsl::FFI>::Primitive>,
+        GLSLU: glsl::Uniform<Layout = GLU::Layout>,
     {
         let extended = self.definitions.define(binding, uniform);
-        UniformsBuilder {
+        UniformBinder {
             definitions: extended,
         }
     }
-  
-    /// Add collection of uniforms 
-    pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> UniformsBuilder<DUS, UUS> {
-        UniformsBuilder {
+
+    /// Add collection of uniforms
+    pub fn add_unmatched<UUS: marker::RDeclarations>(self) -> UniformBinder<DUS, UUS> {
+        UniformBinder {
             definitions: self.definitions,
         }
     }
 }
 
-impl<DUS, HUUS, TUUS, const LOCATION: usize> UniformsBuilder<DUS, (Declaration<HUUS, LOCATION>, TUUS)>
+impl<DUS, HUUS, TUUS, const LOCATION: usize>
+    UniformBinder<DUS, (Declaration<HUUS, LOCATION>, TUUS)>
 where
     DUS: marker::Definitions,
     HUUS: glsl::Uniform,
     TUUS: marker::RDeclarations,
-    (Declaration<HUUS, LOCATION>, TUUS): marker::RDeclarations
+    (Declaration<HUUS, LOCATION>, TUUS): marker::RDeclarations,
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn bind<GLU, IDX>(self, _: &UniformBinding<HUUS, LOCATION>) -> UniformsBuilder<DUS, TUUS>
+    pub fn bind<GLU, IDX>(self, _: &UniformBinding<HUUS, LOCATION>) -> UniformBinder<DUS, TUUS>
     where
         DUS: hlist::lhlist::Find<Definition<GLU, HUUS, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
-        UniformsBuilder::new(self.definitions)
+        UniformBinder::new(self.definitions)
     }
 }
-
 
 // TODO?: Give access to the underlying HList
 
@@ -216,7 +236,7 @@ where
 //     }
 // }
 
-// impl<'p, AUS, UUH, UUT, MUS, I> Matcher<'p, AUS, (UUH, UUT), MUS, I> 
+// impl<'p, AUS, UUH, UUT, MUS, I> Matcher<'p, AUS, (UUH, UUT), MUS, I>
 // where
 //     AUS: lhlist::Append,
 //     UUT: rhlist::Base,

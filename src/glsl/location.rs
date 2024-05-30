@@ -86,7 +86,8 @@ where
 }
 
 /// Accordingly to GLSL spec matrices use the same number of locations as arrays of Row
-unsafe impl<T, const ROW_SIZE: usize, const COL_SIZE: usize> marker::Location for glsl::Mat<T, ROW_SIZE, COL_SIZE>
+unsafe impl<T, const ROW_SIZE: usize, const COL_SIZE: usize> marker::Location
+    for glsl::Mat<T, ROW_SIZE, COL_SIZE>
 where
     T: ScalarType,
     Const<ROW_SIZE>: glsl::marker::VecSize,
@@ -94,5 +95,6 @@ where
     glsl::Mat<T, ROW_SIZE, COL_SIZE>: MatrixType,
     glsl::base::Vec<T, COL_SIZE>: Location,
 {
-    const LOCATION_COUNT: usize = <glsl::Array<glsl::base::Vec<T, COL_SIZE>, ROW_SIZE> as marker::Location>::LOCATION_COUNT;
+    const LOCATION_COUNT: usize =
+        <glsl::Array<glsl::base::Vec<T, COL_SIZE>, ROW_SIZE> as marker::Location>::LOCATION_COUNT;
 }

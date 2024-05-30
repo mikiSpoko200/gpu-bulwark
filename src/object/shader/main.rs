@@ -4,8 +4,8 @@
 
 use std::marker::PhantomData;
 
-use super::target as shader;
 use super::parameters;
+use super::target as shader;
 use crate::glsl;
 use crate::glsl::prelude::*;
 use crate::hlist;
@@ -15,12 +15,16 @@ use crate::hlist::indexed::lhlist::Append;
 use super::internal;
 
 /// Shader that contains entry point for the stage
-pub struct Main<T, IS, OS, US=()>(pub(crate) internal::CompiledShader<T>, PhantomData<IS>, PhantomData<OS>, PhantomData<US>)
+pub struct Main<T, IS, OS, US = ()>(
+    pub(crate) internal::CompiledShader<T>,
+    PhantomData<IS>,
+    PhantomData<OS>,
+    PhantomData<US>,
+)
 where
     T: shader::Target,
     IS: glsl::Parameters<In>,
-    OS: glsl::Parameters<Out>,
-;
+    OS: glsl::Parameters<Out>;
 
 impl<T, IS, OS> Main<T, IS, OS, ()>
 where
@@ -39,7 +43,10 @@ where
     IS: glsl::Parameters<In>,
     OS: glsl::Parameters<Out>,
 {
-    pub fn input<NIS, const LOCATION: usize>(self, _: &InParameterBinding<NIS, LOCATION>) -> Main<T, (IS, InParameterBinding<NIS, LOCATION>), OS, US>
+    pub fn input<NIS, const LOCATION: usize>(
+        self,
+        _: &InParameterBinding<NIS, LOCATION>,
+    ) -> Main<T, (IS, InParameterBinding<NIS, LOCATION>), OS, US>
     where
         NIS: glsl::Type,
     {
@@ -47,7 +54,10 @@ where
         Main::new(shader)
     }
 
-    pub fn output<NOS, const LOCATION: usize>(self, _: &OutParameterBinding<NOS, LOCATION>) -> Main<T, IS, (OS, OutParameterBinding<NOS, LOCATION>), US>
+    pub fn output<NOS, const LOCATION: usize>(
+        self,
+        _: &OutParameterBinding<NOS, LOCATION>,
+    ) -> Main<T, IS, (OS, OutParameterBinding<NOS, LOCATION>), US>
     where
         NOS: glsl::Type,
     {
@@ -58,16 +68,16 @@ where
     pub fn inputs<NIS>(self, inputs: &NIS) -> Main<T, IS::Concatenated, OS, US>
     where
         IS: hlist::lhlist::Concatenate<NIS>,
-        IS::Concatenated: glsl::Parameters<In>
+        IS::Concatenated: glsl::Parameters<In>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
     }
-    
+
     pub fn outputs<NOS>(self, inputs: &NOS) -> Main<T, IS, OS::Concatenated, US>
     where
         OS: hlist::lhlist::Concatenate<NOS>,
-        OS::Concatenated: glsl::Parameters<Out>
+        OS::Concatenated: glsl::Parameters<Out>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)

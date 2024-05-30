@@ -1,19 +1,17 @@
 use std::marker::PhantomData;
 
-use super::{Compiled, Uncompiled, CompilationStatus};
+use super::parameters;
 use super::target as shader;
 use super::target;
+use super::{CompilationStatus, Compiled, Uncompiled};
+use super::{Main, Shared};
+use crate::gl_call;
+use crate::glsl;
 use crate::object::prelude::*;
 use crate::object::resource::{Allocator, Bind};
-use super::parameters;
-use crate::glsl;
-use crate::gl_call;
-use super::{Main, Shared};
-
 
 use crate::object::resource;
 use thiserror;
-
 
 #[repr(u32)]
 pub enum QueryParam {

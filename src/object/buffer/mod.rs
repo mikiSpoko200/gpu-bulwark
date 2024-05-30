@@ -4,10 +4,10 @@ use super::resource::{Allocator, Bind};
 use super::{prelude::*, resource};
 use crate::prelude::Const;
 use crate::types::Primitive;
-use target as buffer;
 use crate::{error, gl_call, glsl};
 use gl::types::{GLenum, GLuint};
 use std::marker::PhantomData;
+use target as buffer;
 
 /// Type level enumeration of possible Buffer data Usage types
 pub trait Usage: Const<u32> {}
@@ -119,11 +119,11 @@ where
     pub fn data<U, GL>(&mut self, data: &[GL])
     where
         U: Usage,
-        GL: glsl::compatible::Compatible<GLSL, Primitive = GLSL::Primitive>
+        GL: glsl::compatible::Compatible<GLSL, Layout = GLSL::Layout>,
     {
         // TODO: error handling
         self.bind();
-        gl_call! { 
+        gl_call! {
             #[panic]
             unsafe {
                 gl::BufferData(

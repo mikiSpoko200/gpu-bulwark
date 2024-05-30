@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-
 // --------==========[ Type Level Counters ]==========--------
 
 pub trait Index {

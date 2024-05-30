@@ -9,7 +9,7 @@ where
     T: shader::target::Target,
 {
     pub main: &'shaders shader::internal::CompiledShader<T>,
-    pub shared: Vec<&'shaders shader::internal::CompiledShader<T>>
+    pub shared: Vec<&'shaders shader::internal::CompiledShader<T>>,
 }
 
 impl<'s, T> ShaderStage<'s, T>
@@ -19,7 +19,7 @@ where
     pub fn new(main: &'s shader::internal::CompiledShader<T>) -> ShaderStage<'s, T> {
         ShaderStage {
             main,
-            shared: Vec::new()
+            shared: Vec::new(),
         }
     }
 }

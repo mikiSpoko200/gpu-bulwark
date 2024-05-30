@@ -1,16 +1,15 @@
 use std::marker::PhantomData;
 
+use super::internal;
 use super::shader;
 use super::shader::prelude::*;
-use super::internal;
-use super::uniform::UniformsBuilder;
 use super::uniform;
+use super::uniform::UniformBinder;
 use crate::glsl;
-use crate::glsl::prelude::*;
 use crate::glsl::location;
+use crate::glsl::prelude::*;
 use crate::hlist;
 use crate::hlist::lhlist;
-
 
 pub struct Data<IS, OS>
 where
@@ -27,7 +26,10 @@ where
     OS: glsl::Parameters<Out>,
 {
     fn default() -> Self {
-        Self { inputs: Default::default(), outputs: Default::default() }
+        Self {
+            inputs: Default::default(),
+            outputs: Default::default(),
+        }
     }
 }
 
@@ -37,11 +39,11 @@ where
     IS: glsl::Parameters<In>,
     OS: glsl::Parameters<Out>,
     DUS: glsl::Uniforms,
-    UUS: uniform::marker::RDeclarations
+    UUS: uniform::marker::RDeclarations,
 {
     _target_phantom: PhantomData<T>,
     _data: Data<IS, OS>,
-    uniforms: UniformsBuilder<DUS, UUS>,
+    uniforms: UniformBinder<DUS, UUS>,
     vertex: Option<internal::ShaderStage<'shaders, Vertex>>,
     tesselation_control: Option<internal::ShaderStage<'shaders, tesselation::Control>>,
     tesselation_evaluation: Option<internal::ShaderStage<'shaders, tesselation::Evaluation>>,
@@ -62,7 +64,7 @@ where
     where
         NT: shader::target::Target,
         NOS: glsl::Parameters<Out>,
-        NUS: uniform::marker::RDeclarations
+        NUS: uniform::marker::RDeclarations,
     {
         Builder {
             _target_phantom: PhantomData,
@@ -81,7 +83,7 @@ where
     where
         NIS: glsl::Parameters<In>,
         NOS: glsl::Parameters<Out>,
-        NUS: uniform::marker::RDeclarations
+        NUS: uniform::marker::RDeclarations,
     {
         Builder {
             _target_phantom: PhantomData,
@@ -97,9 +99,12 @@ where
     }
 
     /// Retype only unmatched uniforms
-    fn retype_only_unmatched_uniforms<NUUS>(self, uniforms: UniformsBuilder<DUS, NUUS>) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
+    fn retype_only_unmatched_uniforms<NUUS>(
+        self,
+        uniforms: UniformBinder<DUS, NUUS>,
+    ) -> Builder<'s, Vertex, IS, OS, DUS, NUUS>
     where
-        NUUS: uniform::marker::RDeclarations
+        NUUS: uniform::marker::RDeclarations,
     {
         Builder {
             _target_phantom: PhantomData,
@@ -114,14 +119,17 @@ where
         }
     }
 
-    fn retype_definitions<NDUS>(self, definitions: Definitions<NDUS>) -> Builder<'s, Vertex, (), (), NDUS, ()>
+    fn retype_definitions<NDUS>(
+        self,
+        definitions: Definitions<NDUS>,
+    ) -> Builder<'s, Vertex, (), (), NDUS, ()>
     where
-        NDUS: uniform::marker::Definitions
+        NDUS: uniform::marker::Definitions,
     {
         Builder {
             _target_phantom: PhantomData,
             _data: Default::default(),
-            uniforms: UniformsBuilder::new(definitions),
+            uniforms: UniformBinder::new(definitions),
             vertex: self.vertex,
             tesselation_control: self.tesselation_control,
             tesselation_evaluation: self.tesselation_evaluation,
@@ -138,7 +146,8 @@ where
     // just build list in builder?
 }
 
-impl<'s, T, IS, OS, DUS, HUUS, TUUS, const LOCATION: usize> Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>
+impl<'s, T, IS, OS, DUS, HUUS, TUUS, const LOCATION: usize>
+    Builder<'s, T, IS, OS, DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>
 where
     T: shader::target::Target,
     IS: glsl::Parameters<In>,
@@ -146,9 +155,14 @@ where
     DUS: uniform::marker::Definitions,
     HUUS: glsl::Uniform,
     TUUS: uniform::marker::RDeclarations,
-    (uniform::Declaration<HUUS, LOCATION>, TUUS): uniform::marker::RDeclarations
+    (uniform::Declaration<HUUS, LOCATION>, TUUS): uniform::marker::RDeclarations,
 {
-    pub fn bind_uniforms(self, matcher: impl FnOnce(UniformsBuilder<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>) -> UniformsBuilder::<DUS, ()>) -> Builder<'s, T, IS, OS, DUS, ()> {
+    pub fn bind_uniforms(
+        self,
+        matcher: impl FnOnce(
+            UniformBinder<DUS, (uniform::Declaration<HUUS, LOCATION>, TUUS)>,
+        ) -> UniformBinder<DUS, ()>,
+    ) -> Builder<'s, T, IS, OS, DUS, ()> {
         let matched = matcher(self.uniforms);
         Builder {
             _target_phantom: PhantomData,
@@ -166,16 +180,16 @@ where
 
 impl Default for Builder<'_, Vertex, (), (), (), ()> {
     fn default() -> Self {
-        Self { 
-            _target_phantom: Default::default(), 
-            _data: Default::default(), 
-            uniforms: Default::default(), 
-            vertex: Default::default(), 
-            tesselation_control: Default::default(), 
-            tesselation_evaluation: Default::default(), 
-            geometry: Default::default(), 
-            fragment: Default::default(), 
-            compute: Default::default()
+        Self {
+            _target_phantom: Default::default(),
+            _data: Default::default(),
+            uniforms: Default::default(),
+            vertex: Default::default(),
+            tesselation_control: Default::default(),
+            tesselation_evaluation: Default::default(),
+            geometry: Default::default(),
+            fragment: Default::default(),
+            compute: Default::default(),
         }
     }
 }
@@ -184,9 +198,12 @@ impl<'s> Builder<'s, Vertex, (), (), (), ()> {
     pub fn new() -> Self {
         Self::default()
     }
-   
-    /// Add definitions for 
-    pub fn uniforms<DUS>(self, definer: impl FnOnce(Definitions<()>) -> Definitions<DUS>) -> Builder<'s, Vertex, (), (), DUS, ()>
+
+    /// Add definitions for
+    pub fn uniforms<DUS>(
+        self,
+        definer: impl FnOnce(Definitions<()>) -> Definitions<DUS>,
+    ) -> Builder<'s, Vertex, (), (), DUS, ()>
     where
         DUS: uniform::marker::Definitions,
     {
@@ -199,12 +216,15 @@ impl<'s, DUS> Builder<'s, Vertex, (), (), DUS, ()>
 where
     DUS: uniform::marker::Definitions,
 {
-    pub fn vertex_main<VI, VO, US>(mut self, vertex: &'s super::Main<Vertex, VI, VO, US>) -> Builder<Vertex, VI, VO, DUS, US::Inverted>
+    pub fn vertex_main<VI, VO, US>(
+        mut self,
+        vertex: &'s super::Main<Vertex, VI, VO, US>,
+    ) -> Builder<Vertex, VI, VO, DUS, US::Inverted>
     where
         VI: super::glsl::Parameters<In>,
         VO: super::glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + lhlist::Invert,
-        US::Inverted: uniform::marker::RDeclarations
+        US::Inverted: uniform::marker::RDeclarations,
     {
         self.vertex = Some(internal::ShaderStage::new(&vertex.0));
         self.retype_vertex_attach()
@@ -219,17 +239,27 @@ where
     DUS: uniform::marker::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
-    pub fn vertex_shared<US>(mut self, vertex: &'s Shared<Vertex, US>) -> Builder<'_, Vertex, IS, OS, DUS, US::Inverted>
+    pub fn vertex_shared<US>(
+        mut self,
+        vertex: &'s Shared<Vertex, US>,
+    ) -> Builder<'_, Vertex, IS, OS, DUS, US::Inverted>
     where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.vertex.as_mut().expect("vertex stage is set").shared.push(&vertex.0);
+        self.vertex
+            .as_mut()
+            .expect("vertex stage is set")
+            .shared
+            .push(&vertex.0);
         let declarations = self.uniforms.clone().add_unmatched();
         self.retype_only_unmatched_uniforms(declarations)
     }
 
-    pub fn tesselation_control_main<TCO, US>(mut self, tesselation_control: &'s Main<tesselation::Control, OS::Inputs, TCO, US>) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
+    pub fn tesselation_control_main<TCO, US>(
+        mut self,
+        tesselation_control: &'s Main<tesselation::Control, OS::Inputs, TCO, US>,
+    ) -> Builder<tesselation::Control, IS, TCO, DUS, US::Inverted>
     where
         TCO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
@@ -239,7 +269,10 @@ where
         self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
+    pub fn geometry_main<GO, US>(
+        mut self,
+        geometry: &'s Main<Geometry, OS::Inputs, GO, US>,
+    ) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
         GO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
@@ -249,13 +282,17 @@ where
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(
+        mut self,
+        fragment: &'s Main<Fragment, OS::Inputs, FO, US>,
+    ) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.fragment.replace(internal::ShaderStage::new(&fragment.0));
+        self.fragment
+            .replace(internal::ShaderStage::new(&fragment.0));
         self.retype_attach()
     }
 }
@@ -267,21 +304,31 @@ where
     OS: glsl::Parameters<Out> + MatchingInputs,
     DUS: uniform::marker::Definitions,
 {
-    pub fn tesselation_control_shared<US>(mut self, tesselation_control: &'s Shared<tesselation::Control, US>) -> Builder<'_, tesselation::Control, IS, OS, DUS, US::Inverted>
+    pub fn tesselation_control_shared<US>(
+        mut self,
+        tesselation_control: &'s Shared<tesselation::Control, US>,
+    ) -> Builder<'_, tesselation::Control, IS, OS, DUS, US::Inverted>
     where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.tesselation_control.as_mut().expect("tesselation control was initialized").shared.push(&tesselation_control.0);
+        self.tesselation_control
+            .as_mut()
+            .expect("tesselation control was initialized")
+            .shared
+            .push(&tesselation_control.0);
         self.retype_attach()
     }
 
-    pub fn tesselation_evaluation_main<TEO, US>(mut self, tesselation_evaluation: &'s Main<tesselation::Evaluation, OS::Inputs, TEO, US>) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
+    pub fn tesselation_evaluation_main<TEO, US>(
+        mut self,
+        tesselation_evaluation: &'s Main<tesselation::Evaluation, OS::Inputs, TEO, US>,
+    ) -> Builder<tesselation::Evaluation, IS, TEO, DUS, US::Inverted>
     where
         TEO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
-    {    
+    {
         self.tesselation_evaluation = Some(internal::ShaderStage::new(&tesselation_evaluation.0));
         self.retype_attach()
     }
@@ -292,18 +339,28 @@ impl<'s, IS, OS, DUS> Builder<'s, tesselation::Evaluation, IS, OS, DUS, ()>
 where
     IS: glsl::Parameters<In>,
     OS: glsl::Parameters<Out> + MatchingInputs,
-    DUS: uniform::marker::Definitions
+    DUS: uniform::marker::Definitions,
 {
-    pub fn tesselation_evaluation_shared<US>(mut self, shared: &'s Shared<tesselation::Evaluation, US>) -> Builder<'_, tesselation::Evaluation, IS, OS, DUS, US::Inverted>
+    pub fn tesselation_evaluation_shared<US>(
+        mut self,
+        shared: &'s Shared<tesselation::Evaluation, US>,
+    ) -> Builder<'_, tesselation::Evaluation, IS, OS, DUS, US::Inverted>
     where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.tesselation_evaluation.as_mut().expect("tesselation evaluation stage was initialized").shared.push(&shared.0);
+        self.tesselation_evaluation
+            .as_mut()
+            .expect("tesselation evaluation stage was initialized")
+            .shared
+            .push(&shared.0);
         self.retype_attach()
     }
 
-    pub fn geometry_main<GO, US>(mut self, geometry: &'s Main<Geometry, OS::Inputs, GO, US>) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
+    pub fn geometry_main<GO, US>(
+        mut self,
+        geometry: &'s Main<Geometry, OS::Inputs, GO, US>,
+    ) -> Builder<Geometry, IS, GO, DUS, US::Inverted>
     where
         GO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
@@ -313,7 +370,10 @@ where
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(
+        mut self,
+        fragment: &'s Main<Fragment, OS::Inputs, FO, US>,
+    ) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
@@ -329,18 +389,28 @@ impl<'s, IS, OS, DUS> Builder<'s, Geometry, IS, OS, DUS, ()>
 where
     IS: glsl::Parameters<In>,
     OS: glsl::Parameters<Out> + MatchingInputs,
-    DUS: uniform::marker::Definitions
+    DUS: uniform::marker::Definitions,
 {
-    pub fn geometry_shared<US>(mut self, geometry: &'s Shared<Geometry, US>) -> Builder<'_, Geometry, IS, OS, DUS, US::Inverted>
+    pub fn geometry_shared<US>(
+        mut self,
+        geometry: &'s Shared<Geometry, US>,
+    ) -> Builder<'_, Geometry, IS, OS, DUS, US::Inverted>
     where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.geometry.as_mut().expect("geometry stage was initialized").shared.push(&geometry.0);
+        self.geometry
+            .as_mut()
+            .expect("geometry stage was initialized")
+            .shared
+            .push(&geometry.0);
         self.retype_attach()
     }
 
-    pub fn fragment_main<FO, US>(mut self, fragment: &'s Main<Fragment, OS::Inputs, FO, US>) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
+    pub fn fragment_main<FO, US>(
+        mut self,
+        fragment: &'s Main<Fragment, OS::Inputs, FO, US>,
+    ) -> Builder<Fragment, IS, FO, DUS, US::Inverted>
     where
         FO: glsl::Parameters<Out>,
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
@@ -358,22 +428,30 @@ where
     OS: glsl::Parameters<Out>,
     DUS: glsl::Uniforms,
 {
-    pub fn fragment_shared<US>(mut self, fragment: &'s Shared<Fragment, US>) -> Builder<'_, Fragment, IS, OS, DUS, US::Inverted>
+    pub fn fragment_shared<US>(
+        mut self,
+        fragment: &'s Shared<Fragment, US>,
+    ) -> Builder<'_, Fragment, IS, OS, DUS, US::Inverted>
     where
         US: uniform::marker::LDeclarations + hlist::lhlist::Invert,
         US::Inverted: uniform::marker::RDeclarations,
     {
-        self.fragment.as_mut().expect("fragment stage was initialized").shared.push(&fragment.0);
+        self.fragment
+            .as_mut()
+            .expect("fragment stage was initialized")
+            .shared
+            .push(&fragment.0);
         self.retype_attach()
     }
 
     pub fn build(&self) -> Result<super::Program<IS, OS, DUS>, super::LinkingError> {
-
         let program = super::Program::create_with_uniforms(self.uniforms.clone());
 
         program.attach(self.vertex.as_ref().expect("vertex shader stage is set"));
 
-        if let (Some(control_stage), Some(evaluation_stage)) = (&self.tesselation_control, &self.tesselation_evaluation) {
+        if let (Some(control_stage), Some(evaluation_stage)) =
+            (&self.tesselation_control, &self.tesselation_evaluation)
+        {
             program.attach(control_stage);
             program.attach(evaluation_stage);
         }
@@ -382,11 +460,14 @@ where
             program.attach(geometry);
         }
 
-        program.attach(self.fragment.as_ref().expect("fragment shader stage is set"));
+        program.attach(
+            self.fragment
+                .as_ref()
+                .expect("fragment shader stage is set"),
+        );
         program.link()
     }
 }
-
 
 // pub mod attach {
 //     use crate::object::shader::TargetProvider;
@@ -395,7 +476,6 @@ where
 //     use super::shader;
 //     use super::shader::prelude::*;
 //     use super::Data;
-
 
 //     /// Relation that determines next type after attaching
 //     pub(crate) trait NextTarget {
@@ -509,7 +589,7 @@ where
 //     pub(crate) trait AttachShared<'s, T>
 //     where
 //         T: Target,
-//         T: 's, 
+//         T: 's,
 //     {
 //         type Result<US> where US: 's;
 
@@ -543,8 +623,8 @@ where
 //         (Self::NextTarget, <Self as TargetProvider>::Target): NextTarget,
 //     {
 //         type NextTarget;
-//         type Output<NO, US>: shader::TargetProvider<Target = Self::NextTarget> 
-//         where 
+//         type Output<NO, US>: shader::TargetProvider<Target = Self::NextTarget>
+//         where
 //             NO: glsl::Parameters,
 //             US: 's,
 //         ;

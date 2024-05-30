@@ -1,7 +1,5 @@
-
-
 pub(crate) mod private {
-    pub trait Sealed { }
+    pub trait Sealed {}
 }
 
 #[allow(unused)]

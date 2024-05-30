@@ -63,7 +63,11 @@ pub mod format {
     use crate::glsl;
 
     /// Relation of types being valid data formats for given target.
-    pub trait Valid<T>: glsl::Type where T: super::Target { }
+    pub trait Valid<T>: glsl::Type
+    where
+        T: super::Target,
+    {
+    }
 
     /// This exploits the 3rd rule of unconstrained type parameter exceptions
     /// "be bound as an associated type."
@@ -79,5 +83,6 @@ pub mod format {
         Self: glsl::location::marker::Location,
         T: glsl::marker::ScalarType,
         glsl::Const<SIZE>: glsl::marker::VecSize,
-    { }
+    {
+    }
 }

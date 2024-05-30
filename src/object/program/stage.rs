@@ -1,3 +1,3 @@
 use crate::target;
 
-pub trait Compatible { }
+pub trait Compatible {}

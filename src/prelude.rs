@@ -11,6 +11,10 @@ impl<T, const N: usize> ArrayExt for [T; N] {
     type T = T;
 }
 
+pub trait Storage {
+    type Store<T>;
+}
+
 pub trait Const<T> {
     const VALUE: T;
 }

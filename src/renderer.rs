@@ -6,14 +6,7 @@ use winit::window::{Window, WindowId};
 
 use crate::glsl;
 
-use crate::object::{
-    program::Program,
-    shader,
-    shader::Shader,
-    buffer,
-    buffer::Buffer,
-};
-
+use crate::object::{buffer, buffer::Buffer, program::Program, shader, shader::Shader};
 
 type Inputs = crate::Inputs! {
     layout(location = 0) glsl::Vec3;
@@ -30,13 +23,13 @@ type Uniforms = crate::Uniforms! {
 };
 
 pub struct Buffers {
-    positions: Buffer<buffer::target::Array, glsl::Vec4>
+    positions: Buffer<buffer::target::Array, glsl::Vec4>,
 }
 
 pub struct Renderer {
     window: Option<Window>,
     program: crate::object::program::Program<Inputs, Outputs, Uniforms>,
-    // buffers: 
+    // buffers:
 }
 
 impl application::ApplicationHandler for Renderer {
@@ -51,10 +44,19 @@ impl application::ApplicationHandler for Renderer {
         event: WindowEvent,
     ) {
         match event {
-            WindowEvent::KeyboardInput { device_id, event, is_synthetic } => {
-                println!("device id: {}", device_id.persistent_identifier().expect("device has a persistent identifier"));
-            },
-            _ => { },
+            WindowEvent::KeyboardInput {
+                device_id,
+                event,
+                is_synthetic,
+            } => {
+                println!(
+                    "device id: {}",
+                    device_id
+                        .persistent_identifier()
+                        .expect("device has a persistent identifier")
+                );
+            }
+            _ => {}
         }
     }
 }
