@@ -2,25 +2,27 @@
 
 use crate::glsl;
 use crate::hlist::lhlist::Base as HList;
-use glsl::binding::{In, InParameterBinding, Out, OutParameterBinding, ParameterStorageQualifier};
+use glsl::binding::{InParameterBinding, OutParameterBinding, Storage, marker::storage};
+
+use super::prelude::Qualifier;
 
 /// Marker trait for types that represent program / shader inputs and outputs.
-pub trait Parameters<Qualifier>: HList
+pub trait Parameters<Q>: HList
 where
-    Qualifier: ParameterStorageQualifier,
+    Q: Qualifier<Storage>,
 {
 }
 
-impl<Q> Parameters<Q> for () where Q: ParameterStorageQualifier {}
+impl<Q> Parameters<Q> for () where Q: Qualifier<Storage> {}
 
-impl<Head, T, const LOCATION: usize> Parameters<In> for (Head, InParameterBinding<T, LOCATION>)
+impl<Head, T, const LOCATION: usize> Parameters<storage::In> for (Head, InParameterBinding<T, LOCATION>)
 where
     Head: Parameters<In>,
     T: glsl::Type,
 {
 }
 
-impl<Head, T, const LOCATION: usize> Parameters<Out> for (Head, OutParameterBinding<T, LOCATION>)
+impl<Head, T, const LOCATION: usize> Parameters<storage::Out> for (Head, OutParameterBinding<T, LOCATION>)
 where
     Head: Parameters<Out>,
     T: glsl::Type,

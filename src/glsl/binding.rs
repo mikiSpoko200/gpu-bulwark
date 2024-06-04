@@ -2,7 +2,7 @@ use crate::glsl;
 use crate::prelude::HList;
 use std::marker::PhantomData;
 
-mod marker {
+pub mod marker {
     use crate::glsl;
 
     pub trait Qualifier<Type> {}
@@ -227,14 +227,16 @@ where
     }
 }
 
-impl<H, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize> Bindings<Validated>
-    for (
-        (H, Binding<PT, PREV_LOCATION, Validated>),
-        Binding<CT, CURR_LOCATION, Validated>,
+impl<H, S, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize, Store> Bindings<Validated>
+    for ((
+        H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>),
+        Binding<Variable<S, layout::Location<CURR_LOCATION>, CT, Store>, Validated>,
     )
 where
-    (H, Binding<PT, PREV_LOCATION, Validated>): Bindings<Validated>,
+    (H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>): Bindings<Validated>,
     H: HList,
+    S: Qualifier<Storage>,
+    Store: crate::prelude::Storage,
     PT: marker::Variable,
     CT: marker::Variable,
 {
@@ -276,7 +278,7 @@ where
 #[macro_export]
 macro_rules! binding_type {
     (in, $type: ty) => {
-        crate::glsl::binding::Parameter<crate::glsl::binding::In, $type>
+        crate::glsl::binding::Binding<crate::glsl::binding::In, $type>
     };
     (out, $type: ty) => {
         crate::glsl::binding::Parameter<crate::glsl::binding::Out, $type>
