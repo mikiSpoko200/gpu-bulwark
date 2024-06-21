@@ -2,6 +2,8 @@
 
 https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=3ab96b3526b6fa0984026734881ae952
 
+Error: Impl has stricter requirements than trait, kills this idea?
+
 ```rust
 use std::marker::PhantomData;
 

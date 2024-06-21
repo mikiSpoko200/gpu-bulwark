@@ -7,23 +7,23 @@ use super::buffer;
 use super::buffer::Buffer;
 use super::prelude::{Name, Object};
 use super::resource::{Allocator, Bind};
-use crate::gl_call;
+use crate::{constraint, gl_call, mode};
 use crate::prelude::{HList, HListExt};
 use crate::types::Primitive;
-use gl::types::GLuint;
+use glb::types::GLuint;
 
 struct VertexArrayAllocator;
 
 unsafe impl Allocator for VertexArrayAllocator {
     fn allocate(names: &mut [GLuint]) {
         unsafe {
-            gl::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
+            glb::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
         }
     }
 
     fn free(names: &[GLuint]) {
         unsafe {
-            gl::DeleteVertexArrays(names.len() as _, names.as_ptr());
+            glb::DeleteVertexArrays(names.len() as _, names.as_ptr());
         }
     }
 }
@@ -46,7 +46,7 @@ where
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArraySemantics<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute + buffer::target::format::Valid<buffer::target::Array>,
+        A: Attribute + constraint::Valid<buffer::target::Array>,
     {
         let attribute = AttributeDecl { buffer };
         VertexArraySemantics {
@@ -88,7 +88,7 @@ where
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArray<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute + buffer::target::format::Valid<buffer::target::Array>,
+        A: Attribute + constraint::Valid<buffer::target::Array>,
     {
         if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
             panic!(
@@ -102,15 +102,15 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::VertexAttribPointer(
+                glb::VertexAttribPointer(
                     ATTRIBUTE_INDEX as _,
                     A::SIZE as _,
                     <A::Primitive as Primitive>::GL_TYPE,
-                    gl::FALSE,
+                    glb::FALSE,
                     0,
                     std::ptr::null()
                 );
-                gl::EnableVertexAttribArray(ATTRIBUTE_INDEX as _);
+                glb::EnableVertexAttribArray(ATTRIBUTE_INDEX as _);
             }
         }
         self.unbind();
@@ -134,7 +134,7 @@ impl<A: Attributes> Bind for VertexArray<A> {
         gl_call! {
             #[panic]
             unsafe {
-                gl::BindVertexArray(self.object.name());
+                glb::BindVertexArray(self.object.name());
             }
         }
     }
@@ -143,7 +143,7 @@ impl<A: Attributes> Bind for VertexArray<A> {
         gl_call! {
             #[panic]
             unsafe {
-                gl::BindVertexArray(0);
+                glb::BindVertexArray(0);
             }
         }
     }

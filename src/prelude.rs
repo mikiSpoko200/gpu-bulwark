@@ -1,25 +1,4 @@
-use frunk::hlist::Selector;
-use gl::types::GLenum;
-
-pub trait ArrayExt {
-    const LENGTH: usize;
-    type T;
-}
-
-impl<T, const N: usize> ArrayExt for [T; N] {
-    const LENGTH: usize = N;
-    type T = T;
-}
-
-pub trait Storage {
-    type Store<T>;
-}
-
-pub trait Const<T> {
-    const VALUE: T;
-}
-
-pub trait TypeEnum: Const<GLenum> {}
+use frunk::hlist;
 
 /// Implement trait that **just** extends `Const<T>`
 ///
@@ -29,8 +8,8 @@ pub trait TypeEnum: Const<GLenum> {}
 #[allow(unused)]
 macro_rules! impl_const_super_trait {
     ($super_trait:ident for $ty:ty, $value:expr) => {
-        impl Const<crate::gl::types::GLenum> for $ty {
-            const VALUE: crate::gl::types::GLenum = $value;
+        impl Const<glb::types::GLenum> for $ty {
+            const VALUE: glb::types::GLenum = $value;
         }
         impl $super_trait for $ty {}
     };
@@ -111,9 +90,9 @@ pub trait HListExt: HList {
 
     fn get<T, Index>(&self) -> &T
     where
-        Self: Selector<T, Index>,
+        Self: hlist::Selector<T, Index>,
     {
-        Selector::get(self)
+        hlist::Selector::get(self)
     }
 
     fn pop(self) -> (Self::Head, Self::Tail);

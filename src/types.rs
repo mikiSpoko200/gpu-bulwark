@@ -56,26 +56,26 @@ pub unsafe trait Primitive: PartialEq + Copy + Sized + std::fmt::Debug {
 }
 
 unsafe impl Primitive for u8 {
-    const GL_TYPE: u32 = gl::UNSIGNED_BYTE;
+    const GL_TYPE: u32 = glb::UNSIGNED_BYTE;
 }
 unsafe impl Primitive for u16 {
-    const GL_TYPE: u32 = gl::UNSIGNED_SHORT;
+    const GL_TYPE: u32 = glb::UNSIGNED_SHORT;
 }
 unsafe impl Primitive for u32 {
-    const GL_TYPE: u32 = gl::UNSIGNED_INT;
+    const GL_TYPE: u32 = glb::UNSIGNED_INT;
 }
 unsafe impl Primitive for i8 {
-    const GL_TYPE: u32 = gl::BYTE;
+    const GL_TYPE: u32 = glb::BYTE;
 }
 unsafe impl Primitive for i16 {
-    const GL_TYPE: u32 = gl::SHORT;
+    const GL_TYPE: u32 = glb::SHORT;
 }
 unsafe impl Primitive for i32 {
-    const GL_TYPE: u32 = gl::INT;
+    const GL_TYPE: u32 = glb::INT;
 }
 unsafe impl Primitive for f32 {
-    const GL_TYPE: u32 = gl::FLOAT;
+    const GL_TYPE: u32 = glb::FLOAT;
 }
 unsafe impl Primitive for f64 {
-    const GL_TYPE: u32 = gl::DOUBLE;
+    const GL_TYPE: u32 = glb::DOUBLE;
 }

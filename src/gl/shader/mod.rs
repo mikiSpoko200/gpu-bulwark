@@ -5,24 +5,21 @@ pub mod shared;
 pub mod target;
 
 use target as shader;
-
-use super::buffer::target::Uniform;
+use crate::gl;
 use super::prelude::*;
-use super::program::uniform::{self, Declaration};
-use crate::glsl::prelude::UniformBinding;
+use crate::glsl::binding::UniformBinding;
 use crate::glsl::{self, location};
 use crate::hlist::indexed::rhlist;
-use crate::object::resource::Allocator;
 use crate::prelude::*;
 use crate::{gl_call, impl_const_super_trait};
 use std::borrow::BorrowMut;
 use std::marker::PhantomData;
-use std::mem::ManuallyDrop;
+use gl::program::uniform;
+
 
 pub(super) use main::Main;
 pub(super) use shared::Shared;
 
-use crate::object::resource;
 use thiserror;
 
 #[derive(thiserror::Error, Debug)]
@@ -72,7 +69,6 @@ pub struct Shader<T, C = Uncompiled, US = ()>
 where
     T: shader::Target,
     C: CompilationStatus,
-    US: uniform::marker::LDeclarations,
 {
     internal: internal::Shader<T, C>,
     _uniform_declarations: Declarations<US>,
@@ -112,12 +108,11 @@ where
 impl<T, US> Shader<T, Uncompiled, US>
 where
     T: shader::Target,
-    US: uniform::marker::LDeclarations,
 {
     pub fn uniform<U, const LOCATION: usize>(
         self,
         _: &UniformBinding<U, LOCATION>,
-    ) -> Shader<T, Uncompiled, (US, Declaration<U, LOCATION>)>
+    ) -> Shader<T, Uncompiled, (US, UniformBinding<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
@@ -145,7 +140,7 @@ where
 impl<T, US> Shader<T, Compiled, US>
 where
     T: shader::Target,
-    US: uniform::marker::LDeclarations,
+    US: uniform::marker::Declarations,
 {
     pub fn into_main(self) -> Main<T, (), (), US> {
         Main::new(self.internal)

@@ -1,25 +1,25 @@
 use std::marker::PhantomData;
 
-use super::parameters;
+use crate::glsl::parameters;
 use super::target as shader;
 use super::target;
 use super::{CompilationStatus, Compiled, Uncompiled};
 use super::{Main, Shared};
 use crate::gl_call;
 use crate::glsl;
-use crate::object::prelude::*;
-use crate::object::resource::{Allocator, Bind};
+use crate::gl::prelude::*;
+use crate::gl::resource::{Allocator, Bind};
 
-use crate::object::resource;
+use crate::gl::resource;
 use thiserror;
 
 #[repr(u32)]
 pub enum QueryParam {
-    ShaderType = gl::SHADER_TYPE,
-    DeleteStatus = gl::DELETE_STATUS,
-    CompileStatus = gl::COMPILE_STATUS,
-    InfoLogLength = gl::INFO_LOG_LENGTH,
-    ShaderSourceLength = gl::SHADER_SOURCE_LENGTH,
+    ShaderType = glb::SHADER_TYPE,
+    DeleteStatus = glb::DELETE_STATUS,
+    CompileStatus = glb::COMPILE_STATUS,
+    InfoLogLength = glb::INFO_LOG_LENGTH,
+    ShaderSourceLength = glb::SHADER_SOURCE_LENGTH,
 }
 
 struct ShaderPhantomData<T, C>
@@ -50,17 +50,17 @@ where
     T: shader::Target;
 
 unsafe impl<T: shader::Target> Allocator for ShaderAllocator<T> {
-    fn allocate(names: &mut [Name]) {
+    fn allocate(names: &mut [u32]) {
         for name in names {
-            *name = unsafe { gl::CreateShader(T::VALUE) };
+            *name = unsafe { glb::CreateShader(T::VALUE) };
             // TODO: Check for errors
         }
     }
 
-    fn free(names: &[Name]) {
+    fn free(names: &[u32]) {
         // UNSAFE: Check for 0 return type, otherwise Stage guarantees valid Enum value.
         for name in names {
-            unsafe { gl::DeleteShader(*name) };
+            unsafe { glb::DeleteShader(*name) };
             // TODO: Check for errors
         }
     }
@@ -114,7 +114,7 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::ShaderSource(
+                glb::ShaderSource(
                     self.object.name(),
                     sources.len() as _,
                     pointers.as_ptr() as _,
@@ -139,7 +139,7 @@ where
         gl_call! {
             #[propagate]
             unsafe {
-                gl::CompileShader(self.object.name())
+                glb::CompileShader(self.object.name())
             }
         };
         self.info_log().map_or(
@@ -153,7 +153,7 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::GetShaderiv(self.object.name(), param as _, output);
+                glb::GetShaderiv(self.object.name(), param as _, output);
             }
         }
     }
@@ -169,7 +169,7 @@ where
                 // SAFETY: All values passed are valid
                 // todo: notes on error situations
                 unsafe {
-                    gl::GetShaderInfoLog(
+                    glb::GetShaderInfoLog(
                         self.object.name(),
                         buffer.capacity() as _,
                         &mut actual_length as *mut _,

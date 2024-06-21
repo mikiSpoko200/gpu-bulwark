@@ -11,8 +11,8 @@ pub unsafe trait Target: Default {
 macro_rules! impl_target {
     ($target_object_module:ident, $target_type:ty, $gl_target_ident:ident) => {
         unsafe impl $crate::target::Target for $target_type {
-            const VALUE: u32 = gl::$gl_target_ident;
+            const VALUE: u32 = glb::$gl_target_ident;
         }
-        unsafe impl $crate::object::$target_object_module::target::Target for $target_type {}
+        unsafe impl $crate::gl::$target_object_module::target::Target for $target_type {}
     };
 }

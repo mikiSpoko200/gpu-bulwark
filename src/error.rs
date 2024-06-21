@@ -1,5 +1,5 @@
-use gl;
-use gl::types::GLenum;
+use glb;
+use glb::types::GLenum;
 use std::fmt::Debug;
 use thiserror;
 
@@ -30,14 +30,14 @@ pub enum Error {
 impl Error {
     pub fn new(error_code: GLenum) -> Self {
         match error_code {
-            gl::INVALID_ENUM => Self::InvalidEnum,
-            gl::INVALID_VALUE => Self::InvalidValue,
-            gl::INVALID_OPERATION => Self::InvalidOperation,
-            gl::STACK_OVERFLOW => Self::StackOverflow,
-            gl::STACK_UNDERFLOW => Self::StackUnderflow,
-            gl::OUT_OF_MEMORY => Self::OutOfMemory,
-            gl::INVALID_FRAMEBUFFER_OPERATION => Self::InvalidFramebufferOperation,
-            gl::CONTEXT_LOST => Self::ContextLost,
+            glb::INVALID_ENUM => Self::InvalidEnum,
+            glb::INVALID_VALUE => Self::InvalidValue,
+            glb::INVALID_OPERATION => Self::InvalidOperation,
+            glb::STACK_OVERFLOW => Self::StackOverflow,
+            glb::STACK_UNDERFLOW => Self::StackUnderflow,
+            glb::OUT_OF_MEMORY => Self::OutOfMemory,
+            glb::INVALID_FRAMEBUFFER_OPERATION => Self::InvalidFramebufferOperation,
+            glb::CONTEXT_LOST => Self::ContextLost,
             _ => panic!("unsupported OpenGL error code {error_code}"),
         }
     }
@@ -45,8 +45,8 @@ impl Error {
     pub fn poll_queue() -> Box<[Self]> {
         let mut errors = vec![];
         loop {
-            let error = unsafe { gl::GetError() };
-            if error == gl::NO_ERROR {
+            let error = unsafe { glb::GetError() };
+            if error == glb::NO_ERROR {
                 break;
             }
             errors.push(Error::new(error));

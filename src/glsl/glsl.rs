@@ -5,43 +5,45 @@
 use std::marker::PhantomData;
 
 pub mod marker {
-    use sealed::sealed;
-
     use super::Const;
     use crate::glsl::{self, location};
-    use crate::ffi;
+    use crate::{constraint, ffi};
+    use crate::mode;
     use std::marker::PhantomData;
+    use hi;
 
-    pub trait VecSize {}
+    impl constraint::Valid<Vector> for Const<2> {}
 
-    impl VecSize for Const<2> {}
+    impl constraint::Valid<Vector> for Const<3> {}
 
-    impl VecSize for Const<3> {}
+    impl constraint::Valid<Vector> for Const<4> {}
 
-    impl VecSize for Const<4> {}
+    mod sealed {
+        #[hi::marker]
+        pub trait Subtype { }
+        
+        #[hi::marker]
+        pub trait TypeGroup {}
+    }
 
-    pub trait Subtype {}
-    pub struct Scalar;
-    impl Subtype for Scalar {}
+    pub use sealed::*;
 
-    pub struct Vector;
-    impl Subtype for Vector {}
+    #[hi::mark(Subtype, mode::Validation)]
+    pub enum Scalar { }
 
-    pub struct Matrix;
-    impl Subtype for Matrix {}
+    #[hi::mark(Subtype, mode::Validation)]
+    pub enum Vector { }
 
-    #[sealed]
-    pub trait TypeGroup {}
-
+    #[hi::mark(Subtype, mode::Validation)]
+    pub enum Matrix { }
+    
     #[derive(Clone, Copy, Debug)]
+    #[hi::mark(sealed::TypeGroup)]
     pub struct Transparent;
-    #[sealed]
-    impl TypeGroup for Transparent {}
 
     #[derive(Clone, Copy, Debug)]
+    #[hi::mark(TypeGroup)]
     pub struct Opaque;
-    #[sealed]
-    impl TypeGroup for Opaque {}
 
     /// Marker trait for glsl types.
     pub trait Type: location::marker::Location + Default + Clone + Sized + ffi::FFI {
@@ -77,28 +79,18 @@ pub mod marker {
         impl<T, const N: usize> Type for glsl::base::Vec<T, N>
         where
             glsl::base::Vec<T, N>: location::marker::Location,
-            T: ScalarType,
-            Const<N>: VecSize,
+            T: glsl::Type + constraint::Valid<Vector>,
+            Const<N>: constraint::Valid<Vector>,
         {
             type Subtype = Vector;
             type Group = Transparent;
         }
 
-        /// Single precision matrix is a valid type.
-        impl<const R: usize, const C: usize> Type for glsl::Mat<f32, R, C>
+        impl<T, const R: usize, const C: usize> Type for glsl::Mat<T, R, C>
         where
-            Const<R>: VecSize,
-            Const<C>: VecSize,
-        {
-            type Subtype = Matrix;
-            type Group = Transparent;
-        }
-
-        /// Double precision matrix is a valid type.
-        impl<const R: usize, const C: usize> Type for glsl::Mat<f64, R, C>
-        where
-            Const<R>: VecSize,
-            Const<C>: VecSize,
+            T: constraint::Valid<Matrix>,
+            Const<R>: constraint::Valid<Vector>,
+            Const<C>: constraint::Valid<Vector>,
         {
             type Subtype = Matrix;
             type Group = Transparent;
@@ -107,22 +99,21 @@ pub mod marker {
 
     mod impl_ffi {
         use super::*;
-        use crate::glsl;
+        use crate::{constraint, ext, glsl};
 
         unsafe impl<T, const N: usize> ffi::FFI for glsl::base::Vec<T, N>
         where
-            T: ScalarType,
-            Const<N>: VecSize,
+            T: Type + constraint::Valid<Vector> + ext::Array,
+            Const<N>: constraint::Valid<Vector>,
         {
             type Layout = [T; N];
         }
 
         unsafe impl<T, const R: usize, const C: usize> ffi::FFI for glsl::Mat<T, R, C>
         where
-            T: ScalarType,
-            glsl::Mat<T, R, C>: Type<Subtype = Matrix>,
-            Const<R>: VecSize,
-            Const<C>: VecSize,
+            T: glsl::Type + constraint::Valid<Matrix>,
+            Const<R>: constraint::Valid<Vector>,
+            Const<C>: constraint::Valid<Vector>,
         {
             type Layout = [[T; C]; R];
         }
@@ -136,11 +127,11 @@ pub mod marker {
 
     }
 
-    pub trait ScalarType: Type<Subtype = Scalar> + Clone { }
+    // pub trait ScalarType: Type<Subtype = Scalar, Group = Transparent> { }
 
-    pub trait VectorType: Type<Subtype = Vector> {}
+    // pub trait VectorType: Type<Subtype = Vector, Group = Transparent> {}
 
-    pub trait MatrixType: Type<Subtype = Matrix> {}
+    // pub trait MatrixType: Type<Subtype = Matrix, Group = Transparent> {}
 
     pub trait ArrayType: Type {}
 
@@ -150,29 +141,14 @@ pub mod marker {
     
     impl<S> Subtype for Array<S> where S: Subtype {}
 
-    impl ScalarType for f32 {}
-    impl ScalarType for f64 {}
-    impl ScalarType for i32 {}
-    impl ScalarType for u32 {}
+    impl<T> constraint::Valid<Scalar> for T where T: Type<Subtype = Scalar, Group = Transparent> {}
 
-    impl<T, const N: usize> VectorType for super::base::Vec<T, N>
-    where
-        super::base::Vec<T, N>: location::marker::Location,
-        T: ScalarType,
-        Const<N>: VecSize,
-    {
-    }
+    /// Any type valid for use as scalar is valid for Vector use.
+    impl<T> constraint::Valid<Vector> for T where T: constraint::Valid<Scalar> { }
 
-    impl<T, const R: usize, const C: usize> MatrixType for super::Mat<T, R, C>
-    where
-        T: Type<Subtype = Scalar>,
-        super::Mat<T, R, C>: Type<Subtype = Matrix>,
-        Const<R>: VecSize,
-        Const<C>: VecSize,
-    {
-    }
+    impl constraint::Valid<Matrix> for f32 { }
+    impl constraint::Valid<Matrix> for f64 { }
 
-    /// Array of types is a valid type.
     impl<T, const N: usize> Type for super::Array<T, N>
     where
         T: Type,
@@ -184,19 +160,19 @@ pub mod marker {
     impl<T, const N: usize> ArrayType for super::Array<T, N> where T: Type {}
 }
 
+use marker::{Matrix, Vector};
 pub use marker::Type;
 
-use crate::ext;
-
-use self::marker::ScalarType;
+use crate::{constraint, ext};
 
 /// Wrapper for integer values that moves them into type system.
 /// Same trick is used in std here `https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html`
 pub(crate) struct Const<const NUMBER: usize>;
 
 pub mod base {
-    use super::{marker, Const};
+    use super::{marker::{self, Vector}, Const};
     use std::marker::PhantomData;
+    use crate::constraint;
 
     /// Generic basis for GLSL Vectors.
     /// GLSL Vectors can contain multiple data types but can only appear in sized of 2, 3 or 4.
@@ -204,8 +180,8 @@ pub mod base {
     #[derive(Clone, Debug, Default)]
     pub struct Vec<T, const SIZE: usize>(PhantomData<T>)
     where
-        Const<SIZE>: marker::VecSize,
-        T: marker::Type;
+        Const<SIZE>: constraint::Valid<Vector>,
+        T: marker::Type + constraint::Valid<Vector>;
 }
 
 /// Vector of single precision floats.
@@ -249,9 +225,9 @@ pub type BVec4 = BVec<4>;
 #[derive(Clone, Debug, Default)]
 pub struct Mat<T, const ROW: usize, const COL: usize = ROW>(PhantomData<T>)
 where
-    Const<ROW>: marker::VecSize,
-    Const<COL>: marker::VecSize,
-    T: marker::Type;
+    Const<ROW>: constraint::Valid<Vector>,
+    Const<COL>: constraint::Valid<Vector>,
+    T: marker::Type + constraint::Valid<Matrix>;
 
 pub type Mat2 = Mat<f32, 2, 2>;
 pub type Mat2x2 = Mat<f32, 2, 2>;

@@ -1,25 +1,25 @@
 use winit::application;
 use winit::event::WindowEvent;
-use winit::event_loop::{ActiveEventLoop, EventLoop};
+use winit::event_loop::ActiveEventLoop;
 use winit::platform::windows::DeviceIdExtWindows;
 use winit::window::{Window, WindowId};
 
 use crate::glsl;
 
-use crate::object::{buffer, buffer::Buffer, program::Program, shader, shader::Shader};
+use crate::gl::{buffer, buffer::Buffer};
 
-type Inputs = crate::Inputs! {
-    layout(location = 0) glsl::Vec3;
-    layout(location = 1) glsl::Vec4;
-    layout(location = 2) glsl::Vec2;
+type Inputs = crate::Bindings! {
+    layout(location = 0) in vec3;
+    layout(location = 1) in vec4;
+    layout(location = 2) in vec2;
 };
 
 type Outputs = crate::Outputs! {
-    layout(location = 0) glsl::Vec4;
+    layout(location = 0) vec4;
 };
 
 type Uniforms = crate::Uniforms! {
-    layout(location = 0) glsl::Mat4;
+    layout(location = 0) mat4;
 };
 
 pub struct Buffers {
@@ -28,7 +28,7 @@ pub struct Buffers {
 
 pub struct Renderer {
     window: Option<Window>,
-    program: crate::object::program::Program<Inputs, Outputs, Uniforms>,
+    program: crate::gl::program::Program<Inputs, Outputs, Uniforms>,
     // buffers:
 }
 

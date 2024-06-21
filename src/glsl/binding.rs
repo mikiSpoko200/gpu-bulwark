@@ -1,5 +1,8 @@
 use crate::glsl;
 use crate::prelude::HList;
+use crate::mode;
+use crate::constraint;
+use glsl::{layout, storage};
 use std::marker::PhantomData;
 
 pub mod marker {
@@ -18,8 +21,6 @@ pub mod marker {
     /// glsl4.60 spec: 4.5. Interpolation Qualifiers
     #[derive(Debug)]
     pub struct Interpolation;
-
-    pub trait ValidationStatus {}
 
     /// GL / GLSL binding target --
     pub trait Variable {
@@ -65,84 +66,75 @@ pub mod marker {
 
 pub use marker::{Layout, Qualifier, Storage};
 
-#[derive(Clone, Copy, Debug)]
-pub struct Unvalidated;
-#[derive(Clone, Copy, Debug)]
-pub struct Validated;
 
-impl marker::ValidationStatus for Unvalidated {}
-impl marker::ValidationStatus for Validated {}
 
 #[derive(Clone, Copy, Debug)]
-pub struct Phantom;
-
-#[derive(Clone, Copy, Debug)]
-pub struct Inline;
-
-impl crate::prelude::Storage for Phantom {
-    type Store<T> = PhantomData<T>;
-}
-
-impl crate::prelude::Storage for Inline {
-    type Store<T> = T;
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Variable<S, L, T, Store = Phantom>(Store::Store<T>, PhantomData<(Storage, Layout)>)
+pub struct Variable<S, L, T, Store = mode::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
     L: Qualifier<Layout>,
-    Store: crate::prelude::Storage;
+    Store: mode::Storage;
 
-impl<S, L, T, Store> Variable<S, L, T, Store>
+impl<S, L, T> Default for Variable<S, L, T>
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
     L: Qualifier<Layout>,
-    Store: crate::prelude::Storage,
-{
-    fn new() -> Self {
-        Self(Default::default(), PhantomData)
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-pub struct Binding<V, Valid = Validated>(V, PhantomData<Valid>)
-where
-    V: marker::Variable,
-    Valid: marker::ValidationStatus;
-
-impl<Target> Default for Binding<Target, Unvalidated>
-where
-    Target: marker::Variable,
 {
     fn default() -> Self {
-        Self::new()
+        Self(PhantomData, PhantomData)
     }
 }
 
-impl<Target> Binding<Target, Unvalidated>
+impl<S, L, T, Store> marker::Variable for Variable<S, L, T, Store>
 where
-    Target: marker::Variable,
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
+    Store: mode::Storage
 {
-    pub fn new() -> Self {
-        Self(Default::default(), PhantomData)
-    }
+    type Type = T;
+}
 
-    fn validate(self) -> Binding<Target> {
-        Binding(self.0, PhantomData)
+
+
+#[derive(Clone, Copy, Debug)]
+pub struct Binding<S, L, T, Store = mode::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
+where
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
+    Store: mode::Storage;
+
+impl<S, L, T> Default for Binding<S, L, T>
+where
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
+{
+    fn default() -> Self {
+        Self(PhantomData, PhantomData)
     }
 }
 
-use marker::{layout, storage};
+impl<S, L, T> Binding<S, L, T, mode::Inline>
+where
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
+{
+    pub fn new(value: T) -> Self {
+        Self(value, PhantomData)
+    }
+}
 
-pub type UniformBinding<U, const LOCATION: usize, V = Validated, S = Phantom> =
-    Binding<Variable<storage::Uniform, layout::Location<LOCATION>, U, S>, V>;
-pub type InParameterBinding<T, const LOCATION: usize, V = Validated, S = Phantom> =
-    Binding<Variable<storage::In, layout::Location<LOCATION>, T, S>, V>;
-pub type OutParameterBinding<T, const LOCATION: usize, V = Validated, S = Phantom> =
-    Binding<Variable<storage::Out, layout::Location<LOCATION>, T, S>, V>;
+pub type UniformBinding<U, const LOCATION: usize, S = mode::Phantom> = Binding<storage::Uniform, layout::Location<LOCATION>, U, S>;
+pub type UniformDefinition<U, const LOCATION: usize> = UniformBinding<U, LOCATION, mode::Inline>;
+
+
+pub type InParameterBinding<T, const LOCATION: usize, S = mode::Phantom> = Binding<storage::In, layout::Location<LOCATION>, T, S>;
+pub type OutParameterBinding<T, const LOCATION: usize, S = mode::Phantom> = Binding<storage::Out, layout::Location<LOCATION>, T, S>;
 
 impl<T, const LOCATION: usize> OutParameterBinding<T, LOCATION>
 where
@@ -153,36 +145,13 @@ where
     }
 }
 
-pub trait Bindings<ValidationStatus>: HList {
-    const LOCATIONS_VALID: ();
-    type Validated: HList;
-
-    fn validate(self) -> Self::Validated;
-}
-
-impl<Target, const LOCATION: usize> Bindings<Unvalidated> for ((), Binding<Target, Unvalidated>)
+impl<S, L, T> constraint::ConstFnValid for ((), Binding<S, L, T>)
 where
-    Target: marker::Variable,
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
 {
-    const LOCATIONS_VALID: () = ();
-    type Validated = ((), Binding<Target, Validated>);
-
-    fn validate(self) -> Self::Validated {
-        let _: () = Self::LOCATIONS_VALID;
-        ((), self.1.validate())
-    }
-}
-
-impl<Target> Bindings<Validated> for ((), Binding<Target, Validated>)
-where
-    Target: marker::Variable,
-{
-    const LOCATIONS_VALID: () = ();
-    type Validated = Self;
-
-    fn validate(self) -> Self::Validated {
-        self
-    }
+    const VALID: () = ();
 }
 
 const fn are_locations_valid<PT, const PREV_LOCATION: usize, CT, const CURR_LOCATION: usize>()
@@ -200,56 +169,22 @@ where
     );
 }
 
-impl<H, S, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize, Store> Bindings<Unvalidated> 
-    for (
-        (H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>),
-        Binding<Variable<S, layout::Location<CURR_LOCATION>, CT, Store>, Validated>,
+impl<H, S, PT, CT, const PL: usize, const CL: usize, Store> constraint::ConstFnValid for (
+        (H, Binding<S, layout::Location<PL>, PT, Store>), Binding<S, layout::Location<CL>, CT, Store>,
     )
 where
-    (H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>): Bindings<Validated>,
+    (H, Binding<S, layout::Location<PL>, PT, Store>): constraint::ConstFnValid,
     H: HList,
     S: Qualifier<Storage>,
-    Store: crate::prelude::Storage,
-    PT: marker::Variable,
-    CT: marker::Variable,
+    PT: glsl::Type,
+    CT: glsl::Type,
+    Store: mode::Storage,
 {
-    const LOCATIONS_VALID: () =
-        are_locations_valid::<PT::Type, PREV_LOCATION, CT::Type, CURR_LOCATION>();
-    type Validated = (
-        <(H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>) as Bindings<Validated>>::Validated,
-        Binding<Variable<S, layout::Location<CURR_LOCATION>, CT, Store>, Validated>,
-    );
-
-    fn validate(self) -> Self::Validated {
-        let _: () = Self::LOCATIONS_VALID;
-        let (head, binding) = self;
-        (head.validate(), binding.validate())
-    }
-}
-
-impl<H, S, PT, CT, const PREV_LOCATION: usize, const CURR_LOCATION: usize, Store> Bindings<Validated>
-    for ((
-        H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>),
-        Binding<Variable<S, layout::Location<CURR_LOCATION>, CT, Store>, Validated>,
-    )
-where
-    (H, Binding<Variable<S, layout::Location<PREV_LOCATION>, PT, Store>, Validated>): Bindings<Validated>,
-    H: HList,
-    S: Qualifier<Storage>,
-    Store: crate::prelude::Storage,
-    PT: marker::Variable,
-    CT: marker::Variable,
-{
-    const LOCATIONS_VALID: () = ();
-    type Validated = Self;
-
-    fn validate(self) -> Self::Validated {
-        self
-    }
+    const VALID: () = are_locations_valid::<PT, PL, CT, CL>();
 }
 
 pub trait MatchingInputs {
-    type Inputs: glsl::Parameters<In>;
+    type Inputs: glsl::Parameters<storage::In>;
 
     fn matching_intputs(&self) -> Self::Inputs;
 }
@@ -276,188 +211,261 @@ where
 }
 
 #[macro_export]
-macro_rules! binding_type {
-    (in, $type: ty) => {
-        crate::glsl::binding::Binding<crate::glsl::binding::In, $type>
-    };
-    (out, $type: ty) => {
-        crate::glsl::binding::Parameter<crate::glsl::binding::Out, $type>
-    };
-    (uniform, $type: ty) => {
-        crate::glsl::binding::Uniform<$type>
+macro_rules! layout_qualifier {
+    (location = $value:literal) => {
+        crate::glsl::binding::marker::layout::Location<$value>
     };
 }
 
 #[macro_export]
-macro_rules! Bindings {
-    ([$kind: ident] layout (location=$location: expr) $type: ty ;) => {
-        ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+macro_rules! storage_qualifier {
+    (in) => {
+        crate::glsl::binding::marker::storage::In
     };
-    ([$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);* ;) => {
+    (out) => {
+        crate::glsl::binding::marker::storage::Out
+    };
+    (uniform) => {
+        crate::glsl::binding::marker::storage::Uniform
+    };
+}
+
+#[macro_export]
+macro_rules! type_qualifier {
+    (vec2  ) => { crate::glsl::Vec2   };
+    (vec3  ) => { crate::glsl::Vec3   };
+    (vec4  ) => { crate::glsl::Vec4   };
+    (ivec2 ) => { crate::glsl::IVec2  };
+    (ivec3 ) => { crate::glsl::IVec3  };
+    (ivec4 ) => { crate::glsl::IVec4  };
+    (uvec2 ) => { crate::glsl::UVec2  };
+    (uvec3 ) => { crate::glsl::UVec3  };
+    (uvec4 ) => { crate::glsl::UVec4  };
+    (dvec2 ) => { crate::glsl::DVec2  };
+    (dvec3 ) => { crate::glsl::DVec3  };
+    (dvec4 ) => { crate::glsl::DVec4  };
+    (mat2  ) => { crate::glsl::Mat2   };
+    (mat2x2) => { crate::glsl::Mat2x2 };
+    (mat2x3) => { crate::glsl::Mat2x3 };
+    (mat2x4) => { crate::glsl::Mat2x4 };
+    (mat3  ) => { crate::glsl::Mat3   };
+    (mat3x2) => { crate::glsl::Mat3x2 };
+    (mat3x3) => { crate::glsl::Mat3x3 };
+    (mat3x4) => { crate::glsl::Mat3x4 };
+    (mat4  ) => { crate::glsl::Mat4   };
+    (mat4x2) => { crate::glsl::Mat4x2 };
+    (mat4x3) => { crate::glsl::Mat4x3 };
+    (mat4x4) => { crate::glsl::Mat4x4 };
+    (vec2   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(vec2   $([$sizes])*), $size>  };
+    (vec3   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(vec3   $([$sizes])*), $size>  };
+    (vec4   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(vec4   $([$sizes])*), $size>  };
+    (ivec2  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(ivec2  $([$sizes])*), $size>  };
+    (ivec3  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(ivec3  $([$sizes])*), $size>  };
+    (ivec4  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(ivec4  $([$sizes])*), $size>  };
+    (uvec2  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(uvec2  $([$sizes])*), $size>  };
+    (uvec3  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(uvec3  $([$sizes])*), $size>  };
+    (uvec4  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(uvec4  $([$sizes])*), $size>  };
+    (dvec2  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(dvec2  $([$sizes])*), $size>  };
+    (dvec3  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(dvec3  $([$sizes])*), $size>  };
+    (dvec4  $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(dvec4  $([$sizes])*), $size>  };
+    (mat2   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat2   $([$sizes])*), $size>  };
+    (mat2x2 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat2x2 $([$sizes])*), $size>  };
+    (mat2x3 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat2x3 $([$sizes])*), $size>  };
+    (mat2x4 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat2x4 $([$sizes])*), $size>  };
+    (mat3   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat3   $([$sizes])*), $size>  };
+    (mat3x2 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat3x2 $([$sizes])*), $size>  };
+    (mat3x3 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat3x3 $([$sizes])*), $size>  };
+    (mat3x4 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat3x4 $([$sizes])*), $size>  };
+    (mat4   $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat4   $([$sizes])*), $size>  };
+    (mat4x2 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat4x2 $([$sizes])*), $size>  };
+    (mat4x3 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat4x3 $([$sizes])*), $size>  };
+    (mat4x4 $([$sizes:literal])* [$size:literal]) => { crate::glsl::Array<type_qualifier!(mat4x4 $([$sizes])*), $size>  };
+}
+
+#[macro_export]
+macro_rules! Bindings {
+    (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*;) => {
+        ((), crate::glsl::binding::Binding::<
+            crate::storage_qualifier!($storage),
+            crate::layout_qualifier!($qualifier = $value),
+            crate::type_qualifier!($type $([$size])*)
+        >
+    )
+    };
+    (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);* ;) => {
         crate::Bindings! {
-            @ ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+            @ ((), crate::glsl::binding::Binding::<
+                crate::storage_qualifier!($storage),
+                crate::layout_qualifier!($qualifier = $value),
+                crate::type_qualifier!($type $([$size])*)
+            >)
             =>
-            $([$kinds] layout (location=$locations) $types);*
+            $(layout($qualifiers = $values) $storages $types $([$sizes])*);* 
         }
     };
-    (@ $acc: ty => [$kind: ident] layout (location=$location: expr) $type: ty) => {
-        ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+    (@ $acc:ty => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*) => {
+        ($acc, crate::glsl::binding::Binding::<
+            crate::storage_qualifier!($storage),
+            crate::layout_qualifier!($qualifier = $value),
+            crate::type_qualifier!($type $([$size])*)
+        >)
     };
-    (@ $acc: ty => [$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);*) => {
+    (@ $acc: ty => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);*) => {
         crate::Bindings! {
-            @ ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location>)
+            @ ($acc, crate::glsl::binding::Binding::<
+                crate::storage_qualifier!($storage),
+                crate::layout_qualifier!($qualifier = $value),
+                crate::type_qualifier!($type $([$size])*)
+            >)
             =>
-            $([$kinds] layout (location=$locations) $types);*
+            $(layout($qualifiers = $values) $storages $types $([$sizes])*);*
         }
     };
 }
 
 #[macro_export]
 macro_rules! bindings {
-    ([$kind: ident] layout (location=$location: expr) $type: ty ;) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
-            ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::new())
+    (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*;) => {
+        crate::constraint::Valid::validated(
+            ((), crate::glsl::binding::Binding::<
+                crate::storage_qualifier!($storage),
+                crate::layout_qualifier!($qualifier = $value),
+                crate::type_qualifier!($type $([$size])*)
+            >::default())
         )
     };
-    ([$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);* ;) => {
+    (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);* ;) => {
         crate::bindings! {
             @
-            crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
-                ((), crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+            crate::constraint::Valid::validated(
+                ((), crate::glsl::binding::Binding::<
+                    crate::storage_qualifier!($storage),
+                    crate::layout_qualifier!($qualifier = $value),
+                    crate::type_qualifier!($type $([$size])*)
+                >::default())
             )
             =>
-            $([$kinds] layout (location=$locations) $types);*
+            $(layout($qualifiers = $values) $storages $types $([$sizes])*);*
         }
     };
-    (@ $acc: expr => [$kind: ident] layout (location=$location: expr) $type: ty) => {
-        crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
-            ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+    (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*) => {
+        crate::constraint::Valid::validated(
+            ($acc, crate::glsl::binding::Binding::<
+                crate::storage_qualifier!($storage),
+                crate::layout_qualifier!($qualifier = $value),
+                crate::type_qualifier!($type $([$size])*)
+            >::default())
         )
     };
-    (@ $acc: expr => [$kind: ident] layout (location=$location: expr) $type: ty; $([$kinds: ident] layout (location=$locations: expr) $types: ty);*) => {
+    (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);*) => {
         crate::bindings! {
             @
-            crate::glsl::binding::Bindings::<crate::glsl::binding::Unvalidated>::validate(
-                ($acc, crate::glsl::binding::Binding::<crate::binding_type!($kind, $type), $location, _>::default())
+            crate::constraint::Valid::validated(
+                ($acc, crate::glsl::binding::Binding::<
+                    storage_qualifier!($storage),
+                    layout_qualifier!($qualifier = $value),
+                    type_qualifier!($type $([$size])*)
+                >::default())
             )
             =>
-            $([$kinds] layout (location=$locations) $types);*
+            $(layout($qualifiers = $values) $storages $types $([$sizes])*);*
         }
     };
 }
 
 #[macro_export]
 macro_rules! inputs {
-    (layout (location=$location: expr) $type: ty $(;)?) => {
+    (layout ($qualifier:ident = $value:literal) $type:ident $(;)?) => {
         crate::bindings! {
-            [in] layout(location=$location) $type;
+            layout($qualifier = $value) in $type;
         }
     };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+    (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
         crate::bindings! {
-            [in] layout (location=$location) $type;
-            $([in] layout (location=$locations) $types);* ;
+            layout ($qualifier = $value) in $type;
+            $(layout ($qualifiers = $values) in $types);* ;
         }
     };
 }
 
 #[macro_export]
 macro_rules! Inputs {
-    (layout (location=$location: expr) $type: ty ;) => {
-        crate::Bindings!{
-            [in] layout (location=$location) $type;
+    (layout ($qualifier:ident = $value:literal) $type:ident;) => {
+        crate::Bindings! {
+            layout($qualifier = $value) in $type;
         }
     };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        crate::Bindings!{
-            [in] layout (location=$location) $type;
-            $([in] layout (location=$locations) $types);* ;
+    (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
+        crate::Bindings! {
+            layout($qualifier = $value) in $type;
+            $(layout ($qualifiers = $values) in $types);* ;
         }
     };
 }
 
 #[macro_export]
 macro_rules! outputs {
-    (layout (location=$location: expr) $type: ty $(;)?) => {
+    (layout ($qualifier:ident = $value:literal) $type:ident $(;)?) => {
         crate::bindings! {
-            [out] layout(location=$location) $type;
+            layout($qualifier = $value) out $type;
         }
     };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+    (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
         crate::bindings! {
-            [out] layout (location=$location) $type;
-            $([out] layout (location=$locations) $types);* ;
+            layout ($qualifier = $value) out $type;
+            $(layout($qualifiers = $values) out $types);* ;
         }
     };
 }
 
 #[macro_export]
 macro_rules! Outputs {
-    (layout (location=$location: expr) $type: ty ;) => {
-        crate::Bindings!{
-            [out] layout (location=$location) $type;
+    (layout($qualifier:ident = $value:literal) $type:ident ;) => {
+        crate::Bindings! {
+            layout($qualifier = $value) out $type;
         }
     };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        crate::Bindings!{
-            [out] layout (location=$location) $type;
-            $([out] layout (location=$locations) $types);* ;
+    (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
+        crate::Bindings! {
+            layout ($qualifier = $value) out $type;
+            $(layout($qualifiers = $values) out $types);* ;
         }
     };
 }
 
 #[macro_export]
 macro_rules! uniforms {
-    (layout (location=$location: expr) $type: ty $(;)?) => {
+    (layout($qualifier:ident = $value:literal) $type:ident $(;)?) => {
         crate::bindings! {
-            [uniform] layout(location=$location) $type;
+            layout($qualifier = $value) uniform $type;
         }
     };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+    (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
         crate::bindings! {
-            [uniform] layout (location=$location) $type;
-            $([uniform] layout (location=$locations) $types);* ;
+            layout($qualifier = $value) uniform $type;
+            $(layout($qualifiers = $values) uniform $types);* ;
         }
     };
 }
 
 #[macro_export]
 macro_rules! Uniforms {
-    (layout (location=$location: expr) $type: ty ;) => {
-        crate::Bindings!{
-            [uniform] layout (location=$location) $type;
-        }
-    };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
-        crate::Bindings!{
-            [uniform] layout (location=$location) $type;
-            $([uniform] layout (location=$locations) $types);* ;
-        }
-    };
-    (layout (location=$location: expr) $gl: ty as $glsl: ty ;) => {
-        ((), crate::glsl::uniform)
-    };
-    (layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);* ;) => {
+    (layout($qualifier:ident = $value:literal) $type:ident $(;)?) => {
         crate::Bindings! {
-            @ ((), crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
-            =>
-            $(layout (location=$locations) $types);*
+            layout($qualifier = $value) uniform $type;
         }
     };
-    (@ $acc: ty => layout (location=$location: expr) $type: ty) => {
-        ($acc, crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
-    };
-    (@ $acc: ty => layout (location=$location: expr) $type: ty; $(layout (location=$locations: expr) $types: ty);*) => {
+    (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
         crate::Bindings! {
-            @ ($acc, crate::glsl::binding::Binding::<crate::binding_type!(uniform, $type), $location>)
-            =>
-            $([$kinds] layout (location=$locations) $types);*
+            layout($qualifier = $value) uniform $type;
+            $(layout($qualifiers = $values) uniform $types);* ;
         }
     };
 }
 
 #[macro_export]
-macro_rules! locations {
+/// Unpack bindings into separate variables
+macro_rules! unpack {
     ($ident: ident $(,)?) => {
         ((), $ident)
     };
@@ -470,32 +478,4 @@ macro_rules! locations {
     (@ $acc: tt, $ident: ident, $($idents: tt),* $(,)?) => {
         locations!(@ ($acc, $ident), $($idents),*)
     };
-}
-
-#[macro_export]
-macro_rules! glsl {
-    (layout (location=$location: expr) $target: ident $ident: ident: $type: ty;) => {
-        let $ident = crate::glsl::binding::Binding::<binding_type!($target, $type), $location, _>::new();
-    };
-    (layout (location=$location: expr) $target: ident $ident: ident: $type: ty; $(layout(location=$locations: expr) $targets: ident $idents: ident: $types: ty);* ;) => {
-        let $ident = crate::glsl::binding::Binding::<binding_type!($target, $type), $location, _>::new();
-        glsl! {
-            $(layout(location=$locations) $targets $idents: $types);* ;
-        }
-    };
-}
-
-#[cfg(test)]
-mod tests {
-    use super::glsl;
-
-    #[test]
-    fn check_multiple_one_sized_locations() {
-        let _ = crate::inputs! {
-            layout(location=0) glsl::Vec3;
-            layout(location=0) glsl::Vec3;
-        };
-        // this test should not compile.
-        assert!(false);
-    }
 }

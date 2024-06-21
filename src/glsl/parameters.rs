@@ -4,7 +4,7 @@ use crate::glsl;
 use crate::hlist::lhlist::Base as HList;
 use glsl::binding::{InParameterBinding, OutParameterBinding, Storage, marker::storage};
 
-use super::prelude::Qualifier;
+use super::prelude::{marker::storage::{In, Out}, Qualifier};
 
 /// Marker trait for types that represent program / shader inputs and outputs.
 pub trait Parameters<Q>: HList

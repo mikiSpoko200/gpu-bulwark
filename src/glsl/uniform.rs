@@ -1,5 +1,4 @@
 pub use marker::Uniform;
-
 pub mod signature {
     pub(super) type UniformV<P> = unsafe fn(i32, i32, *const P) -> ();
     pub(super) type UniformMatrixV<P> = unsafe fn(i32, i32, u8, *const P) -> ();
@@ -37,37 +36,37 @@ mod base {
         };
     }
 
-    dispatch_uniform_functions! { f32        => gl::Uniform1fv }
-    dispatch_uniform_functions! { glsl::Vec2 => gl::Uniform2fv }
-    dispatch_uniform_functions! { glsl::Vec3 => gl::Uniform3fv }
-    dispatch_uniform_functions! { glsl::Vec4 => gl::Uniform4fv }
+    dispatch_uniform_functions! { f32        => glb::Uniform1fv }
+    dispatch_uniform_functions! { glsl::Vec2 => glb::Uniform2fv }
+    dispatch_uniform_functions! { glsl::Vec3 => glb::Uniform3fv }
+    dispatch_uniform_functions! { glsl::Vec4 => glb::Uniform4fv }
 
-    dispatch_uniform_functions! { i32         => gl::Uniform1iv }
-    dispatch_uniform_functions! { glsl::IVec2 => gl::Uniform2iv }
-    dispatch_uniform_functions! { glsl::IVec3 => gl::Uniform3iv }
-    dispatch_uniform_functions! { glsl::IVec4 => gl::Uniform4iv }
+    dispatch_uniform_functions! { i32         => glb::Uniform1iv }
+    dispatch_uniform_functions! { glsl::IVec2 => glb::Uniform2iv }
+    dispatch_uniform_functions! { glsl::IVec3 => glb::Uniform3iv }
+    dispatch_uniform_functions! { glsl::IVec4 => glb::Uniform4iv }
 
-    dispatch_uniform_functions! { u32         => gl::Uniform1uiv }
-    dispatch_uniform_functions! { glsl::UVec2 => gl::Uniform2uiv }
-    dispatch_uniform_functions! { glsl::UVec3 => gl::Uniform3uiv }
-    dispatch_uniform_functions! { glsl::UVec4 => gl::Uniform4uiv }
+    dispatch_uniform_functions! { u32         => glb::Uniform1uiv }
+    dispatch_uniform_functions! { glsl::UVec2 => glb::Uniform2uiv }
+    dispatch_uniform_functions! { glsl::UVec3 => glb::Uniform3uiv }
+    dispatch_uniform_functions! { glsl::UVec4 => glb::Uniform4uiv }
 
-    dispatch_uniform_functions! { f64         => gl::Uniform1dv }
-    dispatch_uniform_functions! { glsl::DVec2 => gl::Uniform2dv }
-    dispatch_uniform_functions! { glsl::DVec3 => gl::Uniform3dv }
-    dispatch_uniform_functions! { glsl::DVec4 => gl::Uniform4dv }
+    dispatch_uniform_functions! { f64         => glb::Uniform1dv }
+    dispatch_uniform_functions! { glsl::DVec2 => glb::Uniform2dv }
+    dispatch_uniform_functions! { glsl::DVec3 => glb::Uniform3dv }
+    dispatch_uniform_functions! { glsl::DVec4 => glb::Uniform4dv }
 
-    dispatch_uniform_functions! { matrix glsl::Mat2x2 => gl::UniformMatrix2fv   }
-    dispatch_uniform_functions! { matrix glsl::Mat2x3 => gl::UniformMatrix2x3fv }
-    dispatch_uniform_functions! { matrix glsl::Mat2x4 => gl::UniformMatrix2x4fv }
+    dispatch_uniform_functions! { matrix glsl::Mat2x2 => glb::UniformMatrix2fv   }
+    dispatch_uniform_functions! { matrix glsl::Mat2x3 => glb::UniformMatrix2x3fv }
+    dispatch_uniform_functions! { matrix glsl::Mat2x4 => glb::UniformMatrix2x4fv }
 
-    dispatch_uniform_functions! { matrix glsl::Mat3x2 => gl::UniformMatrix3x2fv }
-    dispatch_uniform_functions! { matrix glsl::Mat3x3 => gl::UniformMatrix3fv   }
-    dispatch_uniform_functions! { matrix glsl::Mat3x4 => gl::UniformMatrix3x4fv }
+    dispatch_uniform_functions! { matrix glsl::Mat3x2 => glb::UniformMatrix3x2fv }
+    dispatch_uniform_functions! { matrix glsl::Mat3x3 => glb::UniformMatrix3fv   }
+    dispatch_uniform_functions! { matrix glsl::Mat3x4 => glb::UniformMatrix3x4fv }
 
-    dispatch_uniform_functions! { matrix glsl::Mat4x2 => gl::UniformMatrix4x2fv }
-    dispatch_uniform_functions! { matrix glsl::Mat4x3 => gl::UniformMatrix4x3fv }
-    dispatch_uniform_functions! { matrix glsl::Mat4x4 => gl::UniformMatrix4fv   }
+    dispatch_uniform_functions! { matrix glsl::Mat4x2 => glb::UniformMatrix4x2fv }
+    dispatch_uniform_functions! { matrix glsl::Mat4x3 => glb::UniformMatrix4x3fv }
+    dispatch_uniform_functions! { matrix glsl::Mat4x4 => glb::UniformMatrix4fv   }
 
     #[sealed]
     impl<U, const N: usize> Dispatch for glsl::Array<U, N>
@@ -81,15 +80,20 @@ mod base {
 }
 
 pub mod marker {
-    use crate::glsl::{self, binding};
+    use crate::glsl::marker::{Matrix, Transparent, Vector};
+    use crate::{constraint, glsl};
     use crate::hlist::lhlist as hlist;
-    use glsl::marker;
+    use crate::mode;
+    
 
     use sealed::sealed;
 
     /// Uniform must be glsl type and must be a specific subtype
     #[sealed]
     pub trait Uniform: glsl::Type {}
+
+    pub trait TransparentUniform: Uniform<Group = glsl::marker::Transparent> {}
+    pub trait OpaqueUniform: Uniform<Group = glsl::marker::Transparent> {}
 
     macro_rules! impl_uniform {
         ($type: ty) => {
@@ -105,14 +109,14 @@ pub mod marker {
 
     pub trait UniformDisjointHelper<S>
     where
-        S: marker::Subtype,
+        S: glsl::marker::Subtype,
     {
     }
 
     impl<U, const SIZE: usize> UniformDisjointHelper<glsl::marker::Vector> for glsl::base::Vec<U, SIZE>
     where
-        U: Uniform<Subtype = marker::Scalar>,
-        glsl::Const<SIZE>: glsl::VecSize,
+        U: Uniform<Subtype = glsl::marker::Scalar>,
+        glsl::Const<SIZE>: constraint::Valid<Vector>,
         glsl::base::Vec<U, SIZE>: glsl::Type,
     {
     }
@@ -121,10 +125,10 @@ pub mod marker {
         for glsl::Mat<U, ROW, COL>
     where
         glsl::Mat<U, ROW, COL>: glsl::Type,
-        U: Uniform<Subtype = marker::Scalar>,
-        glsl::Const<ROW>: marker::VecSize,
-        glsl::Const<COL>: marker::VecSize,
-        glsl::base::Vec<U, COL>: glsl::Type,
+        U: Uniform<Subtype = glsl::marker::Scalar, Group = Transparent> + constraint::Valid<Matrix>,
+        glsl::Const<ROW>: constraint::Valid<Vector>,
+        glsl::Const<COL>: constraint::Valid<Vector>,
+        glsl::base::Vec<U, COL>: glsl::Type + constraint::Valid<Vector>,
     {
     }
 
@@ -140,9 +144,8 @@ pub mod marker {
     where
         U: glsl::Type<Subtype = S>,
         U: UniformDisjointHelper<S>,
-        S: marker::Subtype,
-    {
-    }
+        S: glsl::marker::Subtype,
+    { }
 
     /// Marker trait for types that represent program / shader uniforms.
     #[sealed]
@@ -152,17 +155,12 @@ pub mod marker {
     impl Uniforms for () {}
 
     #[sealed]
-    impl<H, T, const LOCATION: usize, S> Uniforms
-        for (
-            H,
-            glsl::binding::UniformBinding<T, LOCATION, binding::Validated, S>,
-        )
+    impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::binding::UniformBinding<T, LOCATION, S>)
     where
         H: Uniforms,
         T: glsl::Uniform,
-        S: binding::Storage,
-    {
-    }
+        S: mode::Storage,
+    { }
 }
 
 pub mod ops {
@@ -170,25 +168,24 @@ pub mod ops {
     use crate::{glsl, ext, gl_call, ffi};
     use glsl::binding::UniformBinding;
 
-    pub trait Set<Subtype = <Self as glsl::Type>::Subtype>:
-        marker::Uniform + base::Dispatch
+    pub trait Set<Subtype = <Self as glsl::Type>::Subtype>: marker::Uniform<Group = glsl::marker::Transparent> + base::Dispatch
     where
         Subtype: glsl::marker::Subtype,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
             GLU: ffi::FFI<Layout = Self::Layout>,
-            GLU: glsl::compatible::Compatible<Self>;
+            GLU: glsl::Compatible<Self>;
     }
 
     impl<U> Set<glsl::marker::Scalar> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Scalar>
+        U: marker::Uniform<Subtype = glsl::marker::Scalar, Group = glsl::marker::Transparent>
             + base::Dispatch<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
-            GLU: ffi::FFI<Layout = Self::Layout> + glsl::compatible::Compatible<Self>,
+            GLU: ffi::FFI<Layout = Self::Layout> + glsl::Compatible<Self>,
         {
             gl_call! {
                 #[panic]
@@ -201,13 +198,12 @@ pub mod ops {
 
     impl<U> Set<glsl::marker::Vector> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Vector>
+        U: marker::Uniform<Subtype = glsl::marker::Vector, Group = glsl::marker::Transparent>
             + base::Dispatch<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
-            GLU: ffi::FFI<Layout = Self::Layout>,
-            GLU: glsl::compatible::Compatible<Self>,
+            GLU: glsl::Compatible<Self>,
         {
             gl_call! {
                 #[panic]
@@ -220,13 +216,12 @@ pub mod ops {
 
     impl<U> Set<glsl::marker::Matrix> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Matrix>
+        U: marker::Uniform<Subtype = glsl::marker::Matrix, Group = glsl::marker::Transparent>
             + base::Dispatch<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
-            GLU: ffi::FFI<Layout = Self::Layout>,
-            GLU: glsl::compatible::Compatible<Self>,
+            GLU: glsl::Compatible<Self>,
         {
             gl_call! {
                 #[panic]
@@ -235,5 +230,32 @@ pub mod ops {
                 }
             };
         }
+    }
+}
+
+#[derive(Clone)]
+pub struct Definition<const INDEX: usize, U>(pub U) where U: marker::Uniform;
+
+#[derive(Clone)]
+pub struct Definitions<US>(pub US);
+
+impl Definitions<()> {
+    pub fn new() -> Self {
+        Self(())
+    }
+}
+
+impl Default for Definitions<()> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<DUS> Definitions<DUS> {
+    pub fn define<const INDEX: usize, U>(self, u: U) -> Definitions<(DUS, Definition<INDEX, U>)>
+    where
+        U: marker::Uniform
+    {
+        Definitions((self.0, Definition(u)))
     }
 }

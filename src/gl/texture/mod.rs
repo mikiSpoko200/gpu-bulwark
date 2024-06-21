@@ -5,7 +5,7 @@ use crate::gl_call;
 use super::resource::Allocator;
 
 pub mod marker {
-    use crate::prelude::Const;
+    use crate::utils::Const;
 
     pub unsafe trait Target: Const<u32> {}
 }
@@ -20,7 +20,7 @@ where
         gl_call! {
             #[panic]
             unsafe {
-                gl::CreateTextures(T::VALUE as _, names.len() as _, names.as_mut_ptr())
+                glb::CreateTextures(T::VALUE as _, names.len() as _, names.as_mut_ptr())
             }
         }
     }

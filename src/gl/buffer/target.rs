@@ -1,47 +1,71 @@
+use crate::constraint;
+use crate::glsl;
+use crate::glsl::marker::Scalar;
+use crate::glsl::Const;
 use crate::impl_target;
+use crate::mode;
 
-/// A target marker for a buffer object.
+use hi;
+
+use glsl::marker::Vector;
+
+/// Buffer object target types.
 pub(crate) unsafe trait Target: crate::target::Target {}
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct Array;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct AtomicCounter;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct CopyRead;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct CopyWrite;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct DispatchIndirect;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct DrawIndirect;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct ElementArray;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct PixelPack;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct PixelUnpack;
 
 #[derive(Default)]
-
+#[hi::mark(mode::Validation)]
 pub struct Query;
+
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct ShaderStorage;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct Texture;
-#[derive(Default)]
-pub struct TransformFeedback;
 
 #[derive(Default)]
+#[hi::mark(mode::Validation)]
+pub struct TransformFeedback; 
+
+#[derive(Default)]
+#[hi::mark(mode::Validation)]
 pub struct Uniform;
 
 impl_target!(buffer, Array, ARRAY_BUFFER);
@@ -59,30 +83,10 @@ impl_target!(buffer, Texture, TEXTURE_BUFFER);
 impl_target!(buffer, TransformFeedback, TRANSFORM_FEEDBACK_BUFFER);
 impl_target!(buffer, Uniform, UNIFORM_BUFFER);
 
-pub mod format {
-    use crate::glsl;
 
-    /// Relation of types being valid data formats for given target.
-    pub trait Valid<T>: glsl::Type
-    where
-        T: super::Target,
-    {
-    }
-
-    /// This exploits the 3rd rule of unconstrained type parameter exceptions
-    /// "be bound as an associated type."
-    pub trait Id {
-        type Id;
-    }
-
-    // Doing this through a blanket impl would yield two main benefits:
-    // 1. DRY - relation between Gl/Glsl would be established only once and rest would follow.
-    // 2. I forgot the second one.
-    impl<T, const SIZE: usize> Valid<super::Array> for glsl::base::Vec<T, SIZE>
-    where
-        Self: glsl::location::marker::Location,
-        T: glsl::marker::ScalarType,
-        glsl::Const<SIZE>: glsl::marker::VecSize,
-    {
-    }
+impl<T, const SIZE: usize> constraint::Valid<Array> for glsl::base::Vec<T, SIZE>
+where
+    T: glsl::Type + constraint::Valid<Vector>,
+    Const<SIZE>: constraint::Valid<Vector>,
+{
 }

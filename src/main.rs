@@ -3,7 +3,6 @@
 use std::num::NonZeroU32;
 
 use anyhow;
-use gl;
 use glutin::{config, context, display, surface};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use winit::{
@@ -27,16 +26,19 @@ mod error;
 mod ext;
 mod glsl;
 mod hlist;
-mod object;
+mod gl;
 mod prelude;
 mod renderer;
 mod target;
 mod types;
 mod ffi;
+mod utils;
+mod mode;
+mod ts;
 
 use glsl::prelude::MatchingInputs;
-use object::shader;
-use object::{
+use gl::shader;
+use gl::{
     buffer::{Buffer, Draw, Static},
     program::Program,
     vertex_array::VertexArray,
@@ -130,7 +132,7 @@ fn main() -> anyhow::Result<()> {
     let gl_context = gl_context.make_current(&surface)?;
 
     println!("loading function pointers...");
-    gl::load_with(|symbol| {
+    glb::load_with(|symbol| {
         let symbol = std::ffi::CString::new(symbol).unwrap();
         display.get_proc_address(symbol.as_c_str()).cast()
     });
@@ -151,25 +153,25 @@ fn main() -> anyhow::Result<()> {
     uncompiled_fs.source(&[&fs_source]);
     common.source(&[&common_source]);
 
-    let locations![view_matrix_location] = uniforms! {
-        layout(location = 0) glsl::Mat4;
+    let unpack![view_matrix_location] = uniforms! {
+        layout(location = 0) mat4;
     };
 
     let vs_inputs = inputs! {
-        layout(location = 0) glsl::Vec3;
-        layout(location = 1) glsl::Vec4;
-        layout(location = 2) glsl::Vec2;
+        layout(location = 0) vec3;
+        layout(location = 1) vec4;
+        layout(location = 2) vec2;
     };
 
     let vs_outputs = outputs! {
-        layout(location = 0) glsl::Vec4;
-        layout(location = 1) glsl::Vec2;
+        layout(location = 0) vec4;
+        layout(location = 1) vec2;
     };
 
     let fs_inputs = vs_outputs.matching_intputs();
 
     let ((), fs_outputs) = outputs! {
-        layout(location = 0) glsl::Vec4;
+        layout(location = 0) vec4;
     };
 
     let vs = uncompiled_vs
@@ -220,16 +222,16 @@ fn main() -> anyhow::Result<()> {
     println!("running main loop...");
 
     unsafe {
-        gl::ClearColor(0.29, 0.48, 0.73, 0.5);
-        gl::Clear(gl::COLOR_BUFFER_BIT);
+        glb::ClearColor(0.29, 0.48, 0.73, 0.5);
+        glb::Clear(glb::COLOR_BUFFER_BIT);
     }
 
     let mut texture = 0;
     gl_call! {
         #[panic]
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0 + 8);
-            gl::CreateTextures(gl::TEXTURE_2D, 1, &mut texture);
+            glb::ActiveTexture(glb::TEXTURE0 + 8);
+            glb::CreateTextures(glb::TEXTURE_2D, 1, &mut texture);
 
             let width = width as usize;
             let height = height as usize;
@@ -240,23 +242,23 @@ fn main() -> anyhow::Result<()> {
                 texture_test.push([(signed % 256) as _, ((signed - 64) % 256) as _, (signed % 128) as _]);
             }
 
-            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as _);
-            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as _);
-            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as _);
-            // gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as _);
+            // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_S, glb::REPEAT as _);
+            // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_T, glb::REPEAT as _);
+            // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MIN_FILTER, glb::LINEAR_MIPMAP_LINEAR as _);
+            // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MAG_FILTER, glb::LINEAR as _);
 
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
+            glb::TexImage2D(
+                glb::TEXTURE_2D,
                 0,
-                gl::RGB as _,
+                glb::RGB as _,
                 width as _,
                 height as _,
                 0,
-                gl::RGB,
-                gl::UNSIGNED_BYTE,
+                glb::RGB,
+                glb::UNSIGNED_BYTE,
                 texture_test.as_ptr() as *const _
             );
-            gl::GenerateMipmap(gl::TEXTURE_2D);
+            glb::GenerateMipmap(glb::TEXTURE_2D);
         }
     }
 
@@ -285,14 +287,14 @@ fn main() -> anyhow::Result<()> {
                 WindowEvent::RedrawRequested => {
                     scale += if scale > 1.0 { -1.0 } else { 0.01 };
 
-                    object::draw_arrays(&vao, &program);
+                    gl::draw_arrays(&vao, &program);
 
                     surface
                         .swap_buffers(&gl_context)
                         .expect("buffer swapping is successful");
                     window.request_redraw();
                     unsafe {
-                        gl::Clear(gl::COLOR_BUFFER_BIT);
+                        glb::Clear(glb::COLOR_BUFFER_BIT);
                     }
                 }
                 _ => (),

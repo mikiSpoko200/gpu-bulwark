@@ -11,6 +11,7 @@ pub mod vertex_array;
 
 use crate::{gl_call, glsl};
 use glsl::prelude::*;
+use marker::storage::{In, Out};
 use program::Program;
 use resource::Bind;
 use vertex_array::VertexArray;
@@ -33,7 +34,7 @@ pub fn draw_arrays<AS, PSI, PSO, US>(
     gl_call! {
         #[panic]
         unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, vao.len() as _);
+            glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
         }
     }
 

@@ -2,10 +2,10 @@ pub mod target;
 
 use super::resource::{Allocator, Bind};
 use super::{prelude::*, resource};
-use crate::prelude::Const;
+use crate::utils::Const;
 use crate::types::Primitive;
-use crate::{error, gl_call, glsl};
-use gl::types::{GLenum, GLuint};
+use crate::{constraint, error, gl_call, glsl, mode};
+use glb::types::{GLenum, GLuint};
 use std::marker::PhantomData;
 use target as buffer;
 
@@ -25,40 +25,38 @@ pub struct Read;
 pub struct Copy;
 
 // impls for Stream access frequency
-crate::impl_const_super_trait!(Usage for (Stream, Draw), gl::STREAM_DRAW);
-crate::impl_const_super_trait!(Usage for (Stream, Read), gl::STREAM_READ);
-crate::impl_const_super_trait!(Usage for (Stream, Copy), gl::STREAM_COPY);
+crate::impl_const_super_trait!(Usage for (Stream, Draw), glb::STREAM_DRAW);
+crate::impl_const_super_trait!(Usage for (Stream, Read), glb::STREAM_READ);
+crate::impl_const_super_trait!(Usage for (Stream, Copy), glb::STREAM_COPY);
 
 // impls for Static access frequency
-crate::impl_const_super_trait!(Usage for (Static, Draw), gl::STATIC_DRAW);
-crate::impl_const_super_trait!(Usage for (Static, Read), gl::STATIC_READ);
-crate::impl_const_super_trait!(Usage for (Static, Copy), gl::STATIC_COPY);
+crate::impl_const_super_trait!(Usage for (Static, Draw), glb::STATIC_DRAW);
+crate::impl_const_super_trait!(Usage for (Static, Read), glb::STATIC_READ);
+crate::impl_const_super_trait!(Usage for (Static, Copy), glb::STATIC_COPY);
 
 // impls for Dynamic access frequency
-crate::impl_const_super_trait!(Usage for (Dynamic, Draw), gl::DYNAMIC_DRAW);
-crate::impl_const_super_trait!(Usage for (Dynamic, Read), gl::DYNAMIC_READ);
-crate::impl_const_super_trait!(Usage for (Dynamic, Copy), gl::DYNAMIC_COPY);
+crate::impl_const_super_trait!(Usage for (Dynamic, Draw), glb::DYNAMIC_DRAW);
+crate::impl_const_super_trait!(Usage for (Dynamic, Read), glb::DYNAMIC_READ);
+crate::impl_const_super_trait!(Usage for (Dynamic, Copy), glb::DYNAMIC_COPY);
 
 /// Use to enforce semantics for OpenGL buffer object.
 pub(crate) struct BufferSemantics<T, F>
 where
-    T: buffer::Target,
-    F: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    F: constraint::Valid<T>,
 {
-    _target_phantom: PhantomData<T>,
-    _format_phantom: PhantomData<F>,
+    _phantoms: PhantomData<(T, F)>,
     pub(crate) length: usize,
 }
 
 impl<T, F> Default for BufferSemantics<T, F>
 where
-    T: buffer::Target,
-    F: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    F: constraint::Valid<T>,
 {
     fn default() -> Self {
         Self {
-            _target_phantom: PhantomData,
-            _format_phantom: PhantomData,
+            _phantoms: PhantomData,
             length: 0,
         }
     }
@@ -70,13 +68,13 @@ struct BufferAllocator;
 unsafe impl resource::Allocator for BufferAllocator {
     fn allocate(names: &mut [Name]) {
         unsafe {
-            gl::CreateBuffers(names.len() as _, names.as_mut_ptr());
+            glb::CreateBuffers(names.len() as _, names.as_mut_ptr());
         }
     }
 
     fn free(names: &[Name]) {
         unsafe {
-            gl::DeleteBuffers(names.len() as _, names.as_ptr());
+            glb::DeleteBuffers(names.len() as _, names.as_ptr());
         }
     }
 }
@@ -85,8 +83,8 @@ type BufferObject = Object<BufferAllocator>;
 
 pub struct Buffer<T, GLSL>
 where
-    T: buffer::Target,
-    GLSL: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    GLSL: constraint::Valid<T>,
 {
     object: BufferObject,
     pub(crate) semantics: BufferSemantics<T, GLSL>,
@@ -94,8 +92,8 @@ where
 
 impl<T, F> Default for Buffer<T, F>
 where
-    T: buffer::Target,
-    F: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    F: constraint::Valid<T>,
 {
     fn default() -> Self {
         Self {
@@ -107,8 +105,8 @@ where
 
 impl<T, GLSL> Buffer<T, GLSL>
 where
-    T: buffer::Target,
-    GLSL: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    GLSL: glsl::Type<Group = glsl::marker::Transparent> + constraint::Valid<T>,
 {
     pub fn create() -> Self {
         Self {
@@ -119,14 +117,13 @@ where
     pub fn data<U, GL>(&mut self, data: &[GL])
     where
         U: Usage,
-        GL: glsl::compatible::Compatible<GLSL, Layout = GLSL::Layout>,
+        GL: glsl::Compatible<GLSL, Layout = GLSL::Layout>,
     {
-        // TODO: error handling
         self.bind();
         gl_call! {
             #[panic]
             unsafe {
-                gl::BufferData(
+                glb::BufferData(
                     T::VALUE,
                     (std::mem::size_of::<GLSL::Primitive>() * data.len()) as _,
                     data.as_ptr() as _,
@@ -141,20 +138,20 @@ where
 
 impl<T, F> Bind for Buffer<T, F>
 where
-    T: buffer::Target,
-    F: buffer::format::Valid<T>,
+    T: buffer::Target + mode::Validation,
+    F: glsl::Type + constraint::Valid<T>,
 {
     fn bind(&self) {
         gl_call! {
             #[panic]
-            unsafe { gl::BindBuffer(T::VALUE, self.object.name()) }
+            unsafe { glb::BindBuffer(T::VALUE, self.object.name()) }
         }
     }
 
     fn unbind(&self) {
         gl_call! {
             #[panic]
-            unsafe { gl::BindBuffer(T::VALUE, 0) }
+            unsafe { glb::BindBuffer(T::VALUE, 0) }
         }
     }
 }

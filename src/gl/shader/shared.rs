@@ -2,7 +2,8 @@
 
 use std::marker::PhantomData;
 
-use crate::object::program::uniform;
+use crate::gl::program;
+use program::uniform;
 
 use super::internal;
 
@@ -12,7 +13,8 @@ use super::CompiledShader;
 pub struct Shared<T, US>(pub(crate) internal::CompiledShader<T>, PhantomData<US>)
 where
     T: shader::Target,
-    US: uniform::marker::LDeclarations;
+    US: uniform::marker::Declarations,
+;
 
 impl<T> Shared<T, ()>
 where
@@ -20,7 +22,7 @@ where
 {
     pub(super) fn new<US>(shader: internal::CompiledShader<T>) -> Shared<T, US>
     where
-        US: uniform::marker::LDeclarations,
+        US: uniform::marker::Declarations,
     {
         Shared(shader, PhantomData)
     }
