@@ -35,6 +35,7 @@ mod ffi;
 mod utils;
 mod mode;
 mod ts;
+mod valid;
 
 use glsl::prelude::MatchingInputs;
 use gl::shader;

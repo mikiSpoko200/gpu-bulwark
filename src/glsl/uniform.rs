@@ -80,8 +80,7 @@ mod base {
 }
 
 pub mod marker {
-    use crate::glsl::marker::{Matrix, Transparent, Vector};
-    use crate::{constraint, glsl};
+    use crate::{constraint, glsl, valid};
     use crate::hlist::lhlist as hlist;
     use crate::mode;
     
@@ -92,12 +91,12 @@ pub mod marker {
     #[sealed]
     pub trait Uniform: glsl::Type {}
 
-    pub trait TransparentUniform: Uniform<Group = glsl::marker::Transparent> {}
-    pub trait OpaqueUniform: Uniform<Group = glsl::marker::Transparent> {}
+    pub trait TransparentUniform: Uniform<Group = valid::Transparent> { }
+    pub trait OpaqueUniform: Uniform<Group = valid::Transparent> { }
 
     macro_rules! impl_uniform {
         ($type: ty) => {
-            impl UniformDisjointHelper<glsl::marker::Scalar> for $type {}
+            impl UniformDisjointHelper<valid::Scalar> for $type { }
         };
     }
 
@@ -109,13 +108,13 @@ pub mod marker {
 
     pub trait UniformDisjointHelper<S>
     where
-        S: glsl::marker::Subtype,
+        S: valid::Subtype,
     {
     }
 
-    impl<U, const SIZE: usize> UniformDisjointHelper<glsl::marker::Vector> for glsl::base::Vec<U, SIZE>
+    impl<U, const SIZE: usize> UniformDisjointHelper<valid::Vector> for glsl::GVec<U, SIZE>
     where
-        U: Uniform<Subtype = glsl::marker::Scalar>,
+        U: Uniform<Subtype = glsl::Scalar>,
         glsl::Const<SIZE>: constraint::Valid<Vector>,
         glsl::base::Vec<U, SIZE>: glsl::Type,
     {

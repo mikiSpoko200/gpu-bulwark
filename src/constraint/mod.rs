@@ -1,4 +1,3 @@
-use crate::mode;
 
 pub mod constraint;
 
@@ -9,8 +8,8 @@ pub trait Fulfiled {}
 pub trait Constraint<T> {}
 
 /// Constraint for trait bound level validation.
-#[hi::marker]
-pub trait Valid<M> where M: mode::Validation { }
+// #[hi::marker]
+// pub trait Valid<M> where M: mode::Validation { }
 
 pub trait ConstFnValid {
     const VALID: ();

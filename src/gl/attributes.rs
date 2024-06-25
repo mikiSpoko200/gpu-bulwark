@@ -4,15 +4,14 @@ use super::buffer::Buffer;
 use crate::constraint;
 use crate::ffi;
 use crate::glsl;
-use crate::glsl::marker::Scalar;
-use crate::glsl::marker::Vector;
+use crate::glsl::valid;
 use crate::mode;
 use crate::prelude::HList;
 use crate::types;
 
 pub(crate) struct AttributeDecl<'buffer, F, const INDEX: usize>
 where
-    F: Attribute + constraint::Valid<buffer::Array>,
+    F: Attribute + valid::Valid<buffer::Array>,
 {
     pub buffer: &'buffer Buffer<buffer::Array, F>,
 }
