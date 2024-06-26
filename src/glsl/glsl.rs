@@ -1,17 +1,15 @@
 #![allow(unused)]
 
-use std::marker::PhantomData;
+use crate::prelude::internal::*;
 
-use crate::{ext, ffi};
+use crate::ext;
+use crate::ffi;
 
 use super::location::Location;
-
-/// Wrapper for integer values that moves them into type system.
-/// Same trick is used in std here `https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html`
-pub(crate) struct Const<const NUMBER: usize>;
-
+use crate::prelude::*;
 
 /// A glsl type.
+#[sealed]
 pub trait Type {
     type Group: valid::TypeGroup;
 }
@@ -44,40 +42,41 @@ pub mod alias {
 
 /// Traits for validation markers.
 pub mod valid {
-    use hi;
     use super::*;
 
     /// Types that qualify familiy of glsl types.
     #[hi::marker]
-    pub trait Subtype: crate::utils::Sealed { }
+    #[sealed]
+    pub trait Subtype { }
     
     /// Types that qualify group of glsl type.
     #[hi::marker]
-    pub trait TypeGroup: crate::utils::Sealed { }
+    #[sealed]
+    pub trait TypeGroup { }
     
     /// Qualifier for scalar types in glgl.
     #[hi::mark(Subtype)]
     pub enum Scalar { }
     
     /// Qualifier for vector types in glgl.
-    #[hi::mark(Subtype)]
+    #[hi::mark(sealed::Sealed, Subtype)]
     pub enum Vector { }
     
     /// Qualifier for matrix types in glsl.
-    #[hi::mark(Subtype)]
+    #[hi::mark(sealed::Sealed, Subtype)]
     pub enum Matrix { }
 
-    #[hi::mark(Subtype)]
+    #[hi::mark(sealed::Sealed, Subtype)]
     pub struct Array<S>(PhantomData<S>)
     where
         S: Subtype;
 
     #[derive(Clone, Copy, Debug)]
-    #[hi::mark(TypeGroup)]
+    #[hi::mark(sealed::Sealed, TypeGroup)]
     pub enum Transparent { }
     
     #[derive(Clone, Copy, Debug)]
-    #[hi::mark(TypeGroup)]
+    #[hi::mark(sealed::Sealed, TypeGroup)]
     pub enum Opaque { }
 
     /// Types valid for use as glsl scalar.
@@ -110,7 +109,7 @@ pub mod valid {
     impl ForMatrix for f32 { }
     impl ForMatrix for f64 { }
 
-    impl<T, const N: usize> ForArray for T where T: Type { }
+    impl<T> ForArray for T where T: Type { }
 }
 
 impl<T, const N: usize> Type for super::Array<T, N>
