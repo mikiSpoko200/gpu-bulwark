@@ -1,4 +1,7 @@
 pub use marker::Uniform;
+
+
+
 pub mod signature {
     pub(super) type UniformV<P> = unsafe fn(i32, i32, *const P) -> ();
     pub(super) type UniformMatrixV<P> = unsafe fn(i32, i32, u8, *const P) -> ();
@@ -28,7 +31,7 @@ mod base {
             }
         };
         (matrix $type: ty => $function: path) => {
-            #[sealed]
+            impl sealed::Sealed for $type { }
             impl Dispatch for $type {
                 type Signature = signature::UniformMatrixV<<$type as ffi::FFI>::Layout>;
                 const FUNCTION: Self::Signature = $function;
@@ -79,17 +82,14 @@ mod base {
     }
 }
 
-pub mod marker {
+/// Uniform must be glsl type and must be a specific subtype
+#[hi::marker]
+pub trait Uniform: super::Type { }
+
+pub mod alias {
     use crate::{constraint, glsl, valid};
     use crate::hlist::lhlist as hlist;
     use crate::mode;
-    
-
-    use sealed::sealed;
-
-    /// Uniform must be glsl type and must be a specific subtype
-    #[sealed]
-    pub trait Uniform: glsl::Type {}
 
     pub trait TransparentUniform: Uniform<Group = valid::Transparent> { }
     pub trait OpaqueUniform: Uniform<Group = valid::Transparent> { }
@@ -160,6 +160,10 @@ pub mod marker {
         T: glsl::Uniform,
         S: mode::Storage,
     { }
+}
+
+pub mod valid {
+    
 }
 
 pub mod ops {
