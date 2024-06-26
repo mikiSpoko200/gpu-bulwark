@@ -29,9 +29,9 @@ pub struct Fragment;
 #[derive(Default)]
 pub struct Compute;
 
-impl_target!(shader, Vertex, VERTEX_SHADER);
-impl_target!(shader, tesselation::Control, TESS_CONTROL_SHADER);
-impl_target!(shader, tesselation::Evaluation, TESS_EVALUATION_SHADER);
-impl_target!(shader, Geometry, GEOMETRY_SHADER);
-impl_target!(shader, Fragment, FRAGMENT_SHADER);
-impl_target!(shader, Compute, COMPUTE_SHADER);
+impl_target!{ Vertex as VERTEX_SHADER }
+impl_target!{ tesselation::Control as TESS_CONTROL_SHADER }
+impl_target!{ tesselation::Evaluation as TESS_EVALUATION_SHADER }
+impl_target!{ Geometry as GEOMETRY_SHADER }
+impl_target!{ Fragment as FRAGMENT_SHADER }
+impl_target!{ Compute as COMPUTE_SHADER }
