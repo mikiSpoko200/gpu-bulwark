@@ -1,8 +1,7 @@
 //! This module provides `location` glsl attribute calculations for glsl types.
 
 use crate::glsl;
-use glsl::Const;
-use sealed::sealed;
+use crate::prelude::internal::*;
 use crate::valid;
 
 /// If anyone thinks this should be unsafe come and fight me!
