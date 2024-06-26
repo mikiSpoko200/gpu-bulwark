@@ -7,9 +7,9 @@ use crate::ffi;
 
 use super::location::Location;
 use crate::prelude::*;
+use crate::valid;
 
 /// A glsl type.
-#[sealed]
 pub trait Type {
     type Group: valid::TypeGroup;
 }
@@ -41,17 +41,15 @@ pub mod alias {
 }
 
 /// Traits for validation markers.
-pub mod valid {
+pub mod _valid {
     use super::*;
 
     /// Types that qualify familiy of glsl types.
     #[hi::marker]
-    #[sealed]
     pub trait Subtype { }
     
     /// Types that qualify group of glsl type.
     #[hi::marker]
-    #[sealed]
     pub trait TypeGroup { }
     
     /// Qualifier for scalar types in glgl.
@@ -59,24 +57,24 @@ pub mod valid {
     pub enum Scalar { }
     
     /// Qualifier for vector types in glgl.
-    #[hi::mark(sealed::Sealed, Subtype)]
+    #[hi::mark(Subtype)]
     pub enum Vector { }
     
     /// Qualifier for matrix types in glsl.
-    #[hi::mark(sealed::Sealed, Subtype)]
+    #[hi::mark(Subtype)]
     pub enum Matrix { }
 
-    #[hi::mark(sealed::Sealed, Subtype)]
+    #[hi::mark(Subtype)]
     pub struct Array<S>(PhantomData<S>)
     where
         S: Subtype;
 
     #[derive(Clone, Copy, Debug)]
-    #[hi::mark(sealed::Sealed, TypeGroup)]
+    #[hi::mark(TypeGroup)]
     pub enum Transparent { }
     
     #[derive(Clone, Copy, Debug)]
-    #[hi::mark(sealed::Sealed, TypeGroup)]
+    #[hi::mark(TypeGroup)]
     pub enum Opaque { }
 
     /// Types valid for use as glsl scalar.

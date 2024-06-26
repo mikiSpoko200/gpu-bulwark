@@ -1,5 +1,76 @@
-pub use marker::Uniform;
+use crate::prelude::internal::*;
 
+use crate::glsl;
+use crate::hlist::lhlist as hlist;
+use crate::mode;
+use crate::valid;
+
+/// Uniform must be glsl type and must be a specific subtype
+#[hi::marker]
+pub trait Uniform: super::Type { }
+
+macro_rules! impl_uniform {
+    ($type: ty) => {
+        impl UniformDisjointHelper<valid::Scalar> for $type { }
+    };
+}
+
+impl_uniform! { f32  }
+impl_uniform! { i32  }
+impl_uniform! { u32  }
+impl_uniform! { bool }
+impl_uniform! { f64  }
+
+pub trait UniformDisjointHelper<S>
+where
+    S: crate::valid::Subtype,
+{
+}
+
+impl<U, const SIZE: usize> UniformDisjointHelper<valid::Vector> for glsl::GVec<U, SIZE>
+where
+    U: alias::TransparentUniform<Subtype = valid::Scalar>,
+    glsl::Const<SIZE>: constraint::Valid<Vector>,
+    glsl::base::Vec<U, SIZE>: glsl::Type,
+{
+}
+
+impl<U, const ROW: usize, const COL: usize> UniformDisjointHelper<glsl::marker::Matrix>
+    for glsl::Mat<U, ROW, COL>
+where
+    glsl::Mat<U, ROW, COL>: glsl::Type,
+    U: Uniform<Subtype = glsl::marker::Scalar, Group = Transparent> + constraint::Valid<Matrix>,
+    glsl::Const<ROW>: constraint::Valid<Vector>,
+    glsl::Const<COL>: constraint::Valid<Vector>,
+    glsl::base::Vec<U, COL>: glsl::Type + constraint::Valid<Vector>,
+{
+}
+
+impl<U, S, const N: usize> UniformDisjointHelper<glsl::marker::Array<S>> for glsl::Array<U, N>
+where
+    S: glsl::marker::Subtype,
+    U: glsl::Uniform<Subtype = S>,
+{
+}
+
+impl<U, S> Uniform for U
+where
+    U: glsl::alias::TransparentType<Subtype = S>,
+    U: UniformDisjointHelper<S>,
+    S: glsl::valid_::Subtype,
+{ }
+
+/// Marker trait for types that represent program / shader uniforms.
+pub trait Uniforms: hlist::Base {}
+
+impl Uniforms for () {}
+
+impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::binding::UniformBinding<T, LOCATION, S>)
+where
+    H: Uniforms,
+    T: glsl::Uniform,
+    S: mode::Storage,
+{ }
 
 
 pub mod signature {
@@ -82,87 +153,21 @@ mod base {
     }
 }
 
-/// Uniform must be glsl type and must be a specific subtype
-#[hi::marker]
-pub trait Uniform: super::Type { }
-
 pub mod alias {
-    use crate::{constraint, glsl, valid};
-    use crate::hlist::lhlist as hlist;
-    use crate::mode;
+    use super::*;
 
-    pub trait TransparentUniform: Uniform<Group = valid::Transparent> { }
-    pub trait OpaqueUniform: Uniform<Group = valid::Transparent> { }
+    pub trait TransparentUniform: Uniform + glsl::alias::TransparentType { }
 
-    macro_rules! impl_uniform {
-        ($type: ty) => {
-            impl UniformDisjointHelper<valid::Scalar> for $type { }
-        };
-    }
+    pub trait OpaqueUniform: Uniform + glsl::alias::OpaqueType { }
 
-    impl_uniform! { f32  }
-    impl_uniform! { i32  }
-    impl_uniform! { u32  }
-    impl_uniform! { bool }
-    impl_uniform! { f64  }
+    pub trait ScalarUniform: TransparentUniform + glsl::alias::ScalarType { }
 
-    pub trait UniformDisjointHelper<S>
-    where
-        S: valid::Subtype,
-    {
-    }
-
-    impl<U, const SIZE: usize> UniformDisjointHelper<valid::Vector> for glsl::GVec<U, SIZE>
-    where
-        U: Uniform<Subtype = glsl::Scalar>,
-        glsl::Const<SIZE>: constraint::Valid<Vector>,
-        glsl::base::Vec<U, SIZE>: glsl::Type,
-    {
-    }
-
-    impl<U, const ROW: usize, const COL: usize> UniformDisjointHelper<glsl::marker::Matrix>
-        for glsl::Mat<U, ROW, COL>
-    where
-        glsl::Mat<U, ROW, COL>: glsl::Type,
-        U: Uniform<Subtype = glsl::marker::Scalar, Group = Transparent> + constraint::Valid<Matrix>,
-        glsl::Const<ROW>: constraint::Valid<Vector>,
-        glsl::Const<COL>: constraint::Valid<Vector>,
-        glsl::base::Vec<U, COL>: glsl::Type + constraint::Valid<Vector>,
-    {
-    }
-
-    impl<U, S, const N: usize> UniformDisjointHelper<glsl::marker::Array<S>> for glsl::Array<U, N>
-    where
-        S: glsl::marker::Subtype,
-        U: glsl::Uniform<Subtype = S>,
-    {
-    }
-
-    #[sealed]
-    impl<U, S> Uniform for U
-    where
-        U: glsl::Type<Subtype = S>,
-        U: UniformDisjointHelper<S>,
-        S: glsl::marker::Subtype,
-    { }
-
-    /// Marker trait for types that represent program / shader uniforms.
-    #[sealed]
-    pub trait Uniforms: hlist::Base {}
-
-    #[sealed]
-    impl Uniforms for () {}
-
-    #[sealed]
-    impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::binding::UniformBinding<T, LOCATION, S>)
-    where
-        H: Uniforms,
-        T: glsl::Uniform,
-        S: mode::Storage,
-    { }
+    pub trait VectorUniform: TransparentUniform + glsl::alias::VectorType { }
+    
+    pub trait MatrixUnifrom: TransparentUniform + glsl::alias::MatrixType { }
 }
 
-pub mod valid {
+pub mod _valid {
     
 }
 
