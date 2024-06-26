@@ -20,7 +20,7 @@ use crate::glsl::{self, binding};
 use crate::hlist::counters::Index;
 use crate::hlist::indexed;
 use crate::hlist::lhlist::Find;
-use crate::{gl_call, hlist};
+use crate::{gl_call, hlist, valid};
 
 use crate::glsl::prelude::*;
 
@@ -235,7 +235,7 @@ where
         binding: &UniformBinding<GLSLU, LOCATION>,
         uniform: impl glsl::compatible::Compatible<GLSLU>,
     ) where
-        GLSLU: glsl::Uniform<Group = glsl::marker::Transparent> + glsl::uniform::ops::Set,
+        GLSLU: glsl::Uniform<Group = valid::Transparent> + glsl::uniform::ops::Set,
         IDX: Index,
         DUS: Find<UniformDefinition<GLSLU, LOCATION>, IDX>,
     {
