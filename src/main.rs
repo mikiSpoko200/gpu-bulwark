@@ -29,7 +29,6 @@ mod hlist;
 pub mod gl;
 pub mod prelude;
 mod renderer;
-pub mod target;
 mod types;
 pub mod ffi;
 mod utils;

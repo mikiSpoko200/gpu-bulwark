@@ -4,22 +4,11 @@ use crate::glsl;
 use crate::hlist::lhlist as hlist;
 use crate::mode;
 use crate::valid;
+use crate::ext;
 
 /// Uniform must be glsl type and must be a specific subtype
 #[hi::marker]
 pub trait Uniform: super::Type { }
-
-macro_rules! impl_uniform {
-    ($type: ty) => {
-        impl UniformDisjointHelper<valid::Scalar> for $type { }
-    };
-}
-
-impl_uniform! { f32  }
-impl_uniform! { i32  }
-impl_uniform! { u32  }
-impl_uniform! { bool }
-impl_uniform! { f64  }
 
 pub trait UniformDisjointHelper<S>
 where
@@ -27,37 +16,36 @@ where
 {
 }
 
+impl<T> UniformDisjointHelper<valid::Scalar> for T where T: valid::ForScalar { }
+
 impl<U, const SIZE: usize> UniformDisjointHelper<valid::Vector> for glsl::GVec<U, SIZE>
 where
-    U: alias::TransparentUniform<Subtype = valid::Scalar>,
-    glsl::Const<SIZE>: constraint::Valid<Vector>,
-    glsl::base::Vec<U, SIZE>: glsl::Type,
+    U: bounds::TransparentUniform<Subtype = valid::Scalar>,
+    Const<SIZE>: valid::ForVector,
 {
 }
 
-impl<U, const ROW: usize, const COL: usize> UniformDisjointHelper<glsl::marker::Matrix>
+impl<U, const ROW: usize, const COL: usize> UniformDisjointHelper<valid::Matrix>
     for glsl::Mat<U, ROW, COL>
 where
-    glsl::Mat<U, ROW, COL>: glsl::Type,
-    U: Uniform<Subtype = glsl::marker::Scalar, Group = Transparent> + constraint::Valid<Matrix>,
-    glsl::Const<ROW>: constraint::Valid<Vector>,
-    glsl::Const<COL>: constraint::Valid<Vector>,
-    glsl::base::Vec<U, COL>: glsl::Type + constraint::Valid<Vector>,
+    U: valid::ForMatrix,
+    Const<ROW>: valid::ForVector,
+    Const<COL>: valid::ForVector,
 {
 }
 
-impl<U, S, const N: usize> UniformDisjointHelper<glsl::marker::Array<S>> for glsl::Array<U, N>
+impl<U, S, const N: usize> UniformDisjointHelper<valid::Array<S>> for glsl::Array<U, N>
 where
-    S: glsl::marker::Subtype,
-    U: glsl::Uniform<Subtype = S>,
+    S: valid::Subtype,
+    U: glsl::uniform::bounds::TransparentUniform<Subtype = S>,
 {
 }
 
 impl<U, S> Uniform for U
 where
-    U: glsl::alias::TransparentType<Subtype = S>,
+    U: glsl::bounds::TransparentType<Subtype = S>,
     U: UniformDisjointHelper<S>,
-    S: glsl::valid_::Subtype,
+    S: valid::Subtype,
 { }
 
 /// Marker trait for types that represent program / shader uniforms.
@@ -84,7 +72,7 @@ mod base {
     use crate::ffi;
     use sealed::sealed;
 
-    use super::marker::Uniform;
+    use super::*;
 
     #[sealed]
     pub trait Dispatch {
@@ -102,7 +90,7 @@ mod base {
             }
         };
         (matrix $type: ty => $function: path) => {
-            impl sealed::Sealed for $type { }
+            #[sealed]
             impl Dispatch for $type {
                 type Signature = signature::UniformMatrixV<<$type as ffi::FFI>::Layout>;
                 const FUNCTION: Self::Signature = $function;
@@ -153,32 +141,35 @@ mod base {
     }
 }
 
-pub mod alias {
+pub mod bounds {
     use super::*;
 
-    pub trait TransparentUniform: Uniform + glsl::alias::TransparentType { }
+    pub trait TransparentUniform: Uniform + glsl::bounds::TransparentType { }
 
-    pub trait OpaqueUniform: Uniform + glsl::alias::OpaqueType { }
+    pub trait OpaqueUniform: Uniform + glsl::bounds::OpaqueType { }
 
-    pub trait ScalarUniform: TransparentUniform + glsl::alias::ScalarType { }
+    pub trait ScalarUniform: Uniform
+        + glsl::bounds::ScalarType
+        + base::Dispatch<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
+    { }
 
-    pub trait VectorUniform: TransparentUniform + glsl::alias::VectorType { }
+    pub trait VectorUniform: TransparentUniform + glsl::bounds::VectorType { }
     
-    pub trait MatrixUnifrom: TransparentUniform + glsl::alias::MatrixType { }
-}
-
-pub mod _valid {
-    
+    pub trait MatrixUnifrom: TransparentUniform + glsl::bounds::MatrixType { }
 }
 
 pub mod ops {
-    use super::{base, marker, signature};
-    use crate::{glsl, ext, gl_call, ffi};
+    use super::*;
+    use crate::ext;
+    use crate::ffi;
+    use crate::gl_call;
+    use crate::glsl;
+    use crate::valid;
     use glsl::binding::UniformBinding;
 
-    pub trait Set<Subtype = <Self as glsl::Type>::Subtype>: marker::Uniform<Group = glsl::marker::Transparent> + base::Dispatch
+    pub trait Set<Subtype = <Self as glsl::bounds::TransparentType>::Subtype>: bounds::TransparentUniform + base::Dispatch
     where
-        Subtype: glsl::marker::Subtype,
+        Subtype: valid::Subtype,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
@@ -186,10 +177,9 @@ pub mod ops {
             GLU: glsl::Compatible<Self>;
     }
 
-    impl<U> Set<glsl::marker::Scalar> for U
+    impl<U> Set<valid::Scalar> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Scalar, Group = glsl::marker::Transparent>
-            + base::Dispatch<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
+        U: bounds::ScalarUniform
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
@@ -204,10 +194,10 @@ pub mod ops {
         }
     }
 
-    impl<U> Set<glsl::marker::Vector> for U
+    impl<U> Set<valid::Vector> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Vector, Group = glsl::marker::Transparent>
-            + base::Dispatch<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
+        U: bounds::VectorUniform
+        + base::Dispatch<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
@@ -222,10 +212,10 @@ pub mod ops {
         }
     }
 
-    impl<U> Set<glsl::marker::Matrix> for U
+    impl<U> Set<valid::Matrix> for U
     where
-        U: marker::Uniform<Subtype = glsl::marker::Matrix, Group = glsl::marker::Transparent>
-            + base::Dispatch<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
+        U: bounds::MatrixUnifrom
+        + base::Dispatch<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
         fn set<GLU, const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &GLU)
         where
@@ -242,7 +232,7 @@ pub mod ops {
 }
 
 #[derive(Clone)]
-pub struct Definition<const INDEX: usize, U>(pub U) where U: marker::Uniform;
+pub struct Definition<const INDEX: usize, U>(pub U) where U: Uniform;
 
 #[derive(Clone)]
 pub struct Definitions<US>(pub US);
@@ -262,7 +252,7 @@ impl Default for Definitions<()> {
 impl<DUS> Definitions<DUS> {
     pub fn define<const INDEX: usize, U>(self, u: U) -> Definitions<(DUS, Definition<INDEX, U>)>
     where
-        U: marker::Uniform
+        U: Uniform
     {
         Definitions((self.0, Definition(u)))
     }

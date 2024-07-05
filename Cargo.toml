@@ -16,7 +16,7 @@ nalgebra-glm = { version = "0.18.0", optional = true }
 nalgebra = { version = "0.32.5", optional = true }
 serde = { version = "1.0.201", optional = true }
 sealed = "0.5.0"
-hi = { version = "0.2.0", package = "himark" }
+hi = { path = "../rust/himark", package = "himark" }
 disjoint_impls = "0.7.1"
 
 [features]

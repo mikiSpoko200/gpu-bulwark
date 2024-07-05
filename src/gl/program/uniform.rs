@@ -5,7 +5,8 @@ use super::builder::Builder;
 use super::UniformDefinition;
 use crate::builder;
 use crate::hlist::{self, indexed, lhlist, rhlist};
-use crate::{glsl, prelude::HList};
+use crate::glsl;
+use crate::hlist::HList;
 use crate::utils;
 
 use glsl::binding::UniformBinding;
@@ -53,7 +54,7 @@ where
     /// Definition a new uniform at location specified.
     pub fn define<U, const LOCATION: usize>(self, binding: &UniformBinding<U, LOCATION>, uniform: U::Layout) -> Definitions<(US, UniformBinding<U, LOCATION>)> 
     where
-        U: glsl::Uniform,
+        U: glsl::bounds::TransparentUniform,
     {
         Definitions::default()
     }

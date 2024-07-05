@@ -1,16 +1,24 @@
 pub mod target;
+pub mod _valid;
 
-use super::resource::{Allocator, Bind};
-use super::{prelude::*, resource};
+
+
+use super::resource;
 use crate::utils::Const;
 use crate::types::Primitive;
-use crate::{constraint, error, gl_call, glsl, mode};
+use crate::error;
+use crate::gl_call;
+use crate::glsl;
+use crate::valid;
 use glb::types::{GLenum, GLuint};
-use std::marker::PhantomData;
+
 use target as buffer;
 
+use super::prelude::*;
+use crate::prelude::internal::*;
+
 /// Type level enumeration of possible Buffer data Usage types
-pub trait Usage: Const<u32> {}
+pub trait Usage: Const<u32> { }
 
 pub struct Stream;
 
@@ -42,8 +50,8 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Copy), glb::DYNAMIC_COPY);
 /// Use to enforce semantics for OpenGL buffer object.
 pub(crate) struct BufferSemantics<T, F>
 where
-    T: buffer::Target + mode::Validation,
-    F: constraint::Valid<T>,
+    T: buffer::Target,
+    F: valid::ForBuffer<T>,
 {
     _phantoms: PhantomData<(T, F)>,
     pub(crate) length: usize,
@@ -51,8 +59,8 @@ where
 
 impl<T, F> Default for BufferSemantics<T, F>
 where
-    T: buffer::Target + mode::Validation,
-    F: constraint::Valid<T>,
+    T: buffer::Target,
+    F: valid::ForBuffer<T>,
 {
     fn default() -> Self {
         Self {
@@ -83,8 +91,8 @@ type BufferObject = Object<BufferAllocator>;
 
 pub struct Buffer<T, GLSL>
 where
-    T: buffer::Target + mode::Validation,
-    GLSL: constraint::Valid<T>,
+    T: buffer::Target,
+    GLSL: valid::ForBuffer<T>,
 {
     object: BufferObject,
     pub(crate) semantics: BufferSemantics<T, GLSL>,
@@ -92,8 +100,8 @@ where
 
 impl<T, F> Default for Buffer<T, F>
 where
-    T: buffer::Target + mode::Validation,
-    F: constraint::Valid<T>,
+    T: buffer::Target,
+    F: valid::ForBuffer<T>,
 {
     fn default() -> Self {
         Self {
@@ -105,8 +113,8 @@ where
 
 impl<T, GLSL> Buffer<T, GLSL>
 where
-    T: buffer::Target + mode::Validation,
-    GLSL: glsl::Type<Group = glsl::marker::Transparent> + constraint::Valid<T>,
+    T: buffer::Target,
+    GLSL: glsl::Type<Group = valid::Transparent> + valid::ForBuffer<T>,
 {
     pub fn create() -> Self {
         Self {
@@ -136,10 +144,10 @@ where
     }
 }
 
-impl<T, F> Bind for Buffer<T, F>
+impl<T, F> resource::Bind for Buffer<T, F>
 where
-    T: buffer::Target + mode::Validation,
-    F: glsl::Type + constraint::Valid<T>,
+    T: buffer::Target,
+    F: glsl::Type + valid::ForBuffer<T>,
 {
     fn bind(&self) {
         gl_call! {

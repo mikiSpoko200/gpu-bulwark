@@ -1,8 +1,12 @@
+pub mod target;
+
 use std::marker::PhantomData;
+
 
 use crate::gl_call;
 
 use super::resource::Allocator;
+pub use target::Target;
 
 pub mod marker {
     use crate::utils::Const;

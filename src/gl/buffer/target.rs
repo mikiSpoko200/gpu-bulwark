@@ -1,22 +1,21 @@
 use crate::constraint;
 use crate::glsl;
-use crate::glsl::Const;
 use crate::impl_target;
 use crate::mode;
+use crate::gl;
 
 /// Buffer object target types.
-#[sealed::sealed]
 #[hi::marker]
-pub(crate) trait Target: crate::target::Target {}
+pub(crate) trait Target: gl::target::Target { }
 
 #[macro_export]
 #[allow(unused)]
 macro_rules! impl_target {
     ($target_type:ty as $gl_target_ident: ident) => {
-        impl $crate::target::Target for $target_type {
+        impl $crate::gl::target::Target for $target_type {
             const VALUE: u32 = glb::$gl_target_ident;
         }
-        impl $crate::gl::target::buffer::Target for $target_type { }
+        impl $crate::gl::buffer::target::Target for $target_type { }
     };
 }
 
@@ -76,47 +75,3 @@ impl_target!{ ShaderStorage as SHADER_STORAGE_BUFFER }
 impl_target!{ Texture as TEXTURE_BUFFER }
 impl_target!{ TransformFeedback as TRANSFORM_FEEDBACK_BUFFER }
 impl_target!{ Uniform as UNIFORM_BUFFER }
-
-pub mod alias {
-    use crate::utils::Disjoint;
-    use crate::glsl::{self, valid};
-
-    pub trait ArrayType: Disjoint + glsl::alias::TransparentType { }
-
-    trait ArrayTypeDH<Discriminant>: glsl::alias::TransparentType { }
-
-    impl<T> ArrayTypeDH<glsl::valid::Scalar> for T
-    where 
-        T: valid::ForScalar
-        + Disjoint<Discriminant = glsl::valid::Scalar>
-    { }
-
-    impl<T> ArrayTypeDH<glsl::valid::Vector> for T
-    where 
-        T: valid::ForVector
-        + Disjoint<Discriminant = glsl::valid::Vector> 
-    { }
-
-    impl<T> ArrayType for T where T: glsl::alias::TransparentType + ArrayTypeDH<T::Subtype> { }
-}
-
-pub mod valid {
-    fn test<T>() where T: super::alias::ArrayType { }
-
-    fn dupa() {
-        test::<f32>();
-        test::<crate::glsl::GVec<f32, 2>>();
-        test::<crate::glsl::Mat<f32, 2, 3>>();
-    }
-
-    /// GLSL types valid for use with buffer objects binded to `Array` target.
-    #[hi::marker]
-    pub trait ForArray: super::glsl::alias::VectorType { }
-}
-
-impl<T, const SIZE: usize> valid::ForArray for glsl::GVec<T, SIZE>
-where
-    T: glsl::Type + constraint::Valid<Vector>,
-    Const<SIZE>: constraint::Valid<Vector>,
-{
-}

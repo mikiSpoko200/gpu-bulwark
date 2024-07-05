@@ -1,3 +1,3 @@
-use crate::target;
+use crate::gl::target;
 
-pub trait Compatible {}
+pub trait Compatible { }

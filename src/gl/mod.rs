@@ -8,6 +8,7 @@ pub mod resource;
 pub mod shader;
 pub mod texture;
 pub mod vertex_array;
+pub(crate) mod target;
 
 use crate::{gl_call, glsl};
 use glsl::prelude::*;

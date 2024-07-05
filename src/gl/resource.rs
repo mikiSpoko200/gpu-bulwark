@@ -1,7 +1,5 @@
 use super::prelude::*;
 use crate::error;
-use crate::target;
-use std::marker::PhantomData;
 
 // note: this must use another trait that allows for binding of arbitrary
 // pub struct Binder<'obj, B>(&'obj Name, PhantomData<B>) where B: Bindable;

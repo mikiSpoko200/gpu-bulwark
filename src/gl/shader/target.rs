@@ -1,33 +1,28 @@
 use crate::impl_target;
+use crate::gl;
 
 /// Marker for types that represent Shader targets.
-pub(crate) unsafe trait Target: crate::target::Target {}
+pub(crate) unsafe trait Target: gl::target::Target { }
 
-/// Zero-sized struct that represents Vertex Shader stage.
-#[derive(Default)]
-pub struct Vertex;
+/// Target for Vertex Shader stage.
+pub enum Vertex { }
 
 pub mod tesselation {
-    /// Zero-sized struct that represents Tesselation Control Shader stage.
-    #[derive(Default)]
-    pub struct Control;
+    /// Target for Tesselation Control Shader stage.
+    pub enum Control { }
 
-    /// Zero-sized struct that represents Tesselation Evaluation Shader stage.
-    #[derive(Default)]
-    pub struct Evaluation;
+    /// Target for Tesselation Evaluation Shader stage.
+    pub enum Evaluation { }
 }
 
-/// Zero-sized struct that represents Geometry Shader stage.
-#[derive(Default)]
-pub struct Geometry;
+/// Target for represents Geometry Shader stage.
+pub enum Geometry { }
 
-/// Zero-sized struct that represents Fragment Shader stage.
-#[derive(Default)]
-pub struct Fragment;
+/// Target for Fragment Shader stage.
+pub enum Fragment { }
 
-/// Zero-sized struct that represents Compute Shader stage.
-#[derive(Default)]
-pub struct Compute;
+/// Target for Compute Shader stage.
+pub enum Compute { }
 
 impl_target!{ Vertex as VERTEX_SHADER }
 impl_target!{ tesselation::Control as TESS_CONTROL_SHADER }

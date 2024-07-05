@@ -1,5 +1,5 @@
 use crate::glsl;
-use crate::prelude::HList;
+use crate::hlist::HList;
 use crate::mode;
 use crate::constraint;
 use glsl::{layout, storage};

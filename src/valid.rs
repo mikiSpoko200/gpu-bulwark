@@ -1,3 +1,3 @@
 
 pub use crate::glsl::_valid::*;
-pub use crate::glsl::uniform::_valid::*;
+pub use crate::gl::buffer::_valid::*;

@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use crate::gl;
 use crate::prelude::internal::*;
 
 use crate::ext;
@@ -14,8 +15,8 @@ pub trait Type {
     type Group: valid::TypeGroup;
 }
 
-/// Aliases for common trait bounds.
-pub mod alias {
+/// Common trait bound combinations.
+pub mod bounds {
     use super::valid;
     use super::valid::Subtype;
     use super::Type;
@@ -42,6 +43,8 @@ pub mod alias {
 
 /// Traits for validation markers.
 pub mod _valid {
+    use bounds::{OpaqueType, TransparentType};
+
     use super::*;
 
     /// Types that qualify familiy of glsl types.
@@ -79,35 +82,46 @@ pub mod _valid {
 
     /// Types valid for use as glsl scalar.
     #[hi::marker]
-    pub trait ForScalar { }
+    pub trait ForScalar: TransparentType { }
 
     /// Types valid for use as glsl vectors.
     #[hi::marker]
-    pub trait ForVector { }
+    pub trait ForVector: TransparentType { }
 
     /// Types valid for use as glsl matrices.
     #[hi::marker]
-    pub trait ForMatrix { }
+    pub trait ForMatrix: TransparentType { }
     
     /// Types valid for use as glsl arrays.
     /// TODO: Check if arrays can indeed store arbitrary types?
     #[hi::marker]
     pub trait ForArray: super::Type { }
-
-    impl ForVector for Const<2> { }
-    impl ForVector for Const<3> { }
-    impl ForVector for Const<4> { }
     
     /// Types which are valid for use in 
-    impl<T> ForScalar for T where T: alias::ScalarType { }
-    
+    impl<T> ForScalar for T where T: bounds::ScalarType { }
+
     /// Any type valid for use as scalar is valid for Vector use.
     impl<T> ForVector for T where T: ForScalar { }
     
-    impl ForMatrix for f32 { }
-    impl ForMatrix for f64 { }
+    hi::denmark! { f32 as ForMatrix }
+    hi::denmark! { f64 as ForMatrix }
 
     impl<T> ForArray for T where T: Type { }
+
+    pub trait VecDim { }
+
+    hi::denmark! { Const<2> as VecDim }
+    hi::denmark! { Const<3> as VecDim }
+    hi::denmark! { Const<4> as VecDim }
+
+
+    // =================[ Opaque types ]================= //
+
+    pub trait ForSampler: OpaqueType { }
+
+    hi::denmark! { f32 as ForSampler }
+    hi::denmark! { i32 as ForSampler }
+    hi::denmark! { u32 as ForSampler }
 }
 
 impl<T, const N: usize> Type for super::Array<T, N>
@@ -127,9 +141,9 @@ where
 #[derive(Clone, Debug, Default)]
 pub struct GVec<T, const SIZE: usize>(PhantomData<T>)
 where
-    Self: Location,
-    Const<SIZE>: valid::ForVector,
-    T: valid::ForVector;
+    T: valid::ForVector,
+    Const<SIZE>: valid::VecDim,
+;
 
 /// Vector of single precision floats.
 pub type Vec<const N: usize> = GVec<f32, N>;
@@ -151,6 +165,7 @@ pub type UVec<const N: usize> = GVec<u32, N>;
 pub type UVec2 = UVec<2>;
 pub type UVec3 = UVec<3>;
 pub type UVec4 = UVec<4>;
+
 /// Vector of Doubles.
 pub type DVec<const N: usize> = GVec<f64, N>;
 
@@ -172,9 +187,10 @@ pub type BVec4 = BVec<4>;
 #[derive(Clone, Debug, Default)]
 pub struct Mat<T, const ROW: usize, const COL: usize = ROW>(PhantomData<T>)
 where
-    Const<ROW>: valid::ForVector,
-    Const<COL>: valid::ForVector,
-    T: valid::ForMatrix;
+    T: valid::ForMatrix,
+    Const<ROW>: valid::VecDim,
+    Const<COL>: valid::VecDim,
+;
 
 pub type Mat2 = Mat<f32, 2, 2>;
 pub type Mat2x2 = Mat<f32, 2, 2>;
@@ -209,12 +225,12 @@ where
     T: Type;
 
 macro_rules! impl_transparent {
-    ($ty: ty as $subtype: ident) => {
+    ($ty: ty as $subtype:ident) => {
         impl crate::glsl::Type for $ty {
-            type Group = crate::glsl::valid::Transparent;
+            type Group = crate::valid::Transparent;
         }
-        impl crate::glsl::alias::TransparentType for $ty {
-            type Subtype = crate::glsl::valid::$subtype;
+        impl crate::glsl::bounds::TransparentType for $ty {
+            type Subtype = crate::valid::$subtype;
         }
     }
 }
@@ -224,21 +240,25 @@ impl_transparent! { f64 as Scalar }
 impl_transparent! { i32 as Scalar }
 impl_transparent! { u32 as Scalar }
 
+hi::denmark! { f32 as bounds::ScalarType }
+hi::denmark! { f64 as bounds::ScalarType }
+hi::denmark! { i32 as bounds::ScalarType }
+hi::denmark! { u32 as bounds::ScalarType }
+
 // `Type` impls for Vectors.
 
 impl<T, const N: usize> Type for GVec<T, N>
 where
     T: valid::ForVector,
-    Const<N>: valid::ForVector,
+    Const<N>: valid::VecDim,
 {
     type Group = valid::Transparent;
 }
 
-impl<T, const N: usize> alias::TransparentType for GVec<T, N>
+impl<T, const N: usize> bounds::TransparentType for GVec<T, N>
 where 
-    Self: Location,
     T: valid::ForVector,
-    Const<N>: valid::ForVector,
+    Const<N>: valid::VecDim,
 {
     type Subtype = valid::Vector;
 }
@@ -248,17 +268,17 @@ where
 impl<T, const R: usize, const C: usize> Type for Mat<T, R, C>
 where
     T: valid::ForMatrix,
-    Const<R>: valid::ForVector,
-    Const<C>: valid::ForVector,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
 {
     type Group = valid::Transparent;
 }
 
-impl<T, const R: usize, const C: usize> alias::TransparentType for Mat<T, R, C>
+impl<T, const R: usize, const C: usize> bounds::TransparentType for Mat<T, R, C>
 where
     T: valid::ForMatrix,
-    Const<R>: valid::ForVector,
-    Const<C>: valid::ForVector,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
 {
     type Subtype = valid::Matrix;
 }
@@ -267,8 +287,8 @@ where
 
 unsafe impl<T, const N: usize> ffi::FFI for GVec<T, N>
 where
-    T: valid::ForVector + ext::Array,
-    Const<N>: valid::ForVector,
+    T: valid::ForVector,
+    Const<N>: valid::VecDim,
 {
     type Layout = [T; N];
 }
@@ -276,15 +296,90 @@ where
 unsafe impl<T, const R: usize, const C: usize> ffi::FFI for Mat<T, R, C>
 where
     T: valid::ForMatrix,
-    Const<R>: valid::ForVector,
-    Const<C>: valid::ForVector,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
 {
     type Layout = [[T; C]; R];
 }
 
 unsafe impl<T, const N: usize> ffi::FFI for Array<T, N>
 where
-    T: alias::TransparentType,
+    T: bounds::TransparentType,
 {
     type Layout = [T::Layout; N];
 }
+
+
+// =================[ Opaque types ]================= //
+
+use gl::texture;
+
+pub struct Shadow<Target>(PhantomData<Target>) where Target: texture::Target;
+
+pub struct GSampler<Output, Target>(PhantomData<(Output, Target)>);
+
+
+type Sampler<Target> = GSampler<Target, f32>;
+
+pub type Sampler1D                = Sampler<texture::target::D1>;
+pub type Sampler1DShadow          = Sampler<Shadow<texture::target::D1>>;
+pub type Sampler1DArray           = Sampler<texture::target::D1Array>;
+pub type Sampler1DArrayShadow     = Sampler<Shadow<texture::target::D1Array>>;
+pub type Sampler2D                = Sampler<texture::target::D2>;
+pub type Sampler2DShadow          = Sampler<Shadow<texture::target::D2>>;
+pub type Sampler2DArray           = Sampler<texture::target::D2Array>;
+pub type Sampler2DArrayShadow     = Sampler<Shadow<texture::target::D2Array>>;
+pub type Sampler3D                = Sampler<texture::target::D3>;
+pub type Sampler2DMS              = Sampler<texture::target::D2MultiSample>;
+pub type Sampler2DMSArray         = Sampler<texture::target::D2MultiSampleArray>;
+pub type Sampler2DRect            = Sampler<texture::target::Rectangle>;
+pub type Sampler2DRectShadow      = Sampler<Shadow<texture::target::Rectangle>>;
+pub type Sampler2DCube            = Sampler<texture::target::CubeMap>;
+pub type Sampler2DCubeShadow      = Sampler<Shadow<texture::target::CubeMap>>;
+pub type Sampler2DCubeArray       = Sampler<texture::target::CubeMapArray>;
+pub type Sampler2DCubeArrayShadow = Sampler<Shadow<texture::target::CubeMapArray>>;
+pub type SamplerBuffer            = Sampler<texture::target::BUffer>;
+
+
+type ISampler<Target> = GSampler<Target, i32>;
+
+pub type ISampler1D                = ISampler<texture::target::D1>;
+pub type ISampler1DShadow          = ISampler<Shadow<texture::target::D1>>;
+pub type ISampler1DArray           = ISampler<texture::target::D1Array>;
+pub type ISampler1DArrayShadow     = ISampler<Shadow<texture::target::D1Array>>;
+pub type ISampler2D                = ISampler<texture::target::D2>;
+pub type ISampler2DShadow          = ISampler<Shadow<texture::target::D2>>;
+pub type ISampler2DArray           = ISampler<texture::target::D2Array>;
+pub type ISampler2DArrayShadow     = ISampler<Shadow<texture::target::D2Array>>;
+pub type ISampler3D                = ISampler<texture::target::D3>;
+pub type ISampler2DMS              = ISampler<texture::target::D2MultiSample>;
+pub type ISampler2DMSArray         = ISampler<texture::target::D2MultiSampleArray>;
+pub type ISampler2DRect            = ISampler<texture::target::Rectangle>;
+pub type ISampler2DRectShadow      = ISampler<Shadow<texture::target::Rectangle>>;
+pub type ISampler2DCube            = ISampler<texture::target::CubeMap>;
+pub type ISampler2DCubeShadow      = ISampler<Shadow<texture::target::CubeMap>>;
+pub type ISampler2DCubeArray       = ISampler<texture::target::CubeMapArray>;
+pub type ISampler2DCubeArrayShadow = ISampler<Shadow<texture::target::CubeMapArray>>;
+pub type ISamplerBuffer            = ISampler<texture::target::BUffer>;
+
+
+type USampler<Target> = GSampler<Target, u32>;
+
+pub type USampler1D                = USampler<texture::target::D1>;
+pub type USampler1DShadow          = USampler<Shadow<texture::target::D1>>;
+pub type USampler1DArray           = USampler<texture::target::D1Array>;
+pub type USampler1DArrayShadow     = USampler<Shadow<texture::target::D1Array>>;
+pub type USampler2D                = USampler<texture::target::D2>;
+pub type USampler2DShadow          = USampler<Shadow<texture::target::D2>>;
+pub type USampler2DArray           = USampler<texture::target::D2Array>;
+pub type USampler2DArrayShadow     = USampler<Shadow<texture::target::D2Array>>;
+pub type USampler3D                = USampler<texture::target::D3>;
+pub type USampler2DMS              = USampler<texture::target::D2MultiSample>;
+pub type USampler2DMSArray         = USampler<texture::target::D2MultiSampleArray>;
+pub type USampler2DRect            = USampler<texture::target::Rectangle>;
+pub type USampler2DRectShadow      = USampler<Shadow<texture::target::Rectangle>>;
+pub type USampler2DCube            = USampler<texture::target::CubeMap>;
+pub type USampler2DCubeShadow      = USampler<Shadow<texture::target::CubeMap>>;
+pub type USampler2DCubeArray       = USampler<texture::target::CubeMapArray>;
+pub type USampler2DCubeArrayShadow = USampler<Shadow<texture::target::CubeMapArray>>;
+pub type USamplerBuffer            = USampler<texture::target::BUffer>;

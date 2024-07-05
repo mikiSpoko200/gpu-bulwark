@@ -8,7 +8,7 @@ use super::buffer::Buffer;
 use super::prelude::{Name, Object};
 use super::resource::{Allocator, Bind};
 use crate::{constraint, gl_call, mode};
-use crate::prelude::{HList, HListExt};
+use crate::hlist::HList;
 use crate::types::Primitive;
 use glb::types::GLuint;
 
@@ -46,7 +46,7 @@ where
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArraySemantics<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute + constraint::Valid<buffer::target::Array>,
+        A: Attribute,
     {
         let attribute = AttributeDecl { buffer };
         VertexArraySemantics {
@@ -88,7 +88,7 @@ where
         buffer: &'buffer Buffer<buffer::target::Array, A>,
     ) -> VertexArray<(AS, AttributeDecl<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: Attribute + constraint::Valid<buffer::target::Array>,
+        A: Attribute,
     {
         if self.semantics.length > 0 && self.semantics.length != buffer.semantics.length {
             panic!(

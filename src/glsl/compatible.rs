@@ -1,35 +1,25 @@
 use crate::gl::attributes::{Attribute, AttributeDecl};
+use crate::prelude::internal::*;
 
-use super::prelude::InParameterBinding;
-use crate::{glsl, mode};
+use crate::glsl;
+use glsl::binding::InParameterBinding;
 use crate::ffi;
+use crate::valid;
 
-pub use marker::hlist;
-pub use marker::Compatible;
+/// A GL type is compatible with GLSL type if their `FFI::Layout`s match.
+#[hi::marker]
+pub trait Compatible<GLSL>: ffi::FFI<Layout = GLSL::Layout>
+where
+    GLSL: glsl::bounds::TransparentType,
+{ }
 
-use crate::ext;
-
-mod marker {
-    use crate::{ext, glsl};
-    use crate::ffi;
-    use hi;
- 
-    /// A GL type is compatible with GLSL type if their `FFI::Layout`s match.
-    #[hi::marker]
-    pub trait Compatible<GLSL>: ffi::FFI<Layout = GLSL::Layout>
-    where
-        GLSL: glsl::Type<Group = glsl::marker::Transparent>,
-    { }
-
-    pub mod hlist {
-        pub trait Compatible<T> {}
-    }
+pub mod hlist {
+    pub trait Compatible<T> {}
 }
 
 macro_rules! compatible {
     ($gl: ty => $glsl: path) => {
-        impl marker::Compatible<$glsl> for $gl {
-        }
+        hi::denmark! { $gl as Compatible<$glsl> }
     };
 }
 
@@ -96,105 +86,67 @@ mod nalgebra {
 }
 
 #[cfg(feature = "nalgebra-glm")]
-mod nalgebra_glm {
-    use crate::constraint;
-    use crate::ffi;
-    use crate::glsl;
-    use crate::glsl::marker::Matrix;
-    use crate::glsl::marker::Scalar;
-    use crate::glsl::marker::Vector;
-    use crate::glsl::Const;
-    use nalgebra_glm as glm;
+mod impl_nalgebra_glm {
+    use super::*;
+
+    use ::nalgebra_glm as glm;
 
     unsafe impl<T, const SIZE: usize> ffi::FFI for glm::TVec<T, SIZE>
     where
-        T: glsl::Type + constraint::Valid<Vector>,
-        Const<SIZE>: constraint::Valid<Vector>,
+        T: valid::ForVector,
+        Const<SIZE>: valid::ForVector,
     {
         type Layout = [T; SIZE];
     }
 
-    impl<T, const SIZE: usize> super::Compatible<glsl::base::Vec<T, SIZE>> for glm::TVec<T, SIZE>
+    impl<T, const SIZE: usize> super::Compatible<glsl::GVec<T, SIZE>> for glm::TVec<T, SIZE>
     where
-        T: glsl::Type<Group = Scalar> + constraint::Valid<Vector>,
-        Const<SIZE>: constraint::Valid<Vector>,
-        glsl::base::Vec<T, SIZE>: glsl::location::marker::Location,
+        T: valid::ForVector,
+        Const<SIZE>: valid::ForVector,
         Self: AsRef<Self::Layout>,
-    {
-        fn as_pod(&self) -> &[T] {
-            self.as_ref()
-        }
-    }
+    { }
 
     unsafe impl<T, const ROW: usize, const COL: usize> ffi::FFI for glm::TMat<T, ROW, COL>
     where
-        T: constraint::Valid<Matrix>,
-        Const<ROW>: constraint::Valid<Vector>,
-        Const<COL>: constraint::Valid<Vector>,
+        T: valid::ForMatrix,
+        Const<ROW>: valid::ForVector,
+        Const<COL>: valid::ForVector,
     {
         type Layout = [[T; COL]; ROW];
     }
 
     impl<T, const ROW: usize, const COL: usize> super::Compatible<glsl::Mat<T, ROW, COL>> for glm::TMat<T, ROW, COL>
     where
-        T: constraint::Valid<Matrix>,
-        Const<ROW>: constraint::Valid<Vector>,
-        Const<COL>: constraint::Valid<Vector>,
-        glsl::Mat<T, ROW, COL>: glsl::Type<Layout = [[T; COL]; ROW]>,
-        Self: AsRef<[[T; COL]; ROW]>,
-    {
-        fn as_pod(&self) -> &[T] {
-            unsafe { std::slice::from_raw_parts(self.as_ref().as_ptr() as *const _, ROW * COL) }
-        }
-    }
+        T: valid::ForMatrix,
+        Const<ROW>: valid::ForVector,
+        Const<COL>: valid::ForVector,
+    { }
 }
 
 // --------==========[ Arrays of Compatible types ]==========--------
 
-impl<GL, GLSL, const N: usize> marker::Compatible<glsl::Array<GLSL, N>> for &GL
+impl<GL, GLSL, const N: usize> Compatible<glsl::Array<GLSL, N>> for &GL
 where
     GL: Compatible<GLSL>,
-    GLSL: super::Type<Layout = GL::Layout>,
-{
-    fn as_pod(&self) -> &[<GLSL::Layout as ext::Array>::Type] {
-        unsafe {
-            std::slice::from_raw_parts(
-                <Self as marker::Compatible<glsl::glsl::Array<GLSL, N>>>::as_pod(self).as_ptr()
-                    as *const _,
-                GLSL::SIZE,
-            )
-        }
-    }
-}
+    GLSL: glsl::bounds::TransparentType<Layout = GL::Layout>,
+{ }
 
 /// NOTE: This won't work sin
-impl<GLSL, GL, const N: usize> marker::Compatible<glsl::Array<GLSL, N>> for [GL; N]
+impl<GLSL, GL, const N: usize> Compatible<glsl::Array<GLSL, N>> for [GL; N]
 where
     GL: Compatible<GLSL>,
-    GLSL: super::Type<Layout = GL::Layout>,
-{
-    fn as_pod(&self) -> &[<GLSL::Layout as ext::Array>::Type] {
-        unsafe {
-            std::slice::from_raw_parts(
-                <Self as marker::Compatible<glsl::glsl::Array<GLSL, N>>>::as_pod(self).as_ptr()
-                    as *const _,
-                GLSL::SIZE,
-            )
-        }
-    }
-}
+    GLSL: glsl::bounds::TransparentType<Layout = GL::Layout>,
+{ }
 
 // --------==========[ HList integration ]==========--------
 
-impl marker::hlist::Compatible<()> for () {}
+impl hlist::Compatible<()> for () {}
 
 impl<'buffers, AS, A, PS, P, const ATTRIBUTE_INDEX: usize>
-    marker::hlist::Compatible<(PS, InParameterBinding<P, ATTRIBUTE_INDEX>)>
+    hlist::Compatible<(PS, InParameterBinding<P, ATTRIBUTE_INDEX>)>
     for (AS, AttributeDecl<'buffers, A, ATTRIBUTE_INDEX>)
 where
-    A: Attribute + ffi::FFI<Layout = P::Layout>,
-    A: marker::Compatible<P>,
-    AS: marker::hlist::Compatible<PS>,
-    P: glsl::Type + mode::Validation,
-{
-}
+    A: Attribute,
+    A: Compatible<P>,
+    AS: hlist::Compatible<PS>,
+{ }
