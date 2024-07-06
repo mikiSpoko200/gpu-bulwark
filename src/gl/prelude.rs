@@ -1,19 +1,18 @@
 use std::marker::PhantomData;
 
-pub use glb::types::GLuint as Name;
 use crate::gl;
 
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct Object<A>
 where
-    A: gl::resource::Allocator
+    A: gl::object::Allocator
 {
     name: u32,
     _allocator: PhantomData<A>,
 }
 
-impl<A: gl::resource::Allocator> Object<A> {
+impl<A: gl::object::Allocator> Object<A> {
     pub fn name(&self) -> u32 {
         self.name
     }
@@ -21,7 +20,7 @@ impl<A: gl::resource::Allocator> Object<A> {
 
 impl<A> Default for Object<A>
 where
-    A: gl::resource::Allocator
+    A: gl::object::Allocator
 {
     fn default() -> Self {
         let mut name = 0;
@@ -35,7 +34,7 @@ where
 
 impl<A> Drop for Object<A>
 where
-    A: gl::resource::Allocator
+    A: gl::object::Allocator
 {
     fn drop(&mut self) {
         A::free(&[self.name]);

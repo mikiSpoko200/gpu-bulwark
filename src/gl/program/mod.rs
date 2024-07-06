@@ -15,7 +15,7 @@ pub use builder::Builder;
 pub(self) use super::shader::prelude::*;
 
 use super::prelude::Object;
-use super::resource::{self, Allocator};
+use super::object::{self, Allocator};
 use crate::glsl::{self, binding};
 use crate::hlist::counters::Index;
 use crate::hlist::indexed;
@@ -239,14 +239,14 @@ where
         IDX: Index,
         DUS: Find<UniformDefinition<GLSLU, LOCATION>, IDX>,
     {
-        use crate::gl::resource::Bind;
+        use crate::gl::object::Bind;
 
         self.bind();
         self.defined_uniforms.uniform(binding, uniform);
     }
 }
 
-impl<IS, OS, DUS> resource::Bind for Program<IS, OS, DUS>
+impl<IS, OS, DUS> object::Bind for Program<IS, OS, DUS>
 where
     IS: glsl::Parameters<storage::In>,
     OS: glsl::Parameters<storage::Out>,

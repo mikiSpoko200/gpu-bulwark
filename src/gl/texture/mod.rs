@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 
 use crate::gl_call;
 
-use super::resource::Allocator;
+use super::object::Allocator;
 pub use target::Target;
 
 pub mod marker {

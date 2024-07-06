@@ -8,9 +8,9 @@ use super::{Main, Shared};
 use crate::gl_call;
 use crate::glsl;
 use crate::gl::prelude::*;
-use crate::gl::resource::{Allocator, Bind};
+use crate::gl::object::{Allocator, Bind};
 
-use crate::gl::resource;
+use crate::gl::object;
 use thiserror;
 
 #[repr(u32)]

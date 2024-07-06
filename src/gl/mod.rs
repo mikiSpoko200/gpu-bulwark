@@ -4,7 +4,7 @@ pub mod attributes;
 pub mod buffer;
 pub mod prelude;
 pub mod program;
-pub mod resource;
+pub mod object;
 pub mod shader;
 pub mod texture;
 pub mod vertex_array;
@@ -14,7 +14,7 @@ use crate::{gl_call, glsl};
 use glsl::prelude::*;
 use marker::storage::{In, Out};
 use program::Program;
-use resource::Bind;
+use object::Bind;
 use vertex_array::VertexArray;
 
 use self::program::uniform;

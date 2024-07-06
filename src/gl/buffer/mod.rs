@@ -3,7 +3,7 @@ pub mod _valid;
 
 
 
-use super::resource;
+use super::object;
 use crate::utils::Const;
 use crate::types::Primitive;
 use crate::error;
@@ -73,14 +73,14 @@ where
 /// Allocation strategy for OpenGL buffer objects.
 struct BufferAllocator;
 
-unsafe impl resource::Allocator for BufferAllocator {
-    fn allocate(names: &mut [Name]) {
+unsafe impl object::Allocator for BufferAllocator {
+    fn allocate(names: &mut [u32]) {
         unsafe {
             glb::CreateBuffers(names.len() as _, names.as_mut_ptr());
         }
     }
 
-    fn free(names: &[Name]) {
+    fn free(names: &[u32]) {
         unsafe {
             glb::DeleteBuffers(names.len() as _, names.as_ptr());
         }
@@ -144,7 +144,7 @@ where
     }
 }
 
-impl<T, F> resource::Bind for Buffer<T, F>
+impl<T, F> object::Bind for Buffer<T, F>
 where
     T: buffer::Target,
     F: glsl::Type + valid::ForBuffer<T>,
