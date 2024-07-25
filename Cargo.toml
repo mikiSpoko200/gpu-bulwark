@@ -18,6 +18,7 @@ serde = { version = "1.0.201", optional = true }
 sealed = "0.5.0"
 hi = { path = "../rust/himark", package = "himark" }
 disjoint_impls = "0.7.1"
+dm = { version = "0.99.18", package = "derive_more" }
 
 [features]
 default = ["nalgebra-glm"]
