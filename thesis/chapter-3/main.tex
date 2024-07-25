@@ -1,0 +1,82 @@
+\chapter{OpenGL}
+
+\section{Introduction}
+
+OpenGL is an specification of an API for hardware accelerated computer graphics owned and maintained by the Khronos Group Inc.
+
+Since it's inception  and up until 2016 with release of Vulkan it has been the only widely supported cross platform graphics API.
+
+
+% From specification
+TODO: opis opengl'a
+
+\section{OpenGL objects}
+
+OpenGL exposes an abstraction over GPU's resources called objects. In order to use given object it first must be bound to a binding point in current OpenGL context. 
+
+Objects contain internal state which can be queried using introspection. Objects are identified by a \textit{name} which is an unsigned 32 bit integer. There exists common object model which describes how most types of objects are managed.
+
+\noindent Most types of object can be created with either call to\\
+
+\centerline{
+    \texttt{void} \textbf{Gen*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects})
+}
+\noindent which will allocate object's \textit{name} and subsequent call to \\
+
+\centerline{
+    \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...)
+}
+\noindent which will bind given object to the context and, if given object has never been bound before, allocate their internal state. Alternatively one can use\\
+
+\centerline {
+    \texttt{void} \textbf{Create*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects})
+}
+\noindent which will allocate both object's \textit{name} and its state but it will not set any context bindings. There exist separate namespace for each object type.
+
+The most notable outliers that do not conform to the rules above are program objects, shader objects 
+
+Objects can be deleted with \texttt{void} \textbf{Delete*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects}), bound with aforementioned \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...) which usually accepts additional parameter that specifies binding point.
+
+OpenGL specification defines set of publicly available object parameters which can be queries using introspection with \textbf{GetInteger*} family of functions. One notable usage is determining compilation and linking status for shaders and programs. 
+
+\subsection{Buffer object}
+
+Buffer objects provide means to allocate data stores in GPU memory. They can contain data of different format and purpose depending on buffer's target. Primary usage for buffers is to provide geometric information which includes vertex attribute values and indices for indexed rendering.
+
+\subsection{Vertex Array object}
+
+Modern OpenGL is generic over vertex format and only poses limitation on the number of such 
+attributes and limits their values to glsl's scalar or vector types. 
+Each attribute is assigned a zero-based index. Vertex Array object (VAO) assigns each active 
+attribute information on how and where from to source vertex data, as well as, what is the
+data type of provided attribute in glsl.
+
+This can be seen as two separate pieces of information:
+- in memory layout and access frequency
+- interpretation / conversion of the data.
+
+Originally all of that information was specified at one with\\
+
+\centerline {
+    void VertexAttrib*Pointer(
+
+    )
+}
+
+\section{Graphics pipeline}
+
+OpenGL 4.6 models graphics pipeline as follows:
+
+\subsection{Vertex Specification}
+
+Before any draw calls can be made geometric data must be transferred to the client and generic vertex attributes must be configured.
+
+\section{History}
+
+IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
+
+In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. This task was passed on to Khronos Group in 2006 where it remained ever since.
+
+\section{Modern OpenGL}
+
+OpenGL release 3.0 was a turning point in the specification's development. It deprecated  
