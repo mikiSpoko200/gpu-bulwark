@@ -62,15 +62,6 @@ Originally all of that information was specified at one with\\
 
     )
 }
-
-\section{Graphics pipeline}
-
-OpenGL 4.6 models graphics pipeline as follows:
-
-\subsection{Vertex Specification}
-
-Before any draw calls can be made geometric data must be transferred to the client and generic vertex attributes must be configured.
-
 \section{History}
 
 IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
@@ -79,4 +70,38 @@ In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it wa
 
 \section{Modern OpenGL}
 
+%TODO: Opisz istotne zmiany w różnych wersjach?
+
 OpenGL release 3.0 was a turning point in the specification's development. It deprecated  
+
+\section{Graphics pipeline}
+
+%TODO: Opisz jak OpenGL 4.6 modeluje potok graficzny
+%NOTE: GL spec 4.6 core: Chapter 3
+
+OpenGL 4.6 models graphics pipeline as follows:
+
+\subsection{Vertex Specification}
+
+%TODO: opisz pojęcia client / server w kontekście OpenGL'a.
+Before any draw calls can be made geometric data must be transferred to the client and generic vertex attributes must be configured.
+
+\subsection{Vertex shading}
+
+\subsection{Tesselation}
+
+\subsection{Geometry shading}
+
+\subsection{Primitive assembly}
+
+\subsection{Rasterization}
+
+\subsection{Fragment shading}
+
+\subsection{Fragment post processing}
+
+\subsection{Compute shaders}
+
+\section{GLSL}
+
+%TODO: Opisz z grubsza część glsl'a konieczną do typowania programu

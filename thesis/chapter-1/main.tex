@@ -20,4 +20,86 @@ Over time more and more people joined Hoare on work on the project and in 2009, 
 
 \section{Language Features}
 
-\subsection{}
+\section{Data types}
+
+% TODO: Scalars, Boolean, character, tuples, array, slice, str
+
+\subsection{User defined types}
+
+Rust provides 
+
+As of version 1.79 Rust provides 3 Rust provides 3 ways to construct used defined aggregate types.
+These are:
+- \texttt{struct}s
+- \texttt{enum}s
+- \texttt{union}s
+
+We focus on the first two of these.
+
+\paragraph{\texttt{struct}s}
+
+Structure is a named grouping of other data types (product type). They constitute the basic building blocks for any user defined types.
+
+\section{Implementations}
+
+%NOTE: nad tym rozdziałem trzeba będzie trochę posiedzieć bo to jak działają impl'e jest fundamentalne.
+
+Functionality of a type is not provided inline with it's definition like in most C like languages. 
+Instead it's associated with a type by so called \textit{implementations}.
+Implementations for a type are contained within a block introduced by the \texttt{impl} keyword.
+
+There are two types of implementations:
+- inherent implementations
+- trait implementations
+
+%TODO: introduce shorthand for implementations as impl block
+%TODO: briefly define what item is.
+All items within impl block are called associated items
+
+Functions defined within impl blocks are called associated functions and can be accessed with qualification \texttt{<type-name>::<function-name>}.
+
+Within an implementation both \texttt{self} and \texttt{Self} keywords can be used.
+\texttt{self} can be used in associated function definitions within an impl block as first parameter. 
+Such functions are called methods and the \texttt{self} parameter denotes the receiver of method call. 
+\texttt{self} can be additionally qualified with immutable or mutable reference \texttt{\&} or \texttt{\&mut}.
+
+\texttt{Self} is a type alias that refers to implementing type.
+
+%TODO: add an example for each 
+
+\subsection{Inherent implementations}
+
+We will shorthand implementation to impl which is common in Rust terminology.
+
+%FIXME: is nominal the right word here? Maybe just use named instead?
+Inherent impls associate contents of an \texttt{impl} block with specified nominal type.
+Such blocks can contain definition of a constants or functions. 
+
+\section{Generic types}
+
+As of version 1.79 Rust provides 3 kinds of generic parameters types can use. 
+These are:
+- type parameters
+- constant parameters
+- lifetime parameters
+Type which uses any generic parameters is said to be generic.
+
+\subsection{Type parameters}
+
+Type parameters represent an abstract type 
+
+\subsection{Constant parameters}
+
+%TODO: explain based on Vec<T, const N: usize>
+
+\subsection{Lifetime parameters}
+
+%TODO: explain that these are used by the compiler for validation (from the book)
+
+\section{Type level abstraction}
+
+Traits provide an ability to express shared behavior in abstract way.
+
+\section{Implementation Coherence}
+
+\subsection{Orphan Rule}
