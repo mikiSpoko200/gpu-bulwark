@@ -3,10 +3,9 @@ use crate::prelude::internal::*;
 use crate::glsl;
 use crate::hlist::lhlist as hlist;
 use crate::md;
-use crate::valid;
 use crate::ext;
 
-use super::*;
+use glsl::valid;
 
 use crate::ffi;
 
@@ -87,7 +86,7 @@ pub trait Uniform: super::Type { }
 
 pub trait UniformDisjointHelper<S>: Uniform
 where
-    S: crate::valid::Subtype,
+    S: valid::Subtype,
 { }
 
 impl<T> UniformDisjointHelper<valid::Scalar> for T where T: bounds::ScalarUniform { }

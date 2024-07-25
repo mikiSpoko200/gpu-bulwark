@@ -9,7 +9,8 @@ use crate::ffi;
 
 use super::location::Location;
 use crate::prelude::*;
-use crate::valid;
+
+use glsl::valid;
 
 /// A glsl type.
 pub trait Type {
@@ -45,106 +46,6 @@ pub mod bounds {
 }
 
 /// Traits for validation markers.
-pub mod _valid {
-    use bounds::{OpaqueType, TransparentType};
-
-    use super::*;
-
-    /// Types that qualify familiy of glsl types.
-    #[hi::marker]
-    pub trait Subtype { }
-    
-    /// Types that qualify group of glsl type.
-    #[hi::marker]
-    pub trait TypeGroup { }
-    
-    /// Qualifier for scalar types in glgl.
-    #[hi::mark(Subtype)]
-    pub enum Scalar { }
-    
-    /// Qualifier for vector types in glgl.
-    #[hi::mark(Subtype)]
-    pub enum Vector<const DIM: usize> { }
-    
-    /// Qualifier for matrix types in glsl.
-    #[hi::mark(Subtype)]
-    pub enum Matrix { }
-
-    #[hi::mark(Subtype)]
-    pub struct Array<S>(PhantomData<S>)
-    where
-        S: Subtype;
-
-    #[derive(Clone, Copy, Debug)]
-    #[hi::mark(TypeGroup)]
-    pub enum Transparent { }
-    
-    #[derive(Clone, Copy, Debug)]
-    #[hi::mark(TypeGroup)]
-    pub enum Opaque { }
-
-    /// Types valid for use as glsl scalar.
-    #[hi::marker]
-    pub trait ForScalar: TransparentType + bounds::ScalarType { }
-
-    pub trait VecDim { }
-
-    hi::denmark! { Const<2> as VecDim }
-    hi::denmark! { Const<3> as VecDim }
-    hi::denmark! { Const<4> as VecDim }
-
-    /// Types valid for use as glsl vectors.
-    #[hi::marker]
-    pub trait ForVector<const DIM: usize>: TransparentType + Location<Vector<DIM>> + bounds::ScalarType
-    where 
-        Const<DIM>: VecDim
-    { }
-
-    /// Types valid for use as glsl matrices.
-    #[hi::marker]
-    pub trait ForMatrix<const ROW: usize, const COL: usize>: TransparentType + Location<Vector<COL>> + bounds::ScalarType
-    where
-        Const<ROW>: valid::VecDim,
-        Const<COL>: valid::VecDim,
-    { }
-    
-    /// Types valid for use as glsl arrays.
-    /// TODO: Check if arrays can indeed store arbitrary types?
-    #[hi::marker]
-    pub trait ForArray: super::Type { }
-    
-    /// Types which are valid for use in 
-    impl<T> ForScalar for T where T: bounds::ScalarType { }
-
-    /// Any type valid for use as scalar is valid for Vector use.
-    impl<T, const DIM: usize> ForVector<DIM> for T
-    where 
-        T: ForScalar + Location<Vector<DIM>>, 
-        Const<DIM>: valid::VecDim
-    { }
-
-    impl<const R: usize, const C: usize> ForMatrix<R, C> for f32
-    where
-        Const<R>: valid::VecDim,
-        Const<C>: valid::VecDim,
-    { }
-
-    impl<const R: usize, const C: usize> ForMatrix<R, C> for f64
-    where
-        Const<R>: valid::VecDim,
-        Const<C>: valid::VecDim,
-    { }
-
-    impl<T> ForArray for T where T: Type { }
-
-    // =================[ Opaque types ]================= //
-
-    pub trait ForSampler: Type { }
-
-    hi::denmark! { f32 as ForSampler }
-    hi::denmark! { i32 as ForSampler }
-    hi::denmark! { u32 as ForSampler }
-}
 
 // ================[ Types ]================ //
 
@@ -241,20 +142,20 @@ where
 // =================[ impl Type / TransparentType ]================= //
 
 macro_rules! impl_transparent {
-    ($ty: ty as $subtype:ident) => {
+    ($ty: ty as $subtype:path) => {
         impl crate::glsl::Type for $ty {
-            type Group = crate::valid::Transparent;
+            type Group = crate::glsl::valid::Transparent;
         }
         impl crate::glsl::bounds::TransparentType for $ty {
-            type Subtype = crate::valid::$subtype;
+            type Subtype = $subtype;
         }
     }
 }
 
-impl_transparent! { f32 as Scalar }
-impl_transparent! { f64 as Scalar }
-impl_transparent! { i32 as Scalar }
-impl_transparent! { u32 as Scalar }
+impl_transparent! { f32 as valid::Scalar }
+impl_transparent! { f64 as valid::Scalar }
+impl_transparent! { i32 as valid::Scalar }
+impl_transparent! { u32 as valid::Scalar }
 
 hi::denmark! { f32 as bounds::ScalarType }
 hi::denmark! { f64 as bounds::ScalarType }

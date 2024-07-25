@@ -14,25 +14,30 @@ use super::attribute::{Attribute};
 use crate::hlist::lhlist::Base as HList;
 use crate::types::Primitive;
 
-enum VertexArrayAllocator { }
+#[hi::mark(Object, PartialObject)]
+enum VertexArrayObject { }
 
-unsafe impl Allocator for VertexArrayAllocator {
+unsafe impl Allocator for VertexArrayObject {
     fn allocate(names: &mut [u32]) {
-        unsafe {
-            glb::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
+            }
         }
     }
 
     fn free(names: &[u32]) {
-        unsafe {
-            glb::DeleteVertexArrays(names.len() as _, names.as_ptr());
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::DeleteVertexArrays(names.len() as _, names.as_ptr());
+            }
         }
     }
 }
 
-enum VertexArrayBinder { }
-
-impl Binder for VertexArrayBinder {
+impl Binder for VertexArrayObject {
     fn bind(name: u32) {
         gl::call! {
             [panic]
@@ -68,30 +73,18 @@ where
     }
 }
 
-#[derive(Default)]
+#[derive(Default, dm::Deref)]
 /// Representation of Vertex Array Object.
 pub struct VertexArray<Attrs>
 where
     Attrs: valid::Attributes,
 {
-    object: ObjectBase<Self>,
+    #[deref]
+    object: ObjectBase<VertexArrayObject>,
     phantoms: VertexArrayState<Attrs>,
 }
 
-impl<Attrs: valid::Attributes> std::ops::Deref for VertexArray<Attrs> {
-    type Target = ObjectBase<Self>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.object
-    }
-}
-
-impl<Attrs: valid::Attributes> Object for VertexArray<Attrs> {
-    type Binder = VertexArrayBinder;
-    type Allocator = VertexArrayAllocator;
-}
-
-pub type VAO<A> = VertexArray<A>;
+pub type VAO<Attrs> = VertexArray<Attrs>;
 
 impl<Attrs: valid::Attributes> VertexArray<Attrs> {
     pub const fn len(&self) -> usize {
@@ -107,10 +100,11 @@ where
         // todo: Add Iteration over attributes to trait `Attributes`
     }
 
+    // TODO: Fix type var validation. On both glsl and gl
     pub fn attach<'buffer, A, const ATTRIBUTE_INDEX: usize>(
         self,
         binding: &glsl::binding::InBinding<A, ATTRIBUTE_INDEX>,
-        buffer: &'buffer Buffer<buffer::Array, A>
+        buffer: &'buffer Buffer<buffer::Array, impl >
     ) -> VertexArray<(AS, Attribute<'buffer, A, ATTRIBUTE_INDEX>)>
     where
         A: valid::ForAttribute,
@@ -128,9 +122,9 @@ where
         gl::call! {
             [panic]
             unsafe {
-                ATTRIBUTE_INDEX as _,
                 glb::VertexAttribPointer(
-                    A::SIZE as _,
+                    ATTRIBUTE_INDEX as _,
+                    A::N_COMPONENTS as _,
                     <A::Primitive as Primitive>::GL_TYPE,
                     glb::FALSE,
                     0,
@@ -139,8 +133,6 @@ where
                 glb::EnableVertexAttribArray(ATTRIBUTE_INDEX as _);
             }
         }
-        self.unbind();
-        buffer.unbind();
 
         let Self { object, phantoms } = self;
 
@@ -151,28 +143,5 @@ where
 impl VertexArray<()> {
     pub fn create() -> Self {
         Self::default()
-    }
-}
-
-impl<A> Binder for VertexArray<A>
-where 
-    A: valid::Attributes
-{
-    fn bind(&self) {
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::BindVertexArray(self.object.name());
-            }
-        }
-    }
-
-    fn unbind(&self) {
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::BindVertexArray(0);
-            }
-        }
     }
 }

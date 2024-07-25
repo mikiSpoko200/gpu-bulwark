@@ -2,7 +2,8 @@ use crate::prelude::internal::*;
 
 use crate::glsl;
 use crate::ffi;
-use crate::valid;
+
+use glsl::valid;
 
 /// A GL type is compatible with GLSL type if their `FFI::Layout`s match.
 #[hi::marker]
@@ -16,7 +17,7 @@ pub mod hlist {
 }
 
 macro_rules! compatible {
-    ($gl: ty => $glsl: path) => {
+    ($gl:ty => $glsl:path) => {
         hi::denmark! { $gl as Compatible<$glsl> }
     };
 }
@@ -118,7 +119,6 @@ mod impl_nalgebra_glm {
 //     GLSL: glsl::bounds::TransparentType,
 // { }
 
-/// NOTE: This won't work sin
 impl<GLSL, GL, const N: usize> Compatible<glsl::Array<GLSL, N>> for [GL; N]
 where
     GL: Compatible<GLSL>,
@@ -127,7 +127,6 @@ where
 
 // --------==========[ HList integration ]==========--------
 
-// NOTE: I don't think we need compatibility of HLists -- If indeed we need them justify it.
 // impl hlist::Compatible<()> for () {}
 
 // impl<'buffers, A, AS, PS, const ATTRIBUTE_INDEX: usize> hlist::Compatible<(PS, InParameterBinding<A, ATTRIBUTE_INDEX>)> 

@@ -31,7 +31,17 @@ pub use target::*;
 use crate::prelude::internal::*;
 
 /// Type level enumeration of possible Buffer data Usage types
-pub trait Usage: Const<u32> { }
+pub trait Usage {
+    const ID: u32;
+}
+
+macro_rules! impl_usage {
+    ($ty:ty: $id:expr ) => {
+        impl Usage for $ty {
+            const ID: u32 = $id;
+        }
+    };
+}
 
 pub enum Stream { }
 
@@ -46,25 +56,26 @@ pub enum Read { }
 pub enum Copy { }
 
 // impls for Stream access frequency
-crate::impl_const_super_trait!(Usage for (Stream, Draw), glb::STREAM_DRAW);
-crate::impl_const_super_trait!(Usage for (Stream, Read), glb::STREAM_READ);
-crate::impl_const_super_trait!(Usage for (Stream, Copy), glb::STREAM_COPY);
+impl_usage!((Stream, Draw): glb::STREAM_DRAW);
+impl_usage!((Stream, Read): glb::STREAM_READ);
+impl_usage!((Stream, Copy): glb::STREAM_COPY);
 
 // impls for Static access frequency
-crate::impl_const_super_trait!(Usage for (Static, Draw), glb::STATIC_DRAW);
-crate::impl_const_super_trait!(Usage for (Static, Read), glb::STATIC_READ);
-crate::impl_const_super_trait!(Usage for (Static, Copy), glb::STATIC_COPY);
+impl_usage!((Static, Draw): glb::STATIC_DRAW);
+impl_usage!((Static, Read): glb::STATIC_READ);
+impl_usage!((Static, Copy): glb::STATIC_COPY);
 
 // impls for Dynamic access frequency
-crate::impl_const_super_trait!(Usage for (Dynamic, Draw), glb::DYNAMIC_DRAW);
-crate::impl_const_super_trait!(Usage for (Dynamic, Read), glb::DYNAMIC_READ);
-crate::impl_const_super_trait!(Usage for (Dynamic, Copy), glb::DYNAMIC_COPY);
+impl_usage!((Dynamic, Draw): glb::DYNAMIC_DRAW);
+impl_usage!((Dynamic, Read): glb::DYNAMIC_READ);
+impl_usage!((Dynamic, Copy): glb::DYNAMIC_COPY);
 
 
 /// Allocator for OpenGL buffer objects.
-enum BufferAllocator { }
+#[hi::mark(PartialObject, Object)]
+struct BufferObject<T: Target>(PhantomData<T>);
 
-unsafe impl object::Allocator for BufferAllocator {
+unsafe impl<T: Target> object::Allocator for BufferObject<T> {
     fn allocate(names: &mut [u32]) {
         unsafe {
             glb::CreateBuffers(names.len() as _, names.as_mut_ptr());
@@ -78,13 +89,11 @@ unsafe impl object::Allocator for BufferAllocator {
     }
 }
 
-struct BufferBinder<T: Target>(PhantomData<T>);
-
-impl<T: Target> object::Binder for BufferBinder<T> {
+impl<T: Target> object::Binder for BufferObject<T> {
     fn bind(name: u32) {
         gl::call! {
             [panic]
-            unsafe { glb::BindBuffer(T::VALUE, name) }
+            unsafe { glb::BindBuffer(T::ID, name) }
         }
     }
 }
@@ -100,7 +109,6 @@ where
 impl<T, F> Default for BufferState<T, F>
 where
     T: buffer::Target,
-    F: valid::ForBuffer<T>,
 {
     fn default() -> Self {
         Self {
@@ -114,17 +122,15 @@ where
 pub struct Buffer<T, GL>
 where
     T: buffer::Target,
-    GL: valid::ForBuffer<T>,
 {
     #[deref]
-    object: ObjectBase<Self>,
+    object: ObjectBase<BufferObject<T>>,
     pub(crate) state: BufferState<T, GL>,
 }
 
-impl<T, GLSL> Default for Buffer<T, GLSL>
+impl<T, GL> Default for Buffer<T, GL>
 where
     T: buffer::Target,
-    GLSL: valid::ForBuffer<T>,
 {
     fn default() -> Self {
         Self {
@@ -134,19 +140,9 @@ where
     }
 }
 
-impl<T, GL> Object for Buffer<T, GL>
+impl<T, GL> Buffer<T, GL>
 where
     T: buffer::Target,
-    GL: valid::ForBuffer<T>,
-{
-    type Binder = BufferBinder<T>;
-    type Allocator = BufferAllocator;
-}
-
-impl<T, GLSL> Buffer<T, GLSL>
-where
-    T: buffer::Target,
-    GLSL: valid::ForBuffer<T>,
 {
     pub fn create() -> Self {
         Self {
@@ -154,20 +150,19 @@ where
         }
     }
 
-    pub fn data<U, GL>(&mut self, data: &[GL])
+    pub fn data<U>(&mut self, data: &[GL])
     where
         U: Usage,
-        GL: glsl::Compatible<GLSL>,
     {
         {
             gl::call! {
                 [panic]
                 unsafe {
                     glb::BufferData(
-                        T::VALUE,
-                        (std::mem::size_of::<GL::Layout>() * data.len()) as _,
+                        T::ID,
+                        (std::mem::size_of::<GL>() * data.len()) as _,
                         data.as_ptr() as _,
-                        U::VALUE,
+                        U::ID,
                     );
                 }
             }

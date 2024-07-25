@@ -2,8 +2,8 @@
 
 use crate::glsl;
 use crate::prelude::internal::*;
-use crate::valid;
 
+use glsl::valid;
 
 pub trait Location<Subtype: valid::Subtype = valid::Scalar> {
     const N_USED_LOCATIONS: usize;
@@ -33,7 +33,7 @@ impl_location!{ [vector] f64: match DIM { 2 => 1, 3 | 4 => 2, _ => panic!("unrea
 impl_location!{ [vector] i32: 1 }
 impl_location!{ [vector] u32: 1 }
 
-/// Implementation of vector location count is delegated to type `T` via `valid::ForVector`'s supertrait `Location<valid::Vector<DIM>>`.
+/// Implementation of vector location count is delegated to type `T` via `valid::ForVector`'s super trait `Location<valid::Vector<DIM>>`.
 impl<T, const DIM: usize> Location for glsl::GVec<T, DIM>
 where
     T: valid::ForVector<DIM>,

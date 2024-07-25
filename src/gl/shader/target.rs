@@ -8,7 +8,6 @@ pub trait Target: gl::target::Target { }
 #[hi::mark(Target)]
 pub enum Vertex { }
 
-
 pub mod tesselation {
     use super::*;
 
@@ -20,6 +19,9 @@ pub mod tesselation {
     #[hi::mark(Target)]
     pub enum Evaluation { }
 }
+
+pub type TessControl = tesselation::Control;
+pub type TessEvaluation = tesselation::Evaluation;
 
 /// Target for represents Geometry Shader stage.
 #[hi::mark(Target)]

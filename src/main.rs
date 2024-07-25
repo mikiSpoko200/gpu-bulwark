@@ -3,6 +3,7 @@
 use std::num::NonZeroU32;
 
 use anyhow;
+use glsl::{binding, MatchingInputs};
 use glutin::{config, context, display, surface};
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use winit::{
@@ -36,16 +37,14 @@ pub mod md;
 pub mod ts;
 pub mod valid;
 
-use glsl::prelude::MatchingInputs;
-use gl::shader;
+use gl::shader::{self, FragmentShader, VertexShader};
 use gl::{
     buffer::{Buffer, Draw, Static},
     program::Program,
     vertex_array::VertexArray,
 };
-use shader::target::{Fragment, Vertex};
-use shader::Shader;
 
+use crate::prelude::*;
 use nalgebra_glm as glm;
 
 fn main() -> anyhow::Result<()> {
@@ -144,16 +143,8 @@ fn main() -> anyhow::Result<()> {
     let vs_source = std::fs::read_to_string("samples/shaders/basic.vert")?;
     let common_source = std::fs::read_to_string("samples/shaders/basic-common.vert")?;
     let fs_source = std::fs::read_to_string("samples/shaders/basic.frag")?;
-
-    let uncompiled_vs = Shader::<Vertex>::create();
-    let uncompiled_fs = Shader::<Fragment>::create();
-    let common = Shader::<Vertex>::create();
-
-    uncompiled_vs.source(&[&vs_source]);
-    uncompiled_fs.source(&[&fs_source]);
-    common.source(&[&common_source]);
-
-    let unpack![view_matrix_location] = uniforms! {
+    
+    let binding::unpack![view_matrix_location] = uniforms! {
         layout(location = 0) mat4;
     };
 
@@ -163,6 +154,8 @@ fn main() -> anyhow::Result<()> {
         layout(location = 2) vec2;
     };
 
+    let binding::unpack![vin_position, vin_color, vin_tex] = vs_inputs;
+
     let vs_outputs = outputs! {
         layout(location = 0) vec4;
         layout(location = 1) vec2;
@@ -170,9 +163,17 @@ fn main() -> anyhow::Result<()> {
 
     let fs_inputs = vs_outputs.matching_inputs();
 
-    let ((), fs_outputs) = outputs! {
+    let binding::unpack![fs_output] = outputs! {
         layout(location = 0) vec4;
     };
+
+    let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
+    let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
+    let mut common = shader::create::<shader::target::Vertex>();
+
+    uncompiled_vs.source(&[&vs_source]);
+    uncompiled_fs.source(&[&fs_source]);
+    common.source(&[&common_source]);
 
     let vs = uncompiled_vs
         .uniform(&view_matrix_location)
@@ -184,19 +185,15 @@ fn main() -> anyhow::Result<()> {
         .compile()?
         .into_main()
         .inputs(&fs_inputs)
-        .output(&fs_outputs);
+        .output(&fs_output);
     let common = common.compile()?.into_shared();
 
     let mut scale = 0f32;
-    let mut camera =
-        camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
+    let mut camera = camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
 
     let mut program = Program::builder()
-        .uniforms(|definitions| {
-            definitions.define(&view_matrix_location, camera.view_projection_matrix())
-        })
         .vertex_main(&vs)
-        .bind_uniforms(|declarations| declarations.bind(&view_matrix_location))
+        .uniforms(|matcher| matcher.bind(&view_matrix_location))
         .vertex_shared(&common)
         .fragment_main(&fs)
         .build()?;
@@ -215,9 +212,9 @@ fn main() -> anyhow::Result<()> {
     texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
 
     let vao = VertexArray::create()
-        .attach::<0, _>(&positions)
-        .attach::<1, _>(&colors)
-        .attach::<2, _>(&texture_coords);
+        .attach(&vin_position, &positions)
+        .attach(&vin_color, &colors)
+        .attach(&vin_tex, &texture_coords);
 
     println!("running main loop...");
 

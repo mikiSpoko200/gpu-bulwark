@@ -1,8 +1,8 @@
 pub mod builder;
-pub(super) mod internal;
 pub mod stage;
 
 use crate::prelude::internal::*;
+
 use crate::ts;
 
 pub use builder::Builder;
@@ -20,10 +20,41 @@ use gl::shader;
 use gl::shader::prelude::*;
 use gl::uniform;
 use glsl::binding;
-use glsl::prelude::*;
 
-use binding::marker::{layout, storage};
+use binding::UniformBinding;
+
+use binding::{layout, storage};
 use glutin::error;
+
+use super::uniform::Declarations;
+use super::uniform::Definitions;
+
+/// Collection of shaders for given program stage with defined stage interface.
+///
+/// It contains exactly one shaders that contains main function
+/// and arbitrary many that are there just to supply shaders to link against.
+pub(in crate::gl) struct ShaderStage<'shaders, T>
+where
+    T: shader::target::Target,
+{
+    pub main: &'shaders ObjectBase<shader::ShaderObject<T>>,
+    pub libs: Vec<&'shaders ObjectBase<shader::ShaderObject<T>>>,
+}
+
+impl<'s, T> ShaderStage<'s, T>
+where
+    T: shader::target::Target,
+{
+    pub fn new<Decls>(main: &'s shader::Shader<ts::Compiled, T, Decls>) -> ShaderStage<'s, T>
+    where 
+        Decls: uniform::bounds::Declarations,
+    {
+        ShaderStage {
+            main: main,
+            libs: Vec::new(),
+        }
+    }
+}
 
 #[repr(u32)]
 pub enum QueryParam {
@@ -63,9 +94,10 @@ impl LinkingStatus for UnLinked {}
 pub struct Linked;
 impl LinkingStatus for Linked {}
 
-enum ProgramAllocator {}
+#[hi::mark(PartialObject, Object)]
+enum ProgramObject { }
 
-unsafe impl Allocator for ProgramAllocator {
+unsafe impl Allocator for ProgramObject {
     fn allocate(names: &mut [u32]) {
         for name in names {
             *name = unsafe { glb::CreateProgram() };
@@ -76,15 +108,18 @@ unsafe impl Allocator for ProgramAllocator {
     fn free(names: &[u32]) {
         // UNSAFE: Check for 0 return type, otherwise Stage guarantees valid Enum value.
         for &name in names {
-            unsafe { glb::DeleteProgram(name) };
             // TODO: Check for errors
+            gl::call! {
+                [panic]
+                unsafe {
+                    glb::DeleteProgram(name)
+                }
+            }
         }
     }
 }
 
-pub enum ProgramBinder {}
-
-impl Binder for ProgramBinder {
+impl Binder for ProgramObject {
     fn bind(name: u32) {
         gl::call! {
             [panic]
@@ -132,6 +167,7 @@ where
     }
 }
 
+#[derive(dm::Deref)]
 #[doc = include_str!("../../../docs/object/program/Program.md")]
 pub struct Program<Ins, Outs, Decls>
 where
@@ -139,35 +175,13 @@ where
     Outs: glsl::Parameters<storage::Out>,
     Decls: uniform::bounds::Declarations,
 {
-    object: ObjectBase<Self>,
+    #[deref]
+    object: ObjectBase<ProgramObject>,
     state: ProgramState<Ins, Outs, Decls>,
 }
 
-impl<Ins, Outs, Decls> std::ops::Deref for Program<Ins, Outs, Decls>
-where
-    Ins: glsl::Parameters<storage::In>,
-    Outs: glsl::Parameters<storage::Out>,
-    Decls: uniform::bounds::Declarations,
-{
-    type Target = ObjectBase<Self>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.object
-    }
-}
-
-impl<Ins, Outs, Decls> Object for Program<Ins, Outs, Decls>
-where
-    Ins: glsl::parameters::Parameters<glsl::binding::marker::storage::In>,
-    Outs: glsl::parameters::Parameters<glsl::binding::marker::storage::Out>,
-    Decls: gl::uniform::bounds::Declarations,
-{
-    type Binder = ProgramBinder;
-    type Allocator = ProgramAllocator;
-}
-
 impl Program<(), (), ()> {
-    pub fn builder<'s>() -> Builder<'s, Vertex, (), (), (), ()> {
+    pub fn builder<'s>() -> Builder<'s, ts::None, (), (), (), ()> {
         Builder::new()
     }
 }
@@ -190,7 +204,7 @@ where
     {
         Program {
             object: Default::default(),
-            state: Default::default(),
+            state: ProgramState::new(Declarations(PhantomData)),
         }
     }
 }
@@ -246,19 +260,19 @@ where
         })
     }
 
-    fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
+    fn attach<T: shader::target::Target>(&self, stage: &ShaderStage<T>) {
         let main = stage.main;
         gl::call! {
             [panic]
             unsafe {
-                glb::AttachShader(self.object.name(), main.object.name());
+                glb::AttachShader(self.object.name(), main.name());
             }
         }
-        for shared in &stage.libs {
+        for lib in &stage.libs {
             gl::call! {
                 [panic]
                 unsafe {
-                    glb::AttachShader(self.object.name(), shared.object.name());
+                    glb::AttachShader(self.object.name(), lib.name());
                 }
             }
         }
@@ -287,30 +301,5 @@ where
         DUS: Find<UniformBinding<GLSL, LOCATION>, IDX>,
     {
         self.bound(|_| GLSL::set(binding, uniform));
-    }
-}
-
-impl<IS, OS, DUS> Binder for Program<IS, OS, DUS>
-where
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
-    DUS: uniform::bounds::Declarations,
-{
-    fn bind(&self) {
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::UseProgram(self.object.name())
-            }
-        }
-    }
-
-    fn unbind(&self) {
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::UseProgram(0)
-            }
-        }
     }
 }

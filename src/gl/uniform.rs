@@ -16,7 +16,7 @@ pub mod bounds {
     use lhlist::Tail;
 
     #[hi::marker]
-    pub trait Declarations {}
+    pub trait Declarations { }
 
     impl Declarations for () {}
 
@@ -50,35 +50,35 @@ pub(super) struct Declaration<U, const LOCATION: usize>(PhantomData<U>)
 where
     U: glsl::Uniform;
 
-impl<U, const LOCATION: usize> From<UniformBinding<U, LOCATION>> for Declaration<U, LOCATION>
+impl<U, const LOCATION: usize> From<&'_ UniformBinding<U, LOCATION>> for Declaration<U, LOCATION>
 where
     U: glsl::Uniform,
 {
-    fn from(value: UniformBinding<U, LOCATION>) -> Self {
+    fn from(value: &UniformBinding<U, LOCATION>) -> Self {
         Self(PhantomData)
     }
 }
 
 /// Facade that provides operations on `Declarations` HLists.
 #[derive(Copy)]
-pub(crate) struct Declarations<M, Unis>(pub PhantomData<(M, Unis)>)
+pub(crate) struct Declarations<M, Decls>(pub PhantomData<(M, Decls)>)
 where
     M: ts::Mutability,
-    Unis: bounds::Declarations;
+    Decls: bounds::Declarations;
 
-impl<M, Unis> Clone for Declarations<M, Unis>
+impl<M, Decls> Clone for Declarations<M, Decls>
 where
     M: ts::Mutability,
-    Unis: bounds::Declarations,
+    Decls: bounds::Declarations,
 {
     fn clone(&self) -> Self {
         Self(self.0.clone())
     }
 }
 
-impl<Unis> Default for Declarations<ts::Mutable, Unis>
+impl<Decls> Default for Declarations<ts::Mutable, Decls>
 where
-    Unis: bounds::Declarations,
+    Decls: bounds::Declarations,
 {
     fn default() -> Self {
         Self(Default::default())
@@ -91,19 +91,37 @@ impl Default for Declarations<ts::Immutable, ()> {
     }
 }
 
-impl<Unis> Declarations<ts::Mutable, Unis>
+impl From<()> for Declarations<ts::Mutable, ()> {
+    fn from(_: ()) -> Self {
+        Self::default()
+    }
+}
+
+impl<H, Decls, U, const LOCATION: usize> From<&'_ (H, UniformBinding<U, LOCATION>)> for Declarations<ts::Mutable, (Decls, Declaration<U, LOCATION>)>
 where
-    Unis: bounds::Declarations,
+    Decls: bounds::Declarations,
+    Declarations<ts::Mutable, Decls>: From<H>,
+    U: glsl::Uniform,
+{
+    fn from((head, binding): &(H, UniformBinding<U, LOCATION>)) -> Self {
+        Declarations(PhantomData)
+    }
+}
+
+
+impl<Decls> Declarations<ts::Mutable, Decls>
+where
+    Decls: bounds::Declarations,
 {
     /// Declare a new uniform at specified location.
-    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Unis, Declaration<U, LOCATION>)>
+    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Decls, Declaration<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
         Default::default()
     }
 
-    pub(super) fn into_immutable(self) -> Declarations<ts::Immutable, Unis> {
+    pub(super) fn into_immutable(self) -> Declarations<ts::Immutable, Decls> {
         Declarations(PhantomData)
     }
 }

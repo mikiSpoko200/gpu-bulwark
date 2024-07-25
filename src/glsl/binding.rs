@@ -1,72 +1,67 @@
+use crate::prelude::internal::*;
+
 use crate::glsl;
 use crate::hlist::lhlist as hlist;
-use hlist::Base as HList;
 use crate::md;
 use crate::constraint;
-use glsl::{layout, storage};
-use std::marker::PhantomData;
 
-pub mod marker {
-    use crate::glsl;
+use hlist::Base as HList;
 
-    #[hi::marker]
-    pub trait Qualifier<Type> { }
+#[hi::marker]
+pub trait Qualifier<Type> { }
 
-    /// glsl4.60 spec: 4.3. Storage Qualifiers
-    #[derive(Debug)]
-    pub enum Storage { }
+/// glsl4.60 spec: 4.3. Storage Qualifiers
+#[derive(Debug)]
+pub enum Storage { }
 
-    /// glsl4.60 spec: 4.4. Layout Qualifiers
-    #[derive(Debug)]
-    pub enum Layout { }
+/// glsl4.60 spec: 4.4. Layout Qualifiers
+#[derive(Debug)]
+pub enum Layout { }
 
-    /// glsl4.60 spec: 4.5. Interpolation Qualifiers
-    #[derive(Debug)]
-    pub enum Interpolation { }
+/// glsl4.60 spec: 4.5. Interpolation Qualifiers
+#[derive(Debug)]
+pub enum Interpolation { }
 
-    /// GL / GLSL binding target --
-    pub trait Variable {
-        type Type: glsl::Type;
-    }
-
-    /// storage qualifiers
-    pub mod storage {
-        use super::{Qualifier, Storage};
-
-        #[derive(Debug)]
-        /// linkage into a shader from a previous stage, variable is copied in.
-        pub enum In { }
-
-        #[derive(Debug)]
-        /// linkage out of a shader to a subsequent stage, variable is copied out
-        pub enum Out { }
-
-        #[derive(Debug)]
-        /// Value does not change across the primitive being processed, uniforms form the linkage between a shader, API, and the application
-        pub enum Uniform { }
-
-        #[derive(Debug)]
-        /// value is stored in a buffer object, and can be read or written both by shader invocations and the API
-        pub enum Buffer { }
-
-        hi::denmark! { In as Qualifier<Storage> }
-        hi::denmark! { Out as Qualifier<Storage> }
-        hi::denmark! { Uniform as Qualifier<Storage> }
-        hi::denmark! { Buffer as Qualifier<Storage> }
-    }
-
-    pub mod layout {
-        use super::{Layout, Qualifier};
-
-        pub enum Location<const N: usize> { }
-        impl<const N: usize> Qualifier<Layout> for Location<N> {}
-
-        pub enum Binding<const N: usize> { }
-        impl<const N: usize> Qualifier<Layout> for Binding<N> {}
-    }
+/// GL / GLSL binding target --
+pub trait Variable {
+    type Type: glsl::Type;
 }
 
-pub use marker::{Layout, Qualifier, Storage};
+/// storage qualifiers
+pub mod storage {
+    use super::{Qualifier, Storage};
+
+    #[derive(Debug)]
+    /// linkage into a shader from a previous stage, variable is copied in.
+        pub enum In { }
+
+    #[derive(Debug)]
+    /// linkage out of a shader to a subsequent stage, variable is copied out
+    pub enum Out { }
+
+    #[derive(Debug)]
+    /// Value does not change across the primitive being processed, uniforms form the linkage between a shader, API, and the application
+    pub enum Uniform { }
+
+    #[derive(Debug)]
+    /// value is stored in a buffer object, and can be read or written both by shader invocations and the API
+    pub enum Buffer { }
+
+    hi::denmark! { In as Qualifier<Storage> }
+    hi::denmark! { Out as Qualifier<Storage> }
+    hi::denmark! { Uniform as Qualifier<Storage> }
+    hi::denmark! { Buffer as Qualifier<Storage> }
+}
+
+pub mod layout {
+    use super::{Layout, Qualifier};
+
+    pub enum Location<const N: usize> { }
+    impl<const N: usize> Qualifier<Layout> for Location<N> {}
+
+    pub enum Binding<const N: usize> { }
+    impl<const N: usize> Qualifier<Layout> for Binding<N> {}
+}
 
 #[derive(Clone, Copy, Debug)]
 pub struct Binding<S, L, T, Store = md::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
@@ -182,20 +177,20 @@ where
 #[macro_export]
 macro_rules! layout_qualifier {
     (location = $value:literal) => {
-        crate::glsl::binding::marker::layout::Location<$value>
+        crate::glsl::binding::layout::Location<$value>
     };
 }
 
 #[macro_export]
 macro_rules! storage_qualifier {
     (in) => {
-        crate::glsl::binding::marker::storage::In
+        crate::glsl::binding::storage::In
     };
     (out) => {
-        crate::glsl::binding::marker::storage::Out
+        crate::glsl::binding::storage::Out
     };
     (uniform) => {
-        crate::glsl::binding::marker::storage::Uniform
+        crate::glsl::binding::storage::Uniform
     };
 }
 
@@ -432,19 +427,21 @@ macro_rules! Uniforms {
     };
 }
 
-#[macro_export]
 /// Unpack bindings into separate variables
+#[macro_export]
 macro_rules! unpack {
     ($ident: ident $(,)?) => {
         ((), $ident)
     };
     ($ident: ident, $($idents: tt),* $(,)?) => {
-        locations!(@ ((), $ident), $($idents),*)
+        crate::glsl::binding::unpack!(@ ((), $ident), $($idents),*)
     };
     (@ $acc: tt, $ident: tt $(,)?) => {
         ($acc, $ident)
     };
     (@ $acc: tt, $ident: ident, $($idents: tt),* $(,)?) => {
-        locations!(@ ($acc, $ident), $($idents),*)
+        crate::glsl::binding::unpack!(@ ($acc, $ident), $($idents),*)
     };
 }
+
+pub use unpack;

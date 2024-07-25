@@ -12,37 +12,25 @@ use crate::hlist::indexed::lhlist::Append;
 use gl::uniform;
 use gl::shader::target;
 
+use glsl::{InBinding, OutBinding};
+use glsl::storage::{In, Out};
 use glsl::storage;
-use glsl::prelude::*;
 
 /// Shader that contains entry point for the stage
-pub struct Main<Target, Ins, Outs, Decls>(pub(crate) super::CompiledShader<Target, Decls>, PhantomData<(Ins, Outs)>)
+#[derive(dm::Deref)]
+pub struct Main<Target, Ins, Outs, Decls>(#[deref] pub(crate) super::Shader<ts::Compiled, Target, Decls>, PhantomData<(Ins, Outs)>)
 where
     Target: target::Target,
-    Ins: glsl::Parameters<storage::In>,
-    Outs: glsl::Parameters<storage::Out>,
+    Ins: glsl::Parameters<In>,
+    Outs: glsl::Parameters<Out>,
     Decls: uniform::bounds::Declarations,
 ;
-
-impl<Target, Ins, Outs, Decls> std::ops::Deref for Main<Target, Ins, Outs, Decls>
-where
-    Target: target::Target,
-    Ins: glsl::Parameters<storage::In>,
-    Outs: glsl::Parameters<storage::Out>,
-    Decls: uniform::bounds::Declarations,
-{
-    type Target = super::Shader<ts::Compiled, Target, Decls>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 impl<Target, Ins, Outs> Main<Target, Ins, Outs, ()>
 where
     Target: target::Target,
-    Ins: glsl::Parameters<storage::In>,
-    Outs: glsl::Parameters<storage::Out>,
+    Ins: glsl::Parameters<In>,
+    Outs: glsl::Parameters<Out>,
 {
     pub(super) fn new<Decls>(shader: super::CompiledShader<Target, Decls>) -> Main<Target, Ins, Outs, Decls>
     where
@@ -55,13 +43,13 @@ where
 impl<Target, Ins, Outs, Decls> Main<Target, Ins, Outs, Decls>
 where
     Target: target::Target,
-    Ins: glsl::Parameters<storage::In>,
-    Outs: glsl::Parameters<storage::Out>,
+    Ins: glsl::Parameters<In>,
+    Outs: glsl::Parameters<Out>,
     Decls: uniform::bounds::Declarations,
 {
     pub fn input<In, const LOCATION: usize>(self, _: &InBinding<In, LOCATION>) -> Main<Target, (Ins, InBinding<In, LOCATION>), Outs, Decls>
     where
-        In: valid::ForAttribute,
+        In: glsl::Parameters<storage::In>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
@@ -69,7 +57,7 @@ where
 
     pub fn output<Out, const LOCATION: usize>(self, _: &OutBinding<Out, LOCATION>) -> Main<Target, Ins, (Outs, OutBinding<Out, LOCATION>), Decls>
     where
-        Out: valid::ForAttribute,
+        Out: glsl::Parameters<storage::Out>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
@@ -78,7 +66,7 @@ where
     pub fn inputs<NIns>(self, inputs: &NIns) -> Main<Target, Ins::Concatenated, Outs, Decls>
     where
         Ins: hlist::lhlist::Concatenate<NIns>,
-        Ins::Concatenated: glsl::Parameters<storage::In>,
+        Ins::Concatenated: glsl::Parameters<In>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
@@ -87,7 +75,7 @@ where
     pub fn outputs<NOuts>(self, inputs: &NOuts) -> Main<Target, Ins, Outs::Concatenated, Decls>
     where
         Outs: hlist::lhlist::Concatenate<NOuts>,
-        Outs::Concatenated: glsl::Parameters<storage::Out>,
+        Outs::Concatenated: glsl::Parameters<Out>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)

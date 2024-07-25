@@ -1,4 +1,4 @@
-use crate::hlist::lhlist;
+use crate::hlist::lhlist::Concatenate;
 use crate::prelude::internal::*;
 
 pub mod lib;
@@ -6,18 +6,22 @@ pub mod main;
 pub mod prelude;
 pub mod target;
 
-pub use target::Target;
-
-use crate::glsl::{self, location};
+use crate::gl;
+use crate::glsl;
+use crate::ts;
+use crate::hlist::lhlist;
 use crate::hlist::indexed::rhlist;
-use crate::prelude::*;
-use crate::{gl, ts};
 use gl::uniform;
 
+// Reexports
+pub use target::Target;
 pub(super) use lib::Lib;
 pub(super) use main::Main;
 
-use super::UniformBinding;
+use gl::object::{ObjectBase, PartialObject};
+use glsl::UniformBinding;
+
+use super::uniform::Declarations;
 
 #[derive(thiserror::Error, Debug)]
 #[error("shader compilation failed {msg}")]
@@ -40,35 +44,18 @@ pub enum QueryParam {
     ShaderSourceLength = glb::SHADER_SOURCE_LENGTH,
 }
 
-struct ShaderState<C>
-where
-    C: ts::Compilation,
-{
-    _phantom: PhantomData<C>,
-}
-
-impl<C> Default for ShaderState<C>
-where
-    C: ts::Compilation,
-{
-    fn default() -> Self {
-        Self {
-            _phantom: PhantomData,
-        }
-    }
-}
-
 /// Allocator for Shader Objects.
-pub(crate) struct ShaderAllocator<T>(PhantomData<T>)
+#[hi::mark(PartialObject)]
+pub(in crate::gl) struct ShaderObject<T>(PhantomData<T>)
 where
     T: Target;
 
-unsafe impl<T: Target> gl::object::Allocator for ShaderAllocator<T> {
+unsafe impl<T: Target> gl::object::Allocator for ShaderObject<T> {
     fn allocate(names: &mut [u32]) {
         for name in names {
             gl::call! {
                 [panic]
-                *name = unsafe { glb::CreateShader(T::VALUE) }
+                *name = unsafe { glb::CreateShader(T::ID) }
             }
         }
     }
@@ -84,16 +71,36 @@ unsafe impl<T: Target> gl::object::Allocator for ShaderAllocator<T> {
     }
 }
 
-pub(super) type ShaderObject<T> = gl::object::ObjectBase<Shader>;
+struct ShaderPhantom<T, C>(PhantomData<(T, C)>)
+where
+    T: Target,
+    C: ts::Compilation,
+;
 
+impl<T, C> Default for ShaderPhantom<T, C>
+where
+    T: Target,
+    C: ts::Compilation,
+{
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+pub fn create<T: Target>() -> Shader<ts::Uncompiled, T, ()> {
+    Shader::create()
+}
+
+#[derive(dm::Deref)]
 pub struct Shader<C, T, Decls>
 where
     C: ts::Compilation,
-    T: target::Target,
+    T: Target,
     Decls: uniform::bounds::Declarations,
 {
-    pub(in crate::gl) object: ShaderObject<T>,
-    pub(in crate::gl) state: ShaderState<C>,
+    #[deref]
+    pub(in crate::gl) object: ObjectBase<ShaderObject<T>>,
+    pub(in crate::gl) state: ShaderPhantom<T, C>,
     pub(in crate::gl) uniform_declarations: uniform::Declarations<ts::Mutable, Decls>,
 }
 
@@ -103,51 +110,50 @@ impl<T: Target> Default for Shader<ts::Uncompiled, T, ()> {
     }
 }
 
-impl<C, T, Decls> AsRef<ShaderObject<T>> for Shader<C, T, Decls>
-where 
-    C: ts::Compilation,
-    T: Target,
-    Decls: uniform::bounds::Declarations,
-{
-    fn as_ref(&self) -> &ShaderObject<T> {
-        &self.object
-    }
-}
-
 impl<T: Target> Shader<ts::Uncompiled, T, ()> {
     pub fn create() -> Self {
         Self {
-            object: ShaderObject::default(),
-            state: ShaderState::default(),
+            object: ObjectBase::default(),
+            state: ShaderPhantom::default(),
             uniform_declarations: uniform::Declarations::default(),
         }
     }
 }
 
+// TODO: common functionality for uniform setting 
 impl<T, Decls> Shader<ts::Uncompiled, T, Decls>
 where
     T: Target,
     Decls: uniform::bounds::Declarations,
-{
+{ 
     /// Declare uniform variable used by this shader
-    pub fn declare<U, const LOCATION: usize>(
-        self,
-        decl: UniformBinding<U, LOCATION>,
-    ) -> Shader<ts::Uncompiled, T, (Decls, uniform::Declaration<U, LOCATION>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformBinding<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, uniform::Declaration<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
         Shader {
-            uniform_declarations: self
-                .uniform_declarations
-                .declare(uniform::Declaration::from(decl)),
+            uniform_declarations: uniform::Declarations::default(),
             object: self.object,
             state: self.state,
         }
     }
 
+    /// Declare uniform variable used by this shader
+    pub fn uniforms<Unis, NDecls>(self, _: &Unis) -> Shader<ts::Uncompiled, T, Decls::Concatenated>
+    where
+        Unis: glsl::Uniforms + Into<NDecls>,
+        Decls: Concatenate<NDecls, Concatenated: uniform::bounds::Declarations>,
+    {
+        Shader {
+            uniform_declarations: uniform::Declarations::default(),
+            object: self.object,
+            state: self.state,
+        }
+    }
+
+
     /// Add source for shader.
-    pub fn source(&self, sources: &[&str]) -> &Self {
+    pub fn source(&mut self, sources: &[&str]) -> &Self {
         let pointers: Vec<_> = sources.iter().map(|s| s.as_ptr()).collect();
         let lengths: Vec<_> = sources.iter().map(|s| s.len()).collect();
 
@@ -155,7 +161,7 @@ where
             [panic]
             unsafe {
                 glb::ShaderSource(
-                    self.object.name(),
+                    self.name(),
                     sources.len() as _,
                     pointers.as_ptr() as _,
                     lengths.as_ptr() as _
@@ -168,7 +174,7 @@ where
     fn retype_to_compiled(self) -> Shader<ts::Compiled, T, Decls> {
         Shader {
             object: self.object,
-            state: ShaderState::default(),
+            state: ShaderPhantom::default(),
             uniform_declarations: self.uniform_declarations,
         }
     }
@@ -200,7 +206,7 @@ where
         let mut log_size = 0;
         self.query(QueryParam::InfoLogLength, &mut log_size);
         (log_size > 0).then(|| {
-            let mut buffer: Vec<u8> = Vec::with_capacity(log_size as _);
+            let mut buffer = Vec::<u8>::with_capacity(log_size as _);
             let mut actual_length = 0;
             gl::call! {
                 [panic]
@@ -249,8 +255,7 @@ pub type CompiledShader<T, Decls> = Shader<ts::Compiled, T, Decls>;
 
 pub type VertexShader<Decls = ()> = CompiledShader<target::Vertex, Decls>;
 pub type TesselationControlShader<Decls = ()> = CompiledShader<target::tesselation::Control, Decls>;
-pub type TesselationEvaluationShader<Decls = ()> =
-    CompiledShader<target::tesselation::Evaluation, Decls>;
+pub type TesselationEvaluationShader<Decls = ()> = CompiledShader<target::tesselation::Evaluation, Decls>;
 pub type GeometryShader<Decls = ()> = CompiledShader<target::Geometry, Decls>;
 pub type FragmentShader<Decls = ()> = CompiledShader<target::Fragment, Decls>;
 pub type ComputeShader<Decls = ()> = CompiledShader<target::Compute, Decls>;

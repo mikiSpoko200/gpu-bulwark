@@ -16,7 +16,7 @@ where
         gl::call! {
             [panic]
             unsafe {
-                glb::CreateTextures(T::VALUE as _, names.len() as _, names.as_mut_ptr())
+                glb::CreateTextures(T::ID as _, names.len() as _, names.as_mut_ptr())
             }
         }
     }

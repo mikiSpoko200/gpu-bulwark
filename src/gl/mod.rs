@@ -1,5 +1,7 @@
 #![allow(unused)]
 
+use crate::prelude::internal::*;
+
 pub mod buffer;
 pub mod program;
 pub mod object;
@@ -7,30 +9,33 @@ pub mod shader;
 pub mod texture;
 pub mod vertex_array;
 pub mod uniform;
+pub mod primitive;
+pub mod valid;
+pub mod bounds;
+
+// Reexports
+pub use primitive::*;
 
 pub(crate) mod target;
 
 use crate::glsl;
-use crate::valid;
 use crate::gl;
-use glsl::prelude::*;
-use marker::storage::{In, Out};
+use glsl::storage::{In, Out};
 use program::Program;
 use object::Binder;
 use vertex_array::VertexArray;
-
-use crate::prelude::internal::*;
+ 
 
 pub fn draw_arrays<AS, PSI, PSO, US>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO, US>)
 where
-    AS: valid::Attributes,
+    AS: glsl::valid::Attributes,
     PSI: glsl::Parameters<In>,
     PSO: glsl::Parameters<Out>,
     AS: glsl::compatible::hlist::Compatible<PSI>,
     US: uniform::bounds::Declarations,
 {
-    vao.bind();
-    program.bind();
+    let _vao_bind = vao.bind();
+    let _program_bind = program.bind();
 
     gl::call! {
         [panic]
@@ -38,9 +43,6 @@ where
             glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
         }
     }
-
-    vao.unbind();
-    program.unbind();
 }
 
 /// Wrapper for calling opengl functions.

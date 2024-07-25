@@ -8,14 +8,13 @@ use crate::ts;
 use gl::shader;
 use gl::uniform;
 
-use super::internal;
-
-
+#[derive(dm::Deref)]
 pub struct Lib<Target, Decls>
 where
     Target: shader::Target,
     Decls: uniform::bounds::Declarations,
 {
+    #[deref]
     inner: super::CompiledShader<Target, Decls>,
 }
 
@@ -28,18 +27,6 @@ where
         Lib {
             inner: shader, 
         }
-    }
-}
-
-impl<Target, Decls> std::ops::Deref for Lib<Target, Decls>
-where 
-    Target: gl::shader::target::Target, 
-    Decls: gl::uniform::bounds::Declarations
-{
-    type Target = super::Shader<ts::Compiled, Target, Decls>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
     }
 }
 

@@ -2,7 +2,7 @@
 
 /// Common behavior amongst all object specific targets
 pub trait Target {
-    const VALUE: u32;
+    const ID: u32;
 }
 
 #[macro_export]
@@ -10,7 +10,7 @@ pub trait Target {
 macro_rules! impl_target {
     ($target_type:ty as $gl_target_ident: ident) => {
         impl $crate::gl::target::Target for $target_type {
-            const VALUE: u32 = glb::$gl_target_ident;
+            const ID: u32 = glb::$gl_target_ident;
         }
     };
 }
