@@ -1,8 +1,6 @@
-use crate::gl::attributes::{Attribute, AttributeDecl};
 use crate::prelude::internal::*;
 
 use crate::glsl;
-use glsl::binding::InParameterBinding;
 use crate::ffi;
 use crate::valid;
 
@@ -14,23 +12,13 @@ where
 { }
 
 pub mod hlist {
-    pub trait Compatible<T> {}
+    pub trait Compatible<T> { }
 }
 
 macro_rules! compatible {
     ($gl: ty => $glsl: path) => {
         hi::denmark! { $gl as Compatible<$glsl> }
     };
-}
-
-// --------==========[ Rust base types ]==========--------
-
-/// This is causing more trouble then its worth
-unsafe impl<S, const N: usize> ffi::FFI for [S; N]
-where
-    S: ffi::FFI,
-{
-    type Layout = Self;
 }
 
 compatible! { f32 => f32 }
@@ -88,65 +76,64 @@ mod nalgebra {
 #[cfg(feature = "nalgebra-glm")]
 mod impl_nalgebra_glm {
     use super::*;
-
     use ::nalgebra_glm as glm;
 
-    unsafe impl<T, const SIZE: usize> ffi::FFI for glm::TVec<T, SIZE>
+    unsafe impl<T, const DIM: usize> ffi::FFI for glm::TVec<T, DIM>
     where
-        T: valid::ForVector,
-        Const<SIZE>: valid::ForVector,
+        T: valid::ForVector<DIM>,
+        Const<DIM>: valid::VecDim,
     {
-        type Layout = [T; SIZE];
+        type Layout = [T::Layout; DIM];
     }
 
-    impl<T, const SIZE: usize> super::Compatible<glsl::GVec<T, SIZE>> for glm::TVec<T, SIZE>
+    impl<T, const DIM: usize> super::Compatible<glsl::GVec<T, DIM>> for glm::TVec<T, DIM>
     where
-        T: valid::ForVector,
-        Const<SIZE>: valid::ForVector,
+        T: valid::ForVector<DIM>,
+        Const<DIM>: valid::VecDim,
         Self: AsRef<Self::Layout>,
     { }
 
-    unsafe impl<T, const ROW: usize, const COL: usize> ffi::FFI for glm::TMat<T, ROW, COL>
+    unsafe impl<T, const R: usize, const C: usize> ffi::FFI for glm::TMat<T, R, C>
     where
-        T: valid::ForMatrix,
-        Const<ROW>: valid::ForVector,
-        Const<COL>: valid::ForVector,
+        T: valid::ForMatrix<R, C>,
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
     {
-        type Layout = [[T; COL]; ROW];
+        type Layout = [[T::Layout; C]; R];
     }
 
-    impl<T, const ROW: usize, const COL: usize> super::Compatible<glsl::Mat<T, ROW, COL>> for glm::TMat<T, ROW, COL>
+    impl<T, const R: usize, const C: usize> super::Compatible<glsl::Mat<T, R, C>> for glm::TMat<T, R, C>
     where
-        T: valid::ForMatrix,
-        Const<ROW>: valid::ForVector,
-        Const<COL>: valid::ForVector,
+        T: valid::ForMatrix<R, C>,
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
     { }
 }
 
 // --------==========[ Arrays of Compatible types ]==========--------
 
-impl<GL, GLSL, const N: usize> Compatible<glsl::Array<GLSL, N>> for &GL
-where
-    GL: Compatible<GLSL>,
-    GLSL: glsl::bounds::TransparentType<Layout = GL::Layout>,
-{ }
+// impl<GL, GLSL, const N: usize> Compatible<glsl::Array<GLSL, N>> for &GL
+// where
+//     GL: Compatible<GLSL>,
+//     GLSL: glsl::bounds::TransparentType,
+// { }
 
 /// NOTE: This won't work sin
 impl<GLSL, GL, const N: usize> Compatible<glsl::Array<GLSL, N>> for [GL; N]
 where
     GL: Compatible<GLSL>,
-    GLSL: glsl::bounds::TransparentType<Layout = GL::Layout>,
+    GLSL: glsl::bounds::TransparentType,
 { }
 
 // --------==========[ HList integration ]==========--------
 
-impl hlist::Compatible<()> for () {}
+// NOTE: I don't think we need compatibility of HLists -- If indeed we need them justify it.
+// impl hlist::Compatible<()> for () {}
 
-impl<'buffers, AS, A, PS, P, const ATTRIBUTE_INDEX: usize>
-    hlist::Compatible<(PS, InParameterBinding<P, ATTRIBUTE_INDEX>)>
-    for (AS, AttributeDecl<'buffers, A, ATTRIBUTE_INDEX>)
-where
-    A: Attribute,
-    A: Compatible<P>,
-    AS: hlist::Compatible<PS>,
-{ }
+// impl<'buffers, A, AS, PS, const ATTRIBUTE_INDEX: usize> hlist::Compatible<(PS, InParameterBinding<A, ATTRIBUTE_INDEX>)> 
+// for (AS, Attribute<'buffers, A, ATTRIBUTE_INDEX>)
+// where
+//     A: valid::Attribute,
+//     PS: Attributes,
+//     AS: hlist::Compatible<PS>,
+// { }

@@ -9,6 +9,7 @@ pub mod uniform;
 pub mod qualifier;
 pub mod bounds;
 
+pub use location::Location;
 pub use glsl::Type;
 pub use glsl::*;
 pub use parameters::Parameters;

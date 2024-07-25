@@ -1,28 +1,29 @@
 pub mod builder;
 pub(super) mod internal;
 pub mod stage;
-pub mod uniform;
 
-use std::marker::PhantomData;
+use crate::prelude::internal::*;
+use crate::ts;
 
-use frunk::labelled::chars::T;
-use glb;
-use glutin::error;
-
-use super::shader;
 pub use builder::Builder;
 
-pub(self) use super::shader::prelude::*;
-
-use super::prelude::Object;
-use super::object::{self, Allocator};
-use crate::glsl::{self, binding};
+use crate::gl;
+use crate::glsl;
+use crate::hlist;
 use crate::hlist::counters::Index;
 use crate::hlist::indexed;
 use crate::hlist::lhlist::Find;
-use crate::{gl_call, hlist, valid};
+use crate::valid;
 
-use crate::glsl::prelude::*;
+use gl::object::*;
+use gl::shader;
+use gl::shader::prelude::*;
+use gl::uniform;
+use glsl::binding;
+use glsl::prelude::*;
+
+use binding::marker::{layout, storage};
+use glutin::error;
 
 #[repr(u32)]
 pub enum QueryParam {
@@ -34,10 +35,10 @@ pub enum QueryParam {
     ActiveAtomicCounterBuffers = glb::ACTIVE_ATOMIC_COUNTER_BUFFERS,
     ActiveAttributes = glb::ACTIVE_ATTRIBUTES,
     ActiveAttributeMaxLength = glb::ACTIVE_ATTRIBUTE_MAX_LENGTH,
-    Activeuniforms = glb::ACTIVE_UNIFORMS,
-    ActiveuniformBlocks = glb::ACTIVE_UNIFORM_BLOCKS,
-    ActiveuniformBlockMaxNameLength = glb::ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH,
-    ActiveuniformMaxLength = glb::ACTIVE_UNIFORM_MAX_LENGTH,
+    ActiveUniforms = glb::ACTIVE_UNIFORMS,
+    ActiveUniformBlocks = glb::ACTIVE_UNIFORM_BLOCKS,
+    ActiveUniformBlockMaxNameLength = glb::ACTIVE_UNIFORM_BLOCK_MAX_NAME_LENGTH,
+    ActiveUniformMaxLength = glb::ACTIVE_UNIFORM_MAX_LENGTH,
     ComputeWorkGroupSize = glb::COMPUTE_WORK_GROUP_SIZE,
     ProgramBinaryLength = glb::PROGRAM_BINARY_LENGTH,
     TransformFeedbackBufferMode = glb::TRANSFORM_FEEDBACK_BUFFER_MODE,
@@ -62,8 +63,7 @@ impl LinkingStatus for UnLinked {}
 pub struct Linked;
 impl LinkingStatus for Linked {}
 
-#[derive(Default)]
-struct ProgramAllocator;
+enum ProgramAllocator {}
 
 unsafe impl Allocator for ProgramAllocator {
     fn allocate(names: &mut [u32]) {
@@ -82,40 +82,88 @@ unsafe impl Allocator for ProgramAllocator {
     }
 }
 
-use binding::marker::{storage, layout};
+pub enum ProgramBinder {}
 
-struct ProgramPhantomData<I, O>
-where
-    I: glsl::Parameters<storage::In>,
-    O: glsl::Parameters<storage::Out>,
-{
-    pub _input_phantom: PhantomData<I>,
-    pub _output_phantom: PhantomData<O>,
+impl Binder for ProgramBinder {
+    fn bind(name: u32) {
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::UseProgram(name);
+            }
+        }
+    }
 }
 
-impl<I, O> std::default::Default for ProgramPhantomData<I, O>
+struct ProgramState<Ins, Outs, Decls>
 where
-    I: glsl::Parameters<storage::In>,
-    O: glsl::Parameters<storage::Out>,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
+{
+    pub _phantoms: PhantomData<(Ins, Outs)>,
+    pub uniform_declarations: uniform::Declarations<ts::Immutable, Decls>,
+}
+
+impl<Ins, Outs> Default for ProgramState<Ins, Outs, ()>
+where
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
 {
     fn default() -> Self {
         Self {
-            _input_phantom: Default::default(),
-            _output_phantom: Default::default(),
+            _phantoms: Default::default(),
+            uniform_declarations: uniform::Declarations::<ts::Immutable, _>::default(),
+        }
+    }
+}
+
+impl<Ins, Outs, Decls> ProgramState<Ins, Outs, Decls>
+where
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
+{
+    pub fn new(decls: uniform::Declarations<ts::Mutable, Decls>) -> Self {
+        Self {
+            _phantoms: PhantomData,
+            uniform_declarations: decls.into_immutable(),
         }
     }
 }
 
 #[doc = include_str!("../../../docs/object/program/Program.md")]
-pub struct Program<IS, OS, DUS>
+pub struct Program<Ins, Outs, Decls>
 where
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
-    DUS: glsl::Uniforms,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
 {
-    object: Object<ProgramAllocator>,
-    _phantoms: ProgramPhantomData<IS, OS>,
-    defined_uniforms: DUS,
+    object: ObjectBase<Self>,
+    state: ProgramState<Ins, Outs, Decls>,
+}
+
+impl<Ins, Outs, Decls> std::ops::Deref for Program<Ins, Outs, Decls>
+where
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
+{
+    type Target = ObjectBase<Self>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.object
+    }
+}
+
+impl<Ins, Outs, Decls> Object for Program<Ins, Outs, Decls>
+where
+    Ins: glsl::parameters::Parameters<glsl::binding::marker::storage::In>,
+    Outs: glsl::parameters::Parameters<glsl::binding::marker::storage::Out>,
+    Decls: gl::uniform::bounds::Declarations,
+{
+    type Binder = ProgramBinder;
+    type Allocator = ProgramAllocator;
 }
 
 impl Program<(), (), ()> {
@@ -124,27 +172,25 @@ impl Program<(), (), ()> {
     }
 }
 
-impl<IS, OS> Program<IS, OS, ()>
+impl<Ins, Outs> Program<Ins, Outs, ()>
 where
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
 {
     pub fn create() -> Self {
         Self {
             object: Default::default(),
-            _phantoms: Default::default(),
-            defined_uniforms: (),
+            state: Default::default(),
         }
     }
 
-    pub fn create_with_uniforms<DUS>(uniforms: uniform::Matcher<DUS, ()>) -> Program<IS, OS, DUS>
+    pub fn create_with_uniforms<Defs>(definitions: &uniform::Definitions<Defs>) -> Program<Ins, Outs, Defs::AsDeclarations>
     where
-        DUS: uniform::marker::Definitions
+        Defs: uniform::bounds::Definitions,
     {
         Program {
             object: Default::default(),
-            _phantoms: Default::default(),
-            defined_uniforms: uniforms.definitions,
+            state: Default::default(),
         }
     }
 }
@@ -153,11 +199,11 @@ impl<IS, OS, DUS> Program<IS, OS, DUS>
 where
     IS: glsl::Parameters<storage::In>,
     OS: glsl::Parameters<storage::Out>,
-    DUS: uniform::marker::Definitions,
+    DUS: uniform::bounds::Declarations,
 {
     pub fn query(&self, param: QueryParam, output: &mut i32) {
-        gl_call! {
-            #[panic]
+        gl::call! {
+            [panic]
             unsafe {
                 glb::GetProgramiv(self.object.name(), param as _, output);
             }
@@ -177,8 +223,8 @@ where
         (log_size > 0).then(|| {
             let mut buffer = Vec::<u8>::with_capacity(log_size as _);
             let mut actual_length = 0;
-            gl_call! {
-                #[panic]
+            gl::call! {
+                [panic]
                 // SAFETY: All values passed are valid
                 // todo: notes on error situations
                 unsafe {
@@ -195,22 +241,22 @@ where
             unsafe {
                 buffer.set_len((actual_length) as _);
             }
-            // SAFETY: todo will shader compiler should emmit valid ascii?
+            // SAFETY: todo will shader compiler should emit valid ascii?
             unsafe { String::from_utf8_unchecked(buffer) }
         })
     }
 
     fn attach<T: shader::target::Target>(&self, stage: &internal::ShaderStage<T>) {
         let main = stage.main;
-        gl_call! {
-            #[panic]
+        gl::call! {
+            [panic]
             unsafe {
                 glb::AttachShader(self.object.name(), main.object.name());
             }
         }
-        for shared in &stage.shared {
-            gl_call! {
-                #[panic]
+        for shared in &stage.libs {
+            gl::call! {
+                [panic]
                 unsafe {
                     glb::AttachShader(self.object.name(), shared.object.name());
                 }
@@ -230,31 +276,29 @@ where
         )
     }
 
-    pub fn uniform<GLU, GLSLU, const LOCATION: usize, IDX>(
+    /// Set new value for given uniform binding
+    pub fn uniform<GLSL, const LOCATION: usize, IDX>(
         &mut self,
-        binding: &UniformBinding<GLSLU, LOCATION>,
-        uniform: impl glsl::compatible::Compatible<GLSLU>,
+        binding: &UniformBinding<GLSL, LOCATION>,
+        uniform: impl glsl::Compatible<GLSL>,
     ) where
-        GLSLU: glsl::Uniform<Group = valid::Transparent> + glsl::uniform::ops::Set,
+        GLSL: glsl::bounds::TransparentUniform,
         IDX: Index,
-        DUS: Find<UniformDefinition<GLSLU, LOCATION>, IDX>,
+        DUS: Find<UniformBinding<GLSL, LOCATION>, IDX>,
     {
-        use crate::gl::object::Bind;
-
-        self.bind();
-        self.defined_uniforms.uniform(binding, uniform);
+        self.bound(|_| GLSL::set(binding, uniform));
     }
 }
 
-impl<IS, OS, DUS> object::Bind for Program<IS, OS, DUS>
+impl<IS, OS, DUS> Binder for Program<IS, OS, DUS>
 where
     IS: glsl::Parameters<storage::In>,
     OS: glsl::Parameters<storage::Out>,
-    DUS: uniform::marker::Definitions,
+    DUS: uniform::bounds::Declarations,
 {
     fn bind(&self) {
-        gl_call! {
-            #[panic]
+        gl::call! {
+            [panic]
             unsafe {
                 glb::UseProgram(self.object.name())
             }
@@ -262,10 +306,9 @@ where
     }
 
     fn unbind(&self) {
-        gl_call! {
-            #[panic]
+        gl::call! {
+            [panic]
             unsafe {
-                // todo: should this be the case?
                 glb::UseProgram(0)
             }
         }

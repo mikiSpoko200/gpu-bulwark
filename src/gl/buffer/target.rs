@@ -1,64 +1,53 @@
 use crate::constraint;
 use crate::glsl;
 use crate::impl_target;
-use crate::mode;
+use crate::md;
 use crate::gl;
 
 /// Buffer object target types.
 #[hi::marker]
 pub(crate) trait Target: gl::target::Target { }
 
-#[macro_export]
-#[allow(unused)]
-macro_rules! impl_target {
-    ($target_type:ty as $gl_target_ident: ident) => {
-        impl $crate::gl::target::Target for $target_type {
-            const VALUE: u32 = glb::$gl_target_ident;
-        }
-        impl $crate::gl::buffer::target::Target for $target_type { }
-    };
-}
-
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum Array { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum AtomicCounter { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum CopyRead { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum CopyWrite { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum DispatchIndirect { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum DrawIndirect { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum ElementArray { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum PixelPack { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum PixelUnpack { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum Query { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum ShaderStorage { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum Texture { }
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum TransformFeedback { } 
 
-#[hi::mark(mode::Validation)]
+#[hi::mark(Target)]
 pub enum Uniform { }
 
 impl_target!{ Array as ARRAY_BUFFER }

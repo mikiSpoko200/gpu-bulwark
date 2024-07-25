@@ -1,6 +1,7 @@
 use crate::glsl;
-use crate::hlist::HList;
-use crate::mode;
+use crate::hlist::lhlist as hlist;
+use hlist::Base as HList;
+use crate::md;
 use crate::constraint;
 use glsl::{layout, storage};
 use std::marker::PhantomData;
@@ -8,19 +9,20 @@ use std::marker::PhantomData;
 pub mod marker {
     use crate::glsl;
 
-    pub trait Qualifier<Type> {}
+    #[hi::marker]
+    pub trait Qualifier<Type> { }
 
     /// glsl4.60 spec: 4.3. Storage Qualifiers
     #[derive(Debug)]
-    pub struct Storage;
+    pub enum Storage { }
 
     /// glsl4.60 spec: 4.4. Layout Qualifiers
     #[derive(Debug)]
-    pub struct Layout;
+    pub enum Layout { }
 
     /// glsl4.60 spec: 4.5. Interpolation Qualifiers
     #[derive(Debug)]
-    pub struct Interpolation;
+    pub enum Interpolation { }
 
     /// GL / GLSL binding target --
     pub trait Variable {
@@ -33,79 +35,46 @@ pub mod marker {
 
         #[derive(Debug)]
         /// linkage into a shader from a previous stage, variable is copied in.
-        pub struct In;
+        pub enum In { }
 
         #[derive(Debug)]
         /// linkage out of a shader to a subsequent stage, variable is copied out
-        pub struct Out;
+        pub enum Out { }
 
         #[derive(Debug)]
         /// Value does not change across the primitive being processed, uniforms form the linkage between a shader, API, and the application
-        pub struct Uniform;
+        pub enum Uniform { }
 
         #[derive(Debug)]
         /// value is stored in a buffer object, and can be read or written both by shader invocations and the API
-        pub struct Buffer;
+        pub enum Buffer { }
 
-        impl Qualifier<Storage> for In {}
-        impl Qualifier<Storage> for Out {}
-        impl Qualifier<Storage> for Uniform {}
-        impl Qualifier<Storage> for Buffer {}
+        hi::denmark! { In as Qualifier<Storage> }
+        hi::denmark! { Out as Qualifier<Storage> }
+        hi::denmark! { Uniform as Qualifier<Storage> }
+        hi::denmark! { Buffer as Qualifier<Storage> }
     }
 
     pub mod layout {
         use super::{Layout, Qualifier};
 
-        pub struct Location<const N: usize>;
+        pub enum Location<const N: usize> { }
         impl<const N: usize> Qualifier<Layout> for Location<N> {}
 
-        pub struct Binding<const N: usize>;
+        pub enum Binding<const N: usize> { }
         impl<const N: usize> Qualifier<Layout> for Binding<N> {}
     }
 }
 
 pub use marker::{Layout, Qualifier, Storage};
 
-
-
 #[derive(Clone, Copy, Debug)]
-pub struct Variable<S, L, T, Store = mode::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
+pub struct Binding<S, L, T, Store = md::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
     L: Qualifier<Layout>,
-    Store: mode::Storage;
-
-impl<S, L, T> Default for Variable<S, L, T>
-where
-    T: glsl::Type,
-    S: Qualifier<Storage>,
-    L: Qualifier<Layout>,
-{
-    fn default() -> Self {
-        Self(PhantomData, PhantomData)
-    }
-}
-
-impl<S, L, T, Store> marker::Variable for Variable<S, L, T, Store>
-where
-    T: glsl::Type,
-    S: Qualifier<Storage>,
-    L: Qualifier<Layout>,
-    Store: mode::Storage
-{
-    type Type = T;
-}
-
-
-
-#[derive(Clone, Copy, Debug)]
-pub struct Binding<S, L, T, Store = mode::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
-where
-    T: glsl::Type,
-    S: Qualifier<Storage>,
-    L: Qualifier<Layout>,
-    Store: mode::Storage;
+    Store: md::Storage;
 
 impl<S, L, T> Default for Binding<S, L, T>
 where
@@ -118,7 +87,7 @@ where
     }
 }
 
-impl<S, L, T> Binding<S, L, T, mode::Inline>
+impl<S, L, T> Binding<S, L, T, md::Inline>
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
@@ -129,19 +98,19 @@ where
     }
 }
 
-pub type UniformBinding<U, const LOCATION: usize, S = mode::Phantom> = Binding<storage::Uniform, layout::Location<LOCATION>, U, S>;
-pub type UniformDefinition<U, const LOCATION: usize> = UniformBinding<U, LOCATION, mode::Inline>;
+pub type UniformBinding<U, const LOCATION: usize, S = md::Phantom> = Binding<storage::Uniform, layout::Location<LOCATION>, U, S>;
+pub type UniformDefinition<U, const LOCATION: usize> = UniformBinding<U, LOCATION, md::Inline>;
 
 
-pub type InParameterBinding<T, const LOCATION: usize, S = mode::Phantom> = Binding<storage::In, layout::Location<LOCATION>, T, S>;
-pub type OutParameterBinding<T, const LOCATION: usize, S = mode::Phantom> = Binding<storage::Out, layout::Location<LOCATION>, T, S>;
+pub type InBinding<T, const LOCATION: usize, S = md::Phantom> = Binding<storage::In, layout::Location<LOCATION>, T, S>;
+pub type OutBinding<T, const LOCATION: usize, S = md::Phantom> = Binding<storage::Out, layout::Location<LOCATION>, T, S>;
 
-impl<T, const LOCATION: usize> OutParameterBinding<T, LOCATION>
+impl<T, const LOCATION: usize> OutBinding<T, LOCATION>
 where
-    T: glsl::Type,
+    T: glsl::bounds::TransparentType,
 {
-    fn matching_input(&self) -> InParameterBinding<T, LOCATION> {
-        InParameterBinding::default().validate()
+    fn matching_input(&self) -> InBinding<T, LOCATION> {
+        InBinding::default()
     }
 }
 
@@ -156,29 +125,29 @@ where
 
 const fn are_locations_valid<PT, const PREV_LOCATION: usize, CT, const CURR_LOCATION: usize>()
 where
-    PT: glsl::Type,
-    CT: glsl::Type,
+    PT: glsl::bounds::TransparentType,
+    CT: glsl::bounds::TransparentType,
 {
     assert!(
-        !(PREV_LOCATION > CURR_LOCATION + CT::LOCATION_COUNT),
+        !(PREV_LOCATION > CURR_LOCATION + CT::N_USED_LOCATIONS),
         "locations must be specified in strictly increasing order"
     );
     assert!(
-        PREV_LOCATION + PT::LOCATION_COUNT <= CURR_LOCATION,
+        PREV_LOCATION + PT::N_USED_LOCATIONS <= CURR_LOCATION,
         "locations overlap"
     );
 }
 
 impl<H, S, PT, CT, const PL: usize, const CL: usize, Store> constraint::ConstFnValid for (
-        (H, Binding<S, layout::Location<PL>, PT, Store>), Binding<S, layout::Location<CL>, CT, Store>,
-    )
+    (H, Binding<S, layout::Location<PL>, PT, Store>), Binding<S, layout::Location<CL>, CT, Store>,
+)
 where
     (H, Binding<S, layout::Location<PL>, PT, Store>): constraint::ConstFnValid,
     H: HList,
     S: Qualifier<Storage>,
-    PT: glsl::Type,
-    CT: glsl::Type,
-    Store: mode::Storage,
+    PT: glsl::bounds::TransparentType,
+    CT: glsl::bounds::TransparentType,
+    Store: md::Storage,
 {
     const VALID: () = are_locations_valid::<PT, PL, CT, CL>();
 }
@@ -186,27 +155,27 @@ where
 pub trait MatchingInputs {
     type Inputs: glsl::Parameters<storage::In>;
 
-    fn matching_intputs(&self) -> Self::Inputs;
+    fn matching_inputs(&self) -> Self::Inputs;
 }
 
 impl MatchingInputs for () {
     type Inputs = ();
 
-    fn matching_intputs(&self) -> Self::Inputs {
+    fn matching_inputs(&self) -> Self::Inputs {
         ()
     }
 }
 
-impl<H, T, const LOCATION: usize> MatchingInputs for (H, OutParameterBinding<T, LOCATION>)
+impl<H, T, const LOCATION: usize> MatchingInputs for (H, OutBinding<T, LOCATION>)
 where
     H: MatchingInputs,
-    T: glsl::Type,
+    T: glsl::bounds::TransparentType,
 {
-    type Inputs = (H::Inputs, InParameterBinding<T, LOCATION>);
+    type Inputs = (H::Inputs, InBinding<T, LOCATION>);
 
-    fn matching_intputs(&self) -> Self::Inputs {
+    fn matching_inputs(&self) -> Self::Inputs {
         let (head, tail) = self;
-        (head.matching_intputs(), tail.matching_input())
+        (head.matching_inputs(), tail.matching_input())
     }
 }
 
@@ -326,7 +295,7 @@ macro_rules! Bindings {
 #[macro_export]
 macro_rules! bindings {
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*;) => {
-        crate::constraint::Valid::validated(
+        crate::constraint::ValidExt::validated(
             ((), crate::glsl::binding::Binding::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
@@ -337,7 +306,7 @@ macro_rules! bindings {
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);* ;) => {
         crate::bindings! {
             @
-            crate::constraint::Valid::validated(
+            crate::constraint::ValidExt::validated(
                 ((), crate::glsl::binding::Binding::<
                     crate::storage_qualifier!($storage),
                     crate::layout_qualifier!($qualifier = $value),
@@ -349,7 +318,7 @@ macro_rules! bindings {
         }
     };
     (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*) => {
-        crate::constraint::Valid::validated(
+        crate::constraint::ValidExt::validated(
             ($acc, crate::glsl::binding::Binding::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
@@ -360,7 +329,7 @@ macro_rules! bindings {
     (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);*) => {
         crate::bindings! {
             @
-            crate::constraint::Valid::validated(
+            crate::constraint::ValidExt::validated(
                 ($acc, crate::glsl::binding::Binding::<
                     storage_qualifier!($storage),
                     layout_qualifier!($qualifier = $value),

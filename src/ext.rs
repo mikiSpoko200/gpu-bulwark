@@ -1,12 +1,12 @@
 
-pub trait Array {
+pub trait Array: Sized {
     const SIZE: usize;
     type Type;
 }
 
 impl<T, const N: usize> Array for [T; N] where T: Array {
     const SIZE: usize = N * T::SIZE;
-    type Type = T;
+    type Type = T::Type;
 }
 
 impl Array for f32 {

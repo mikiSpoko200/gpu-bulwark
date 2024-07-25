@@ -5,71 +5,57 @@ use crate::prelude::internal::*;
 use crate::valid;
 
 
-trait LocationHelper<const N: usize> {
-    const LOCATION_COUNT: usize;
+pub trait Location<Subtype: valid::Subtype = valid::Scalar> {
+    const N_USED_LOCATIONS: usize;
 }
 
-impl<const N: usize> LocationHelper<N> for glsl::DVec<N>
-where
-    Const<N>: valid::VecDim
-{
-    const LOCATION_COUNT: usize = match N { 2 => 1, 3 | 4 => 2, _ => unreachable!("") };
-}
 
 macro_rules! impl_location {
-    ([scalar] $ty:ty: $location:expr, $subtype:path) => {
-        impl LocationHelper<1> for $ty {
-            const LOCATION_COUNT: usize = $location;
+    ([scalar] $ty:ty: $location:expr) => {
+        impl Location for $ty {
+            const N_USED_LOCATIONS: usize = $location;
         }
     };
-    ([vector] $ty:ty: $location:expr, $subtype:path) => {
-        impl<const N: usize> LocationHelper<N> for glsl::GVec<$ty, N>
-        where
-            Const<N>: valid::VecDim
-        {
-            const LOCATION_COUNT: usize = $location;
-        }
-    };
-    ([matrix] $ty:ty: $location:expr, $subtype:path) => {
-        impl<const N: usize> LocationHelper<N> for glsl::GVec<$ty, N>
-        where
-            Const<N>: valid::VecDim
-        {
-            const LOCATION_COUNT: usize = $location;
+    ([vector] $ty:ty: $location:expr) => {
+        impl<const DIM: usize> Location<valid::Vector<DIM>> for $ty {
+            const N_USED_LOCATIONS: usize = $location;
         }
     }
 }
 
-impl_location!{ [scalar] f32: 1, valid::Scalar }
-impl_location!{ [scalar] f64: 1, valid::Scalar }
-impl_location!{ [scalar] i32: 1, valid::Scalar }
-impl_location!{ [scalar] u32: 1, valid::Scalar }
+impl_location!{ [scalar] f32: 1 }
+impl_location!{ [scalar] f64: 1 }
+impl_location!{ [scalar] i32: 1 }
+impl_location!{ [scalar] u32: 1 }
 
-impl_location!{ [vector] f32: 1, valid::Vector }
-impl_location!{ [vector] f64: match N { 2 => 1, 3 | 4 => 2, _ => unreachable!("") }, valid::Vector }
-impl_location!{ [vector] i32: 1, valid::Vector }
-impl_location!{ [vector] u32: 1, valid::Vector }
+impl_location!{ [vector] f32: 1 }
+impl_location!{ [vector] f64: match DIM { 2 => 1, 3 | 4 => 2, _ => panic!("unreachable") } }
+impl_location!{ [vector] i32: 1 }
+impl_location!{ [vector] u32: 1 }
 
-
-/// If anyone thinks this should be unsafe come and fight me!
-pub trait Location where {
-    const LOCATION_COUNT: usize;
+/// Implementation of vector location count is delegated to type `T` via `valid::ForVector`'s supertrait `Location<valid::Vector<DIM>>`.
+impl<T, const DIM: usize> Location for glsl::GVec<T, DIM>
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
+{
+    const N_USED_LOCATIONS: usize = <T as Location<valid::Vector<DIM>>>::N_USED_LOCATIONS;
 }
 
 /// Location for an Array of `T` where `T: Location` of size `N` is `N * <T as Location>::LOCATION_COUNT`,
 impl<T, const N: usize> Location for glsl::Array<T, N>
 where
-    T: glsl::Type,
+    T: glsl::Type + Location,
 {
-    const LOCATION_COUNT: usize = T::LOCATION_COUNT * N;
+    const N_USED_LOCATIONS: usize = T::N_USED_LOCATIONS * N;
 }
 
 /// Accordingly to GLSL spec matrices use the same number of locations as arrays of Row
-impl<T, const ROW_SIZE: usize, const COL_SIZE: usize> Location<valid::Matrix> for glsl::Mat<T, ROW_SIZE, COL_SIZE>
+impl<T, const R: usize, const C: usize> Location for glsl::Mat<T, R, C>
 where
-    T: glsl::Type + valid::ForMatrix,
-    Const<ROW_SIZE>: valid::VecDim,
-    Const<COL_SIZE>: valid::VecDim,
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
 {
-    const LOCATION_COUNT: usize = <glsl::Array<glsl::GVec<T, COL_SIZE>, ROW_SIZE> as LocationBlanketHelper>::LOCATION_COUNT;
+    const N_USED_LOCATIONS: usize = <glsl::Array<glsl::GVec<T, C>, R> as Location>::N_USED_LOCATIONS;
 }

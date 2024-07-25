@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use crate::disjoint;
 use crate::gl;
 use crate::prelude::internal::*;
 
@@ -17,11 +18,10 @@ pub trait Type {
 
 /// Common trait bound combinations.
 pub mod bounds {
-    use super::valid;
-    use super::valid::Subtype;
-    use super::Type;
+    use super::*;
+
     use crate::ffi;
-    use super::Location;
+    use crate::prelude::internal::*;
 
     pub trait TransparentType: Type<Group=valid::Transparent> + Location + Default + Clone + Sized + ffi::FFI {
         type Subtype: valid::Subtype;
@@ -30,12 +30,15 @@ pub mod bounds {
     /// TODO: Do opaque types use locations?
     #[hi::marker]
     pub trait OpaqueType: Type<Group=valid::Opaque> { }
-    
+
     #[hi::marker]
     pub trait ScalarType: TransparentType<Subtype=valid::Scalar> { }
 
     #[hi::marker]
-    pub trait VectorType: TransparentType<Subtype=valid::Vector> { }
+    pub trait VectorType<const DIM: usize>: TransparentType<Subtype=valid::Vector<DIM>>
+    where
+        Const<DIM>: valid::VecDim
+    { }
     
     #[hi::marker]
     pub trait MatrixType: TransparentType<Subtype=valid::Matrix> { }
@@ -61,7 +64,7 @@ pub mod _valid {
     
     /// Qualifier for vector types in glgl.
     #[hi::mark(Subtype)]
-    pub enum Vector { }
+    pub enum Vector<const DIM: usize> { }
     
     /// Qualifier for matrix types in glsl.
     #[hi::mark(Subtype)]
@@ -82,15 +85,28 @@ pub mod _valid {
 
     /// Types valid for use as glsl scalar.
     #[hi::marker]
-    pub trait ForScalar: TransparentType { }
+    pub trait ForScalar: TransparentType + bounds::ScalarType { }
+
+    pub trait VecDim { }
+
+    hi::denmark! { Const<2> as VecDim }
+    hi::denmark! { Const<3> as VecDim }
+    hi::denmark! { Const<4> as VecDim }
 
     /// Types valid for use as glsl vectors.
     #[hi::marker]
-    pub trait ForVector: TransparentType { }
+    pub trait ForVector<const DIM: usize>: TransparentType + Location<Vector<DIM>> + bounds::ScalarType
+    where 
+        Const<DIM>: VecDim
+    { }
 
     /// Types valid for use as glsl matrices.
     #[hi::marker]
-    pub trait ForMatrix: TransparentType { }
+    pub trait ForMatrix<const ROW: usize, const COL: usize>: TransparentType + Location<Vector<COL>> + bounds::ScalarType
+    where
+        Const<ROW>: valid::VecDim,
+        Const<COL>: valid::VecDim,
+    { }
     
     /// Types valid for use as glsl arrays.
     /// TODO: Check if arrays can indeed store arbitrary types?
@@ -101,34 +117,33 @@ pub mod _valid {
     impl<T> ForScalar for T where T: bounds::ScalarType { }
 
     /// Any type valid for use as scalar is valid for Vector use.
-    impl<T> ForVector for T where T: ForScalar { }
-    
-    hi::denmark! { f32 as ForMatrix }
-    hi::denmark! { f64 as ForMatrix }
+    impl<T, const DIM: usize> ForVector<DIM> for T
+    where 
+        T: ForScalar + Location<Vector<DIM>>, 
+        Const<DIM>: valid::VecDim
+    { }
+
+    impl<const R: usize, const C: usize> ForMatrix<R, C> for f32
+    where
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
+    { }
+
+    impl<const R: usize, const C: usize> ForMatrix<R, C> for f64
+    where
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
+    { }
 
     impl<T> ForArray for T where T: Type { }
 
-    pub trait VecDim { }
-
-    hi::denmark! { Const<2> as VecDim }
-    hi::denmark! { Const<3> as VecDim }
-    hi::denmark! { Const<4> as VecDim }
-
-
     // =================[ Opaque types ]================= //
 
-    pub trait ForSampler: OpaqueType { }
+    pub trait ForSampler: Type { }
 
     hi::denmark! { f32 as ForSampler }
     hi::denmark! { i32 as ForSampler }
     hi::denmark! { u32 as ForSampler }
-}
-
-impl<T, const N: usize> Type for super::Array<T, N>
-where
-    T: Type,
-{
-    type Group = T::Group;
 }
 
 // ================[ Types ]================ //
@@ -139,10 +154,10 @@ where
 /// Requirements for generic parameters, both type param and const param, are expressed using
 /// `valid::ForVector` (Bound on `Const<N>` in case of const param).
 #[derive(Clone, Debug, Default)]
-pub struct GVec<T, const SIZE: usize>(PhantomData<T>)
+pub struct GVec<T, const DIM: usize>(PhantomData<T>)
 where
-    T: valid::ForVector,
-    Const<SIZE>: valid::VecDim,
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
 ;
 
 /// Vector of single precision floats.
@@ -187,7 +202,7 @@ pub type BVec4 = BVec<4>;
 #[derive(Clone, Debug, Default)]
 pub struct Mat<T, const ROW: usize, const COL: usize = ROW>(PhantomData<T>)
 where
-    T: valid::ForMatrix,
+    T: valid::ForMatrix<ROW, COL>,
     Const<ROW>: valid::VecDim,
     Const<COL>: valid::VecDim,
 ;
@@ -218,11 +233,12 @@ pub type DMat4x3 = Mat<f64, 4, 3>;
 pub type DMat4 = Mat<f64, 4>;
 pub type DMat4x4 = Mat<f64, 4, 4>;
 
-/// GLSL array.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Array<T, const N: usize>(PhantomData<T>)
 where
     T: Type;
+
+// =================[ impl Type / TransparentType ]================= //
 
 macro_rules! impl_transparent {
     ($ty: ty as $subtype:ident) => {
@@ -247,27 +263,33 @@ hi::denmark! { u32 as bounds::ScalarType }
 
 // `Type` impls for Vectors.
 
-impl<T, const N: usize> Type for GVec<T, N>
+impl<T, const DIM: usize> Type for GVec<T, DIM>
 where
-    T: valid::ForVector,
-    Const<N>: valid::VecDim,
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
 {
     type Group = valid::Transparent;
 }
 
-impl<T, const N: usize> bounds::TransparentType for GVec<T, N>
+impl<T, const DIM: usize> bounds::TransparentType for GVec<T, DIM>
 where 
-    T: valid::ForVector,
-    Const<N>: valid::VecDim,
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
 {
-    type Subtype = valid::Vector;
+    type Subtype = valid::Vector<DIM>;
 }
+
+impl<T, const DIM: usize> bounds::VectorType<DIM> for GVec<T, DIM>
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim
+{ }
 
 // `Type` impls for Matrices.
 
 impl<T, const R: usize, const C: usize> Type for Mat<T, R, C>
 where
-    T: valid::ForMatrix,
+    T: valid::ForMatrix<R, C>,
     Const<R>: valid::VecDim,
     Const<C>: valid::VecDim,
 {
@@ -276,30 +298,53 @@ where
 
 impl<T, const R: usize, const C: usize> bounds::TransparentType for Mat<T, R, C>
 where
-    T: valid::ForMatrix,
+    T: valid::ForMatrix<R, C>,
     Const<R>: valid::VecDim,
     Const<C>: valid::VecDim,
 {
     type Subtype = valid::Matrix;
 }
 
+impl<T, const R: usize, const C: usize> bounds::MatrixType for Mat<T, R, C>
+where 
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
+{ }
+
+// `Type` impls for Array.
+
+impl<T, const N: usize> Type for Array<T, N>
+where
+    T: Type,
+{
+    type Group = T::Group;
+}
+
+impl<T, const N: usize> bounds::TransparentType for Array<T, N>
+where
+    T: bounds::TransparentType
+{
+    type Subtype = valid::Array<T::Subtype>;
+}
+
 // =================[ impl FFI ]================= //
 
-unsafe impl<T, const N: usize> ffi::FFI for GVec<T, N>
+unsafe impl<T, const DIM: usize> ffi::FFI for GVec<T, DIM>
 where
-    T: valid::ForVector,
-    Const<N>: valid::VecDim,
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
 {
-    type Layout = [T; N];
+    type Layout = [T::Layout; DIM];
 }
 
 unsafe impl<T, const R: usize, const C: usize> ffi::FFI for Mat<T, R, C>
 where
-    T: valid::ForMatrix,
+    T: valid::ForMatrix<R, C>,
     Const<R>: valid::VecDim,
     Const<C>: valid::VecDim,
 {
-    type Layout = [[T; C]; R];
+    type Layout = [[T::Layout; C]; R];
 }
 
 unsafe impl<T, const N: usize> ffi::FFI for Array<T, N>
@@ -309,15 +354,24 @@ where
     type Layout = [T::Layout; N];
 }
 
+// =================[ impl Disjoint ]================= //
+
+impl<T> Disjoint for T where T: TransparentType {
+    type Discriminant = T::Subtype;
+}
 
 // =================[ Opaque types ]================= //
 
+use bounds::TransparentType;
 use gl::texture;
 
 pub struct Shadow<Target>(PhantomData<Target>) where Target: texture::Target;
 
-pub struct GSampler<Output, Target>(PhantomData<(Output, Target)>);
-
+pub struct GSampler<Target, Output>(PhantomData<(Target, Output)>)
+where
+    Target: texture::Target,
+    Output: valid::ForSampler
+;
 
 type Sampler<Target> = GSampler<Target, f32>;
 
@@ -338,7 +392,7 @@ pub type Sampler2DCube            = Sampler<texture::target::CubeMap>;
 pub type Sampler2DCubeShadow      = Sampler<Shadow<texture::target::CubeMap>>;
 pub type Sampler2DCubeArray       = Sampler<texture::target::CubeMapArray>;
 pub type Sampler2DCubeArrayShadow = Sampler<Shadow<texture::target::CubeMapArray>>;
-pub type SamplerBuffer            = Sampler<texture::target::BUffer>;
+pub type SamplerBuffer            = Sampler<texture::target::Buffer>;
 
 
 type ISampler<Target> = GSampler<Target, i32>;
@@ -360,7 +414,7 @@ pub type ISampler2DCube            = ISampler<texture::target::CubeMap>;
 pub type ISampler2DCubeShadow      = ISampler<Shadow<texture::target::CubeMap>>;
 pub type ISampler2DCubeArray       = ISampler<texture::target::CubeMapArray>;
 pub type ISampler2DCubeArrayShadow = ISampler<Shadow<texture::target::CubeMapArray>>;
-pub type ISamplerBuffer            = ISampler<texture::target::BUffer>;
+pub type ISamplerBuffer            = ISampler<texture::target::Buffer>;
 
 
 type USampler<Target> = GSampler<Target, u32>;
@@ -382,4 +436,18 @@ pub type USampler2DCube            = USampler<texture::target::CubeMap>;
 pub type USampler2DCubeShadow      = USampler<Shadow<texture::target::CubeMap>>;
 pub type USampler2DCubeArray       = USampler<texture::target::CubeMapArray>;
 pub type USampler2DCubeArrayShadow = USampler<Shadow<texture::target::CubeMapArray>>;
-pub type USamplerBuffer            = USampler<texture::target::BUffer>;
+pub type USamplerBuffer            = USampler<texture::target::Buffer>;
+
+impl<T, D> Type for GSampler<T, D>
+where
+    T: texture::Target,
+    D: valid::ForSampler,
+{
+    type Group = valid::Opaque;
+}
+
+impl<T, D> bounds::OpaqueType for GSampler<T, D>
+where
+    T: texture::Target,
+    D: valid::ForSampler
+{ }

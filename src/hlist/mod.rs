@@ -1,9 +1,7 @@
 pub mod counters;
 pub mod indexed;
 
-pub trait Disjoint {
-    type Discriminant;
-}
+use crate::utils::Disjoint;
 
 pub mod lhlist {
     #[allow(unused)]
@@ -69,9 +67,9 @@ pub mod lhlist {
 
     // --------==========[ Prepend ]==========--------
 
-    /// Preprended LHList with element.
+    /// Prepended LHList with element.
     pub trait Prepend: Base {
-        type Prepended<E>: Base;
+        type Prepended<E>: Prepend;
 
         fn prepend<E>(self, elem: E) -> Self::Prepended<E>;
     }
@@ -97,13 +95,13 @@ pub mod lhlist {
 
     // --------==========[ Merge ]==========--------
 
-    pub trait Order {}
+    pub trait Order { }
     pub struct Front;
-    impl Order for Front {}
+    impl Order for Front { }
     pub struct Back;
-    impl Order for Back {}
+    impl Order for Back { }
 
-    /// Merge two hlists into one by inserting elements from current list to either front or back of sceond list.
+    /// Merge two hlists into one by inserting elements from current list to either front or back of second list.
     pub trait Concatenate<Other> {
         type Concatenated: Base;
 
@@ -261,7 +259,7 @@ pub mod lhlist {
 
     /// Reverse LHList
     pub trait Reverse: Base {
-        type Reversed: Base;
+        type Reversed: Prepend;
 
         fn reverse(self) -> Self::Reversed;
     }
@@ -276,10 +274,7 @@ pub mod lhlist {
     }
 
     /// Inductive step
-    impl<H: Reverse, E> Reverse for (H, E)
-    where
-        H::Reversed: Prepend,
-    {
+    impl<H: Reverse, E> Reverse for (H, E) {
         type Reversed = <H::Reversed as Prepend>::Prepended<E>;
 
         fn reverse(self) -> Self::Reversed {
@@ -320,6 +315,42 @@ pub mod lhlist {
 
         fn get_mut(&mut self) -> &mut Needle {
             self.0.get_mut()
+        }
+    }
+
+    // --------==========[ HList Tail ]==========--------
+
+    pub trait Tail: Base {
+        type Tail: Base;
+
+        fn tail(self) -> Self::Tail;
+    }
+
+    impl Tail for () {
+        type Tail = ();
+    
+        fn tail(self) -> Self::Tail {
+            ()
+        }
+    }
+
+    impl<T: Base> Tail for ((), T) {
+        type Tail = ();
+    
+        fn tail(self) -> Self::Tail {
+            ()
+        }
+    }
+
+    impl<H, E, T> Tail for ((H, E), T)
+    where
+        H: Tail,
+        (H, E): Tail,
+    {
+        type Tail = (<(H, E) as Tail>::Tail, T);
+    
+        fn tail(self) -> Self::Tail {
+            (self.0.tail(), self.1)
         }
     }
 }
@@ -387,27 +418,27 @@ pub mod rhlist {
 
     // --------==========[ Prepend ]==========--------
 
-    /// Preprended RHList with element.
+    /// Prepended RHList with element.
     pub trait Prepend<E>: Base {
-        type Preprended: Base;
+        type Prepended: Base;
 
-        fn prepend(self, elem: E) -> Self::Preprended;
+        fn prepend(self, elem: E) -> Self::Prepended;
     }
 
     /// Base case
     impl<E> Prepend<E> for () {
-        type Preprended = (E, ());
+        type Prepended = (E, ());
 
-        fn prepend(self, elem: E) -> Self::Preprended {
+        fn prepend(self, elem: E) -> Self::Prepended {
             (elem, self)
         }
     }
 
     /// Inductive step
     impl<E, H, T: Prepend<E>> Prepend<E> for (H, T) {
-        type Preprended = (E, (H, T));
+        type Prepended = (E, (H, T));
 
-        fn prepend(self, elem: E) -> Self::Preprended {
+        fn prepend(self, elem: E) -> Self::Prepended {
             (elem, self)
         }
     }
@@ -687,7 +718,7 @@ mod private {
     //     + lhlist::Reverse
     //     + lhlist::Selector<N, I>,
     // {
-    //     type Prepended<E> = T::Preprended<E>;
+    //     type Prepended<E> = T::Prepended<E>;
     //     type Appended<E> = T::Appended<E>;
 
     //     type Last = T::Last;
@@ -738,7 +769,7 @@ mod private {
     //     + lhlist::Reverse
     //     + lhlist::Selector<N, I>,
     // {
-    //     type Prepended<E> = T::Preprended<E>;
+    //     type Prepended<E> = T::Prepended<E>;
     //     type Appended<E> = T::Appended<E>;
 
     //     type Last = T::Last;

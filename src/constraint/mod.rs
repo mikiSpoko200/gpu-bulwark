@@ -2,10 +2,10 @@
 pub mod constraint;
 
 #[hi::marker]
-pub trait Fulfiled {}
+pub trait Fulfilled { }
 
 #[hi::marker]
-pub trait Constraint<T> {}
+pub trait Constraint<T> { }
 
 /// Constraint for trait bound level validation.
 // #[hi::marker]

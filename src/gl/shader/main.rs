@@ -1,82 +1,102 @@
 //! Shaders that contain stage entry point.
 
-#![recursion_limit = "10"]
+use crate::prelude::internal::*;
 
-use std::marker::PhantomData;
-
-use super::target as shader;
-use crate::gl::program::uniform;
+use crate::gl;
 use crate::glsl;
-use crate::glsl::prelude::*;
+use crate::ts;
+use crate::valid;
 use crate::hlist;
 use crate::hlist::indexed::lhlist;
 use crate::hlist::indexed::lhlist::Append;
+use gl::uniform;
+use gl::shader::target;
 
-use super::internal;
 use glsl::storage;
-
+use glsl::prelude::*;
 
 /// Shader that contains entry point for the stage
-pub struct Main<T, IS, OS, US = ()>(pub(crate) internal::CompiledShader<T>, PhantomData<(IS, OS, US)>)
+pub struct Main<Target, Ins, Outs, Decls>(pub(crate) super::CompiledShader<Target, Decls>, PhantomData<(Ins, Outs)>)
 where
-    T: shader::Target,
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
-    US: uniform::marker::Declarations,
+    Target: target::Target,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
 ;
 
-impl<T, IS, OS> Main<T, IS, OS, ()>
+impl<Target, Ins, Outs, Decls> std::ops::Deref for Main<Target, Ins, Outs, Decls>
 where
-    T: shader::Target,
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
+    Target: target::Target,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
 {
-    pub(super) fn new<US>(shader: internal::CompiledShader<T>) -> Main<T, IS, OS, US>
+    type Target = super::Shader<ts::Compiled, Target, Decls>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<Target, Ins, Outs> Main<Target, Ins, Outs, ()>
+where
+    Target: target::Target,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+{
+    pub(super) fn new<Decls>(shader: super::CompiledShader<Target, Decls>) -> Main<Target, Ins, Outs, Decls>
     where
-        US: uniform::marker::Declarations,
+        Decls: uniform::bounds::Declarations,
     {
         Main(shader, PhantomData)
     }
 }
 
-impl<T, IS, OS, US> Main<T, IS, OS, US>
+impl<Target, Ins, Outs, Decls> Main<Target, Ins, Outs, Decls>
 where
-    T: shader::Target,
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
-    US: uniform::marker::Declarations,
+    Target: target::Target,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Decls: uniform::bounds::Declarations,
 {
-    pub fn input<NIS, const LOCATION: usize>(self, _: &InParameterBinding<NIS, LOCATION>) -> Main<T, (IS, InParameterBinding<NIS, LOCATION>), OS, US>
+    pub fn input<In, const LOCATION: usize>(self, _: &InBinding<In, LOCATION>) -> Main<Target, (Ins, InBinding<In, LOCATION>), Outs, Decls>
     where
-        NIS: glsl::Type,
+        In: valid::ForAttribute,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
     }
 
-    pub fn output<NOS, const LOCATION: usize>(self, _: &OutParameterBinding<NOS, LOCATION>) -> Main<T, IS, (OS, OutParameterBinding<NOS, LOCATION>), US>
+    pub fn output<Out, const LOCATION: usize>(self, _: &OutBinding<Out, LOCATION>) -> Main<Target, Ins, (Outs, OutBinding<Out, LOCATION>), Decls>
     where
-        NOS: glsl::Type,
+        Out: valid::ForAttribute,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
     }
 
-    pub fn inputs<NIS>(self, inputs: &NIS) -> Main<T, IS::Concatenated, OS, US>
+    pub fn inputs<NIns>(self, inputs: &NIns) -> Main<Target, Ins::Concatenated, Outs, Decls>
     where
-        IS: hlist::lhlist::Concatenate<NIS>,
-        IS::Concatenated: glsl::Parameters<storage::In>,
+        Ins: hlist::lhlist::Concatenate<NIns>,
+        Ins::Concatenated: glsl::Parameters<storage::In>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
     }
 
-    pub fn outputs<NOS>(self, inputs: &NOS) -> Main<T, IS, OS::Concatenated, US>
+    pub fn outputs<NOuts>(self, inputs: &NOuts) -> Main<Target, Ins, Outs::Concatenated, Decls>
     where
-        OS: hlist::lhlist::Concatenate<NOS>,
-        OS::Concatenated: glsl::Parameters<storage::Out>,
+        Outs: hlist::lhlist::Concatenate<NOuts>,
+        Outs::Concatenated: glsl::Parameters<storage::Out>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
     }
 }
+
+pub type VertexMain<Ins, Outs, Decls> = Main<target::Vertex, Ins, Outs, Decls>;
+pub type TEMain<Ins, Outs, Decls> = Main<target::tesselation::Control, Ins, Outs, Decls>;
+pub type TCMain<Ins, Outs, Decls> = Main<target::tesselation::Evaluation, Ins, Outs, Decls>;
+pub type GeometryMain<Ins, Outs, Decls> = Main<target::Geometry, Ins, Outs, Decls>;
+pub type FragmentMain<Ins, Outs, Decls> = Main<target::Fragment, Ins, Outs, Decls>;
+pub type ComputeMain<Ins, Outs, Decls> = Main<target::Compute, Ins, Outs, Decls>;

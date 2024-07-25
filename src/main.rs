@@ -25,14 +25,14 @@ mod constraint;
 mod error;
 mod ext;
 pub mod glsl;
-mod hlist;
+pub mod hlist;
 pub mod gl;
 pub mod prelude;
 mod renderer;
 mod types;
 pub mod ffi;
 mod utils;
-pub mod mode;
+pub mod md;
 pub mod ts;
 pub mod valid;
 
@@ -94,7 +94,7 @@ fn main() -> anyhow::Result<()> {
 
     let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
 
-    // SAEFTY: we just checked if handle is valid? (maybe there are some more caviotes to this)
+    // SAFETY: we just checked if handle is valid? (maybe there are some more cavitates to this)
     let display = unsafe { glutin::display::Display::new(display_handle, preference).unwrap() };
 
     println!("checking available configurations...");
@@ -137,7 +137,7 @@ fn main() -> anyhow::Result<()> {
         display.get_proc_address(symbol.as_c_str()).cast()
     });
 
-    println!("setting up rednering state...");
+    println!("setting up rendering state...");
 
     // ========================[ gpu-bulwark ]========================
 
@@ -168,7 +168,7 @@ fn main() -> anyhow::Result<()> {
         layout(location = 1) vec2;
     };
 
-    let fs_inputs = vs_outputs.matching_intputs();
+    let fs_inputs = vs_outputs.matching_inputs();
 
     let ((), fs_outputs) = outputs! {
         layout(location = 0) vec4;
@@ -227,8 +227,8 @@ fn main() -> anyhow::Result<()> {
     }
 
     let mut texture = 0;
-    gl_call! {
-        #[panic]
+    gl::call! {
+        [panic]
         unsafe {
             glb::ActiveTexture(glb::TEXTURE0 + 8);
             glb::CreateTextures(glb::TEXTURE_2D, 1, &mut texture);

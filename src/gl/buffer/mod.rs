@@ -1,36 +1,49 @@
+//! OpenGL Buffer Object.
+//! 
+//! ## Design
+//! 
+//! Buffer objects serve fundamentally different purpose then program or shader as they express configuration of the pipeline which can be entirely expressed using glsl types.
+//! Buffers on the other hand are mainly used by the OpenGL API and are never explicitly named by in shader code.
+//! 
+//! This distinction manifests itself in API calls like `VertexAttribPointer`
+//! 
+//! In case for vertices, a VAO is a bridge between raw data from Buffer and vertex data specification in shader code.
+//! Let's be faithful to that
+//! 
+
 pub mod target;
 pub mod _valid;
 
 
-
 use super::object;
+use crate::gl;
+use gl::buffer;
 use crate::utils::Const;
 use crate::types::Primitive;
 use crate::error;
-use crate::gl_call;
 use crate::glsl;
 use crate::valid;
 use glb::types::{GLenum, GLuint};
+use object::*;
 
-use target as buffer;
+pub use target::*;
 
-use super::prelude::*;
 use crate::prelude::internal::*;
 
 /// Type level enumeration of possible Buffer data Usage types
 pub trait Usage: Const<u32> { }
 
-pub struct Stream;
+pub enum Stream { }
 
-pub struct Static;
+pub enum Static { }
 
-pub struct Dynamic;
+pub enum Dynamic { }
 
-pub struct Draw;
+pub enum Draw { }
 
-pub struct Read;
+pub enum Read { }
 
-pub struct Copy;
+pub enum Copy { }
 
 // impls for Stream access frequency
 crate::impl_const_super_trait!(Usage for (Stream, Draw), glb::STREAM_DRAW);
@@ -47,31 +60,9 @@ crate::impl_const_super_trait!(Usage for (Dynamic, Draw), glb::DYNAMIC_DRAW);
 crate::impl_const_super_trait!(Usage for (Dynamic, Read), glb::DYNAMIC_READ);
 crate::impl_const_super_trait!(Usage for (Dynamic, Copy), glb::DYNAMIC_COPY);
 
-/// Use to enforce semantics for OpenGL buffer object.
-pub(crate) struct BufferSemantics<T, F>
-where
-    T: buffer::Target,
-    F: valid::ForBuffer<T>,
-{
-    _phantoms: PhantomData<(T, F)>,
-    pub(crate) length: usize,
-}
 
-impl<T, F> Default for BufferSemantics<T, F>
-where
-    T: buffer::Target,
-    F: valid::ForBuffer<T>,
-{
-    fn default() -> Self {
-        Self {
-            _phantoms: PhantomData,
-            length: 0,
-        }
-    }
-}
-
-/// Allocation strategy for OpenGL buffer objects.
-struct BufferAllocator;
+/// Allocator for OpenGL buffer objects.
+enum BufferAllocator { }
 
 unsafe impl object::Allocator for BufferAllocator {
     fn allocate(names: &mut [u32]) {
@@ -87,34 +78,75 @@ unsafe impl object::Allocator for BufferAllocator {
     }
 }
 
-type BufferObject = Object<BufferAllocator>;
+struct BufferBinder<T: Target>(PhantomData<T>);
 
-pub struct Buffer<T, GLSL>
-where
-    T: buffer::Target,
-    GLSL: valid::ForBuffer<T>,
-{
-    object: BufferObject,
-    pub(crate) semantics: BufferSemantics<T, GLSL>,
+impl<T: Target> object::Binder for BufferBinder<T> {
+    fn bind(name: u32) {
+        gl::call! {
+            [panic]
+            unsafe { glb::BindBuffer(T::VALUE, name) }
+        }
+    }
 }
 
-impl<T, F> Default for Buffer<T, F>
+pub(crate) struct BufferState<T, F>
+where
+    T: buffer::Target,
+{
+    _phantoms: PhantomData<(T, F)>,
+    pub(crate) length: usize,
+}
+
+impl<T, F> Default for BufferState<T, F>
 where
     T: buffer::Target,
     F: valid::ForBuffer<T>,
 {
     fn default() -> Self {
         Self {
-            object: Default::default(),
-            semantics: Default::default(),
+            _phantoms: PhantomData,
+            length: 0,
         }
     }
+}
+
+#[derive(dm::Deref)]
+pub struct Buffer<T, GL>
+where
+    T: buffer::Target,
+    GL: valid::ForBuffer<T>,
+{
+    #[deref]
+    object: ObjectBase<Self>,
+    pub(crate) state: BufferState<T, GL>,
+}
+
+impl<T, GLSL> Default for Buffer<T, GLSL>
+where
+    T: buffer::Target,
+    GLSL: valid::ForBuffer<T>,
+{
+    fn default() -> Self {
+        Self {
+            object: Default::default(),
+            state: Default::default(),
+        }
+    }
+}
+
+impl<T, GL> Object for Buffer<T, GL>
+where
+    T: buffer::Target,
+    GL: valid::ForBuffer<T>,
+{
+    type Binder = BufferBinder<T>;
+    type Allocator = BufferAllocator;
 }
 
 impl<T, GLSL> Buffer<T, GLSL>
 where
     T: buffer::Target,
-    GLSL: glsl::Type<Group = valid::Transparent> + valid::ForBuffer<T>,
+    GLSL: valid::ForBuffer<T>,
 {
     pub fn create() -> Self {
         Self {
@@ -125,41 +157,21 @@ where
     pub fn data<U, GL>(&mut self, data: &[GL])
     where
         U: Usage,
-        GL: glsl::Compatible<GLSL, Layout = GLSL::Layout>,
+        GL: glsl::Compatible<GLSL>,
     {
-        self.bind();
-        gl_call! {
-            #[panic]
-            unsafe {
-                glb::BufferData(
-                    T::VALUE,
-                    (std::mem::size_of::<GLSL::Primitive>() * data.len()) as _,
-                    data.as_ptr() as _,
-                    U::VALUE,
-                );
+        {
+            gl::call! {
+                [panic]
+                unsafe {
+                    glb::BufferData(
+                        T::VALUE,
+                        (std::mem::size_of::<GL::Layout>() * data.len()) as _,
+                        data.as_ptr() as _,
+                        U::VALUE,
+                    );
+                }
             }
-        }
-        self.semantics.length = data.len();
-        self.unbind();
-    }
-}
-
-impl<T, F> object::Bind for Buffer<T, F>
-where
-    T: buffer::Target,
-    F: glsl::Type + valid::ForBuffer<T>,
-{
-    fn bind(&self) {
-        gl_call! {
-            #[panic]
-            unsafe { glb::BindBuffer(T::VALUE, self.object.name()) }
-        }
-    }
-
-    fn unbind(&self) {
-        gl_call! {
-            #[panic]
-            unsafe { glb::BindBuffer(T::VALUE, 0) }
-        }
+            self.state.length = data.len();
+        };
     }
 }

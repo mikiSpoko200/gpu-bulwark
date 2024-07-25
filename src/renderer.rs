@@ -23,7 +23,7 @@ type Uniforms = crate::Uniforms! {
 };
 
 pub struct Buffers {
-    positions: Buffer<buffer::target::Array, glsl::Vec4>,
+    positions: Buffer<buffer::Array, glsl::Vec4>,
 }
 
 pub struct Renderer {
