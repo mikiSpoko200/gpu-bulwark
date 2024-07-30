@@ -1,4 +1,4 @@
-use crate::ext;
+use crate::{ext, glsl};
 
 /// Array storage that type can be transmuted into
 pub unsafe trait FFI: Sized {
@@ -28,13 +28,27 @@ where
     type Layout = [S::Layout; N];
 }
 
+pub const fn as_slice<GLSL, GL>(value: &GL) -> &[<GL::Layout as ext::Array>::Type]
+where
+    GLSL: glsl::bounds::TransparentType,
+    GL: glsl::Compatible<GLSL>,
+{
+    let raw_pointer = unsafe { (value as *const GL).cast::<<GL::Layout as ext::Array>::Type>() };
+    unsafe {
+        std::slice::from_raw_parts(raw_pointer, <GL::Layout as ext::Array>::SIZE)
+    }
+}
+
 pub trait FFIExt: FFI {
-    fn as_raw_ptr(&self) -> *const <Self::Layout as ext::Array>::Type;
+    fn as_slice(&self) -> &[<Self::Layout as ext::Array>::Type];
 }
 
 impl<T> FFIExt for T where T: FFI {
-    fn as_raw_ptr(&self) -> *const <Self::Layout as ext::Array>::Type {
+    fn as_slice(&self) -> &[<Self::Layout as ext::Array>::Type] {
         // SAFETY: unsafe impl for FFI guarantees that self has appropriate binary layout.
-        unsafe { std::mem::transmute(self) }
+        let raw_pointer = unsafe { std::mem::transmute::<&T, *const <T::Layout as ext::Array>::Type>(self) };
+        unsafe {
+            std::slice::from_raw_parts(raw_pointer, <T::Layout as ext::Array>::SIZE)
+        }
     }
 }

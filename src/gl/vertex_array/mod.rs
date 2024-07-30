@@ -12,3 +12,4 @@ pub mod layout;
 
 pub use vertex_array::*;
 pub use format::Format;
+pub use binding::VertexBufferBinding;

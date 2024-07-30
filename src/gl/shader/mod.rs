@@ -127,7 +127,7 @@ where
     Decls: uniform::bounds::Declarations,
 { 
     /// Declare uniform variable used by this shader
-    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformBinding<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, uniform::Declaration<U, LOCATION>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformBinding<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, glsl::UniformBinding<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {

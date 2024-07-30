@@ -58,8 +58,8 @@ mod maybe {
     impl<T> gl::target::Target for ts::Some<T> where T: Target {
         const ID: u32 = T::ID;
     }
-    hi::denmark! { impl<T: Target> ts::Some<T> as MaybeTarget, shader::Target }
-    
+    impl<T: Target> shader::Target for ts::Some<T> { }
+    impl<T: Target> MaybeTarget for ts::Some<T> { }
 }
 
 pub struct Builder<'shaders, Target, Ins, Outs, Defs, Decls>
@@ -102,6 +102,21 @@ impl<'s> Builder<'s, ts::None, (), (), (), ()> {
     pub fn new() -> Self {
         Self::default()
     }
+
+    pub fn uniform_definitions<Defs: uniform::bounds::Definitions>(self, provider: impl FnOnce(uniform::Definitions<()>) -> uniform::Definitions<Defs>) -> Builder<'s, ts::Some<Vertex>, (), (), Defs, ()> {
+        let definitions = provider(uniform::Definitions::default());
+        Builder {
+            _target_phantom: PhantomData,
+            _data: todo!(),
+            matcher: Some(uniform::Matcher::new(definitions)),
+            vertex: todo!(),
+            tess_control: todo!(),
+            tesselation_evaluation: todo!(),
+            geometry: todo!(),
+            fragment: todo!(),
+            compute: todo!(),
+        }
+    } 
 }
 
 impl<'s, Target, Ins, Outs, Defs> Builder<'s, ts::Some<Target>, Ins, Outs, Defs, ()>
@@ -199,7 +214,7 @@ where
 }
 
 /// impl for initial stage
-impl<'s, Defs> Builder<'s, ts::Some<ts::Some<Vertex>>, (), (), Defs, ()>
+impl<'s, Defs> Builder<'s, ts::Some<Vertex>, (), (), Defs, ()>
 where
     Defs: uniform::bounds::Definitions,
 {

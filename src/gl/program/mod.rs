@@ -26,6 +26,7 @@ use binding::UniformBinding;
 use binding::{layout, storage};
 use glutin::error;
 
+use super::uniform::Declaration;
 use super::uniform::Declarations;
 use super::uniform::Definitions;
 
@@ -294,7 +295,7 @@ where
     pub fn uniform<GLSL, const LOCATION: usize, IDX>(
         &mut self,
         binding: &UniformBinding<GLSL, LOCATION>,
-        uniform: impl glsl::Compatible<GLSL>,
+        uniform: &impl glsl::Compatible<GLSL>,
     ) where
         GLSL: glsl::bounds::TransparentUniform,
         IDX: Index,

@@ -32,6 +32,7 @@ pub struct Renderer {
     // buffers:
 }
 
+#[allow(unused)]
 impl application::ApplicationHandler for Renderer {
     fn resumed(&mut self, event_loop: &ActiveEventLoop) {
         todo!()

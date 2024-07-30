@@ -1,7 +1,8 @@
 
 use crate::prelude::internal::*;
-use crate::error;
 use crate::gl;
+
+use gl::error;
 
 pub struct Bind<B: Binder>(PhantomData<B>);
 

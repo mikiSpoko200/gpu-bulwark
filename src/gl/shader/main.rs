@@ -49,7 +49,7 @@ where
 {
     pub fn input<In, const LOCATION: usize>(self, _: &InBinding<In, LOCATION>) -> Main<Target, (Ins, InBinding<In, LOCATION>), Outs, Decls>
     where
-        In: glsl::Parameters<storage::In>,
+        In: glsl::parameters::Parameter<storage::In>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)
@@ -57,7 +57,7 @@ where
 
     pub fn output<Out, const LOCATION: usize>(self, _: &OutBinding<Out, LOCATION>) -> Main<Target, Ins, (Outs, OutBinding<Out, LOCATION>), Decls>
     where
-        Out: glsl::Parameters<storage::Out>,
+        Out: glsl::parameters::Parameter<storage::Out>,
     {
         let Self(shader, ..) = self;
         Main::new(shader)

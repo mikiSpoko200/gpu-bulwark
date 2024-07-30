@@ -1,11 +1,16 @@
 use crate::prelude::internal::*;
 
-
-pub trait ForAttribute {
-    const N_COMPONENTS: usize;
-}
+use crate::gl::vertex_array;
+use vertex_array::attribute::Attribute;
+use vertex_array::bounds;
 
 #[hi::marker]
-pub(crate) trait Attributes: crate::hlist::lhlist::Base { }
+pub trait Attributes: crate::hlist::lhlist::Base { }
 
 impl Attributes for () { }
+
+impl<H, Attr, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize> Attributes for (H, Attribute<'_, Attr, ATTRIB_INDEX, BINDING_INDEX>)
+where
+    H: Attributes,
+    Attr: bounds::AttribFormat
+{ }

@@ -9,26 +9,33 @@ pub mod shader;
 pub mod texture;
 pub mod vertex_array;
 pub mod uniform;
-pub mod primitive;
+pub mod types;
 pub mod valid;
 pub mod bounds;
+pub mod image;
+pub mod error;
 
 // Reexports
-pub use primitive::*;
+pub use types::*;
 
 pub(crate) mod target;
+
+pub use buffer::Buffer;
+pub use program::Program;
+pub use vertex_array::{VertexArray, VAO};
 
 use crate::glsl;
 use crate::gl;
 use glsl::storage::{In, Out};
-use program::Program;
 use object::Binder;
-use vertex_array::VertexArray;
  
+
+pub type Result<T> = std::result::Result<T, Box<[error::Error]>>;
+
 
 pub fn draw_arrays<AS, PSI, PSO, US>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO, US>)
 where
-    AS: glsl::valid::Attributes,
+    AS: vertex_array::valid::Attributes,
     PSI: glsl::Parameters<In>,
     PSO: glsl::Parameters<Out>,
     AS: glsl::compatible::hlist::Compatible<PSI>,
@@ -54,7 +61,7 @@ macro_rules! call {
     ([panic] $invocation:stmt) => {
         $invocation
         if cfg!(debug_assertions) {
-            let errors = $crate::error::Error::poll_queue();
+            let errors = $crate::gl::error::Error::poll_queue();
             if errors.len() > 0 {
                 let message = errors.into_iter().map(ToString::to_string).collect::<::std::vec::Vec<_>>().join("\n");
                 panic!("gl error: {message}");
@@ -63,7 +70,7 @@ macro_rules! call {
     };
     ([propagate] $invocation:stmt) => {
         $invocation
-        let errors = $crate::error::Error::poll_queue();
+        let errors = $crate::gl::error::Error::poll_queue();
         if errors.len() > 0 { Err(errors) } else { Ok(()) }
     };
 }

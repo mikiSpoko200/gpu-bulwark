@@ -1,3 +1,5 @@
+use crate::ext;
+use crate::ffi;
 use crate::md;
 use crate::prelude::internal::*;
 
@@ -9,6 +11,7 @@ use crate::hlist::HList;
 use crate::hlist::{self, indexed, lhlist, rhlist};
 use gl::shader;
 use glsl::binding::{UniformBinding, UniformDefinition};
+use ffi::FFIExt;
 
 pub mod bounds {
     use super::*;
@@ -20,12 +23,11 @@ pub mod bounds {
 
     impl Declarations for () {}
 
-    impl<H, U, const LOCATION: usize> Declarations for (H, Declaration<U, LOCATION>)
+    impl<H, U, const LOCATION: usize> Declarations for (H, UniformBinding<U, LOCATION>)
     where
         H: Declarations,
         U: glsl::Uniform,
-    {
-    }
+    { }
 
     pub trait Definitions {
         type AsDeclarations: Declarations;
@@ -35,12 +37,12 @@ pub mod bounds {
         type AsDeclarations = ();
     }
 
-    impl<H, const LOCATION: usize, U> Definitions for (H, UniformDefinition<U, LOCATION>)
+    impl<H, U, const LOCATION: usize> Definitions for (H, Definition<'_, U, LOCATION>)
     where
         H: Definitions,
-        U: glsl::Uniform,
+        U: glsl::uniform::bounds::TransparentUniform,
     {
-        type AsDeclarations = (H::AsDeclarations, Declaration<U, LOCATION>);
+        type AsDeclarations = (H::AsDeclarations, UniformBinding<U, LOCATION>);
     }
 }
 
@@ -97,7 +99,7 @@ impl From<()> for Declarations<ts::Mutable, ()> {
     }
 }
 
-impl<H, Decls, U, const LOCATION: usize> From<&'_ (H, UniformBinding<U, LOCATION>)> for Declarations<ts::Mutable, (Decls, Declaration<U, LOCATION>)>
+impl<H, Decls, U, const LOCATION: usize> From<&'_ (H, UniformBinding<U, LOCATION>)> for Declarations<ts::Mutable, (Decls, UniformBinding<U, LOCATION>)>
 where
     Decls: bounds::Declarations,
     Declarations<ts::Mutable, Decls>: From<H>,
@@ -114,7 +116,7 @@ where
     Decls: bounds::Declarations,
 {
     /// Declare a new uniform at specified location.
-    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Decls, Declaration<U, LOCATION>)>
+    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Decls, UniformBinding<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
@@ -126,13 +128,24 @@ where
     }
 }
 
-impl<H, U, const LOCATION: usize> Declarations<ts::Immutable, (H, Declaration<U, LOCATION>)>
+impl<H, U, const LOCATION: usize> Declarations<ts::Immutable, (H, UniformBinding<U, LOCATION>)>
 where
     H: bounds::Declarations,
     U: glsl::Uniform,
 {
     pub(super) fn bind(self, _: &UniformBinding<U, LOCATION>) -> Declarations<ts::Immutable, H> {
         Declarations(PhantomData)
+    }
+}
+
+pub struct Definition<'a, U, const LOCATION: usize>(&'a [<U::Layout as ext::Array>::Type]) where U: glsl::uniform::bounds::TransparentUniform;
+
+impl<'a, U, const LOCATION: usize> Definition<'a, U, LOCATION>
+where 
+    U: glsl::uniform::bounds::TransparentUniform
+{
+    pub(in crate::gl) fn new(value: &'a impl glsl::Compatible<U>) -> Self {
+        Self(value.as_slice())
     }
 }
 
@@ -152,15 +165,11 @@ where
     Unis: bounds::Definitions,
 {
     /// Define a new uniform at specified location.
-    pub fn define<U, const LOCATION: usize>(
-        self,
-        _: &UniformBinding<U, LOCATION>,
-        uniform: U,
-    ) -> Definitions<(Unis, UniformDefinition<U, LOCATION>)>
+    pub fn define<'defs, U, const LOCATION: usize>(self, _: &'_ UniformBinding<U, LOCATION>, uniform: &'defs impl glsl::Compatible<U>) -> Definitions<(Unis, Definition<'defs, U, LOCATION>)>
     where
         U: glsl::bounds::TransparentUniform,
     {
-        Definitions((self.0, UniformDefinition::new(uniform)))
+        Definitions((self.0, Definition::new(uniform)))
     }
 }
 
@@ -186,7 +195,7 @@ impl Matcher<(), ()> {
     }
 }
 
-impl<Defs> Matcher<Defs, ()>
+impl<'defs, Defs> Matcher<Defs, ()>
 where
     Defs: bounds::Definitions,
 {
@@ -210,16 +219,16 @@ where
     }
 }
 
-impl<Defs, H, U, const LOCATION: usize> Matcher<Defs, (H, Declaration<U, LOCATION>)>
+impl<'defs, Defs, H, U, const LOCATION: usize> Matcher<Defs, (H, UniformBinding<U, LOCATION>)>
 where
-    Defs: bounds::Definitions,
+    Defs: bounds::Definitions + 'defs,
     H: bounds::Declarations,
-    U: glsl::Uniform,
+    U: glsl::uniform::bounds::TransparentUniform,
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
     pub fn bind<GLU, IDX>(self, binding: &UniformBinding<U, LOCATION>) -> Matcher<Defs, H>
     where
-        Defs: hlist::lhlist::Find<UniformDefinition<U, LOCATION>, IDX>,
+        Defs: hlist::lhlist::Find<Definition<'defs, U, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
         Matcher {

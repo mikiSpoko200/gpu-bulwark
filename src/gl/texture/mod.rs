@@ -1,10 +1,16 @@
 pub mod target;
+pub mod storage;
 
-use crate::gl::{self, texture};
+use crate::gl;
+use gl::texture;
+use gl::target::Target as _;
+use gl::image;
 
 use crate::prelude::internal::*;
 use super::object::Allocator;
 pub use target::Target;
+
+pub use storage::marker::Storage;
 
 pub struct TextureAllocator<T>(PhantomData<T>);
 
@@ -31,4 +37,28 @@ where
     }
 }
 
-pub struct Texture;
+pub struct Texture<T, S, Format>
+where
+    T: Target,
+    S: Storage,
+{
+    target: PhantomData<T>,
+    storage: S,
+    format: Format,
+}
+
+impl<F> Texture<target::D1, storage::Immutable, F> {
+    // fn storage_1d(width: usize, levels: usize) -> gl::Result<Self> { 
+    //     let result = gl::call! {
+    //         [propagate]
+    //         unsafe {
+    //             glb::TexStorage1D(
+    //                 target::D1::ID as _,
+    //                 levels as _,
+                    
+    //             )
+    //         }
+    //     }?
+    // }
+}
+

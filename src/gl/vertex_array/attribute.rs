@@ -1,4 +1,6 @@
-//! This module provides specialization of HLists for Vertex Array Object attributes.
+//! TODO: FILL ME!
+
+use crate::prelude::internal::*;
 
 use crate::gl;
 use crate::gl::buffer;
@@ -7,19 +9,29 @@ use crate::ffi;
 use crate::glsl;
 use crate::valid;
 use crate::md;
-use crate::types;
 use crate::hlist;
 
-use crate::prelude::internal::*;
+use buffer::target;
+use gl::types;
+use gl::vertex_array::bounds;
+use gl::vertex_array::{Format, VertexBufferBinding};
 
-pub(crate) struct Attribute<'buffer, T, > {
-    pub buffer: &'buffer buffer::Buffer<buffer::Array, A>,
+pub struct Attribute<'buffer, GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize = ATTRIB_INDEX>
+where
+    GL: bounds::AttribFormat,
+{
+    binding: VertexBufferBinding<'buffer, BINDING_INDEX>,
+    format: Format<ATTRIB_INDEX, GL>
 }
 
-impl<T> valid::ForAttribute for T where T: valid::ForBuffer<buffer::Array> { }
-
-impl<'buffer, A, AS, const INDEX: usize> valid::Attributes for (AS, Attribute<'buffer, A, INDEX>)
+impl<'buffer, GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize> Attribute<'buffer, GL, ATTRIB_INDEX, BINDING_INDEX>
 where
-    A: valid::ForAttribute,
-    AS: valid::Attributes,
-{ }
+    GL: bounds::AttribFormat,
+{
+    pub(in crate::gl) fn new(vbo: &'buffer buffer::Buffer<target::Array, GL>) -> Self {
+        Self {
+            binding: VertexBufferBinding::new(vbo),
+            format: Format::new(vbo),
+        }
+    }
+}

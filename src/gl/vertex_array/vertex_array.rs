@@ -4,15 +4,15 @@ use crate::glsl;
 use crate::prelude::internal::*;
 
 use crate::gl;
-use crate::valid;
+use gl::vertex_array;
 use gl::buffer;
-
 use gl::object::*;
 use buffer::Buffer;
-use super::attribute::{Attribute};
+use vertex_array::valid;
+use vertex_array::bounds;
+use vertex_array::attribute::Attribute;
 
 use crate::hlist::lhlist::Base as HList;
-use crate::types::Primitive;
 
 #[hi::mark(Object, PartialObject)]
 enum VertexArrayObject { }
@@ -49,11 +49,11 @@ impl Binder for VertexArrayObject {
 }
 
 #[derive(Default)]
-struct VertexArrayState<AS>
+struct VertexArrayState<Attrs>
 where
-    AS: valid::Attributes,
+    Attrs: valid::Attributes,
 {
-    pub attributes: AS,
+    pub attributes: Attrs,
     pub length: usize,
 }
 
@@ -61,13 +61,14 @@ impl<AS> VertexArrayState<AS>
 where
     AS: valid::Attributes,
 {
-    pub fn attach<'buffer, A, const ATTRIBUTE_INDEX: usize>(self,buffer: &'buffer Buffer<buffer::Array, A>,) -> VertexArrayState<(AS, Attribute<'buffer, A, ATTRIBUTE_INDEX>)>
+    pub fn vertex_attrib_pointer<'buffer, A, const ATTRIBUTE_INDEX: usize>(self, vbo: &'buffer Buffer<buffer::Array, A>) -> 
+    VertexArrayState<(AS, Attribute<'buffer, A, ATTRIBUTE_INDEX>)>
     where
-        A: valid::ForAttribute,
+        A: bounds::AttribFormat,
     {
-        let attribute = Attribute { buffer };
+        let attribute = Attribute::new(vbo);
         VertexArrayState {
-            length: buffer.state.length,
+            length: vbo.len(),
             attributes: self.attributes.append(attribute),
         }
     }
@@ -96,36 +97,31 @@ impl<AS> VertexArray<AS>
 where
     AS: valid::Attributes,
 {
-    pub fn bind_buffers(&self) {
-        // todo: Add Iteration over attributes to trait `Attributes`
-    }
-
-    // TODO: Fix type var validation. On both glsl and gl
-    pub fn attach<'buffer, A, const ATTRIBUTE_INDEX: usize>(
+    pub fn vertex_attrib_pointer<'buffer, Attr, Param, const ATTRIBUTE_INDEX: usize>(
         self,
-        binding: &glsl::binding::InBinding<A, ATTRIBUTE_INDEX>,
-        buffer: &'buffer Buffer<buffer::Array, impl >
-    ) -> VertexArray<(AS, Attribute<'buffer, A, ATTRIBUTE_INDEX>)>
+        binding: &glsl::InBinding<Param, ATTRIBUTE_INDEX>,
+        buffer: &'buffer Buffer<buffer::Array, Attr>
+    ) -> VertexArray<(AS, Attribute<'buffer, Attr, ATTRIBUTE_INDEX>)>
     where
-        A: valid::ForAttribute,
+        Attr: bounds::AttribFormat,
+        Param: glsl::bounds::Parameter<glsl::storage::In>
     {
         if self.phantoms.length > 0 && self.phantoms.length != buffer.state.length {
             panic!(
                 "buffers must be the same length, current {} received {}",
-                self.phantoms.length, buffer.state.length
+                self.phantoms.length, buffer.len()
             );
         }
 
-        let vao_bind = self.bind();
-        let buffer_bind = buffer.bind();
-        buffer.bind();
+        let _vao_bind = self.bind();
+        let _buffer_bind = buffer.bind();
         gl::call! {
             [panic]
             unsafe {
                 glb::VertexAttribPointer(
                     ATTRIBUTE_INDEX as _,
-                    A::N_COMPONENTS as _,
-                    <A::Primitive as Primitive>::GL_TYPE,
+                    Attr::N_COMPONENTS as _,
+                    <Attr::Type as gl::Type>::ID,
                     glb::FALSE,
                     0,
                     std::ptr::null()
@@ -135,8 +131,7 @@ where
         }
 
         let Self { object, phantoms } = self;
-
-        VertexArray { object, phantoms: phantoms.attach(buffer) }
+        VertexArray { object, phantoms: phantoms.vertex_attrib_pointer(buffer) }
     }
 }
 

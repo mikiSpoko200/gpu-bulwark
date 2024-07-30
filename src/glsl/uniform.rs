@@ -84,27 +84,27 @@ where
 #[hi::marker]
 pub trait Uniform: super::Type { }
 
-pub trait UniformDisjointHelper<S>: Uniform
+pub trait UniformDH<S>: Uniform
 where
     S: valid::Subtype,
 { }
 
-impl<T> UniformDisjointHelper<valid::Scalar> for T where T: bounds::ScalarUniform { }
+impl<T> UniformDH<valid::Scalar> for T where T: bounds::ScalarUniform { }
 
-impl<U, const DIM: usize> UniformDisjointHelper<valid::Vector<DIM>> for glsl::GVec<U, DIM>
+impl<U, const DIM: usize> UniformDH<valid::Vector<DIM>> for glsl::GVec<U, DIM>
 where
     U: valid::ForVector<DIM>,
     Const<DIM>: valid::VecDim,
 { }
 
-impl<U, const R: usize, const C: usize> UniformDisjointHelper<valid::Matrix> for glsl::Mat<U, R, C>
+impl<U, const R: usize, const C: usize> UniformDH<valid::Matrix> for glsl::Mat<U, R, C>
 where
     U: valid::ForMatrix<R, C>,
     Const<R>: valid::VecDim,
     Const<C>: valid::VecDim,
 { }
 
-impl<U, S, const N: usize> UniformDisjointHelper<valid::Array<S>> for glsl::Array<U, N>
+impl<U, S, const N: usize> UniformDH<valid::Array<S>> for glsl::Array<U, N>
 where
     S: valid::Subtype,
     U: glsl::uniform::bounds::TransparentUniform<Subtype = S>,
@@ -113,7 +113,7 @@ where
 impl<U, S> Uniform for U
 where
     U: glsl::bounds::TransparentType<Subtype = S>,
-    U: UniformDisjointHelper<S>,
+    U: UniformDH<S>,
     S: valid::Subtype,
 { }
 
@@ -139,17 +139,39 @@ pub mod bounds {
 
     pub trait TransparentUniform: Uniform + glsl::bounds::TransparentType + ops::Set { }
 
+    impl<T> TransparentUniform for T where T: Uniform + glsl::bounds::TransparentType + ops::Set { }
+
     pub trait OpaqueUniform: Uniform + glsl::bounds::OpaqueType { }
 
     pub trait ScalarUniform: TransparentUniform + glsl::bounds::ScalarType
         + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
     { }
 
+    impl<T> ScalarUniform for T 
+    where 
+        T: TransparentUniform + glsl::bounds::ScalarType
+        + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
+    { }
+
+
     pub trait VectorUniform<const DIM: usize>: TransparentUniform + glsl::bounds::VectorType<DIM>
         + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
     where Const<DIM>: valid::VecDim { }
+
+    impl<T, const DIM: usize> VectorUniform<DIM> for T
+    where 
+        Const<DIM>: valid::VecDim,
+        T: TransparentUniform + glsl::bounds::VectorType<DIM>
+        + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
+    { }
     
-    pub trait MatrixUniform: TransparentUniform + glsl::bounds::MatrixType { }
+    pub trait MatrixUniform: TransparentUniform + glsl::bounds::MatrixType
+    + DispatchSetters<Signature = signature::UniformMatrixV<<Self::Layout as ext::Array>::Type>>
+    { }
+    
+    impl<T> MatrixUniform for T where T: TransparentUniform + glsl::bounds::MatrixType
+    + DispatchSetters<Signature = signature::UniformMatrixV<<Self::Layout as ext::Array>::Type>>
+    { }
 }
 
 /// # Capabilities for uniform types
@@ -169,18 +191,19 @@ pub mod ops {
     where
         Subtype: valid::Subtype,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: impl glsl::Compatible<Self>);
+        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
     }
 
     impl<U> Set<valid::Scalar> for U
     where
-        U: bounds::ScalarUniform
+        U: glsl::bounds::TransparentType + Uniform
+        + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
-                    Self::SETTER(LOCATION as _, <Self as glsl::Location>::N_USED_LOCATIONS as _, uniform.as_raw_ptr());
+                    Self::SETTER(LOCATION as _, <Self as glsl::Location>::N_USED_LOCATIONS as _, uniform.as_slice().as_ptr());
                 }
             };
         }
@@ -188,15 +211,15 @@ pub mod ops {
 
     impl<U, const DIM: usize> Set<valid::Vector<DIM>> for U
     where
-        U: bounds::VectorUniform<DIM>
+        U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
         Const<DIM>: valid::VecDim,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
-                    Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, uniform.as_raw_ptr());
+                    Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, uniform.as_slice().as_ptr());
                 }
             };
         }
@@ -204,14 +227,14 @@ pub mod ops {
 
     impl<U> Set<valid::Matrix> for U
     where
-        U: bounds::MatrixUniform
+        U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
-                    Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, true as _, uniform.as_raw_ptr());
+                    Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, true as _, uniform.as_slice().as_ptr());
                 }
             };
         }

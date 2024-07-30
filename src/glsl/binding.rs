@@ -82,6 +82,17 @@ where
     }
 }
 
+impl<S, L, T> Binding<S, L, T, md::Phantom>
+where
+    T: glsl::Type,
+    S: Qualifier<Storage>,
+    L: Qualifier<Layout>,
+{
+    pub const fn new_phantom() -> Self {
+        Self(PhantomData, PhantomData)
+    }
+}
+
 impl<S, L, T> Binding<S, L, T, md::Inline>
 where
     T: glsl::Type,
@@ -164,7 +175,7 @@ impl MatchingInputs for () {
 impl<H, T, const LOCATION: usize> MatchingInputs for (H, OutBinding<T, LOCATION>)
 where
     H: MatchingInputs,
-    T: glsl::bounds::TransparentType,
+    T: glsl::bounds::Parameter<storage::In>,
 {
     type Inputs = (H::Inputs, InBinding<T, LOCATION>);
 

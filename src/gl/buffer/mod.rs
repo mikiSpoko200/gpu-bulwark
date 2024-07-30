@@ -17,10 +17,9 @@ pub mod _valid;
 
 use super::object;
 use crate::gl;
-use gl::buffer;
 use crate::utils::Const;
-use crate::types::Primitive;
-use crate::error;
+use gl::buffer;
+use gl::error;
 use crate::glsl;
 use crate::valid;
 use glb::types::{GLenum, GLuint};
@@ -73,7 +72,7 @@ impl_usage!((Dynamic, Copy): glb::DYNAMIC_COPY);
 
 /// Allocator for OpenGL buffer objects.
 #[hi::mark(PartialObject, Object)]
-struct BufferObject<T: Target>(PhantomData<T>);
+pub(in crate::gl) struct BufferObject<T: Target>(PhantomData<T>);
 
 unsafe impl<T: Target> object::Allocator for BufferObject<T> {
     fn allocate(names: &mut [u32]) {
@@ -98,18 +97,12 @@ impl<T: Target> object::Binder for BufferObject<T> {
     }
 }
 
-pub(crate) struct BufferState<T, F>
-where
-    T: buffer::Target,
-{
-    _phantoms: PhantomData<(T, F)>,
+pub(crate) struct BufferState<F> {
+    _phantoms: PhantomData<F>,
     pub(crate) length: usize,
 }
 
-impl<T, F> Default for BufferState<T, F>
-where
-    T: buffer::Target,
-{
+impl<F> Default for BufferState<F> {
     fn default() -> Self {
         Self {
             _phantoms: PhantomData,
@@ -125,7 +118,7 @@ where
 {
     #[deref]
     object: ObjectBase<BufferObject<T>>,
-    pub(crate) state: BufferState<T, GL>,
+    pub(in crate::gl) state: BufferState<GL>,
 }
 
 impl<T, GL> Default for Buffer<T, GL>
@@ -168,5 +161,9 @@ where
             }
             self.state.length = data.len();
         };
+    }
+
+    pub fn len(&self) -> usize {
+        self.state.length
     }
 }

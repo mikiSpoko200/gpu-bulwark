@@ -2,6 +2,8 @@
 use crate::prelude::internal::*;
 use crate::gl;
 
+/// NOTE: Target dispatches storage allocation (https://www.khronos.org/opengl/wiki/Texture_Storage#Anatomy_of_storage)
+
 pub mod _valid {
     pub trait ForMultiSample { }
 }

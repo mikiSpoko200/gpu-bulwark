@@ -1,7 +1,7 @@
 
 pub trait Array: Sized {
     const SIZE: usize;
-    type Type;
+    type Type: 'static;
 }
 
 impl<T, const N: usize> Array for [T; N] where T: Array {

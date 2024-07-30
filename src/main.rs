@@ -2,50 +2,56 @@
 
 use std::num::NonZeroU32;
 
-use anyhow;
-use glsl::{binding, MatchingInputs};
-use glutin::{config, context, display, surface};
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
-use winit::{
-    dpi,
-    event::{ElementState, Event, RawKeyEvent, WindowEvent},
-    event_loop,
-    keyboard::PhysicalKey,
-    window,
-};
-
-use config::ConfigTemplateBuilder;
-use context::{ContextApi, ContextAttributesBuilder, GlProfile, Version};
-use display::DisplayApiPreference;
-use event_loop::EventLoop;
-use glutin::prelude::*;
-use surface::{SurfaceAttributesBuilder, WindowSurface};
-
 mod builder;
 mod constraint;
-mod error;
 mod ext;
 pub mod glsl;
 pub mod hlist;
 pub mod gl;
 pub mod prelude;
 mod renderer;
-mod types;
 pub mod ffi;
 mod utils;
 pub mod md;
 pub mod ts;
 pub mod valid;
 
-use gl::shader::{self, FragmentShader, VertexShader};
+
+use gl::shader;
 use gl::{
     buffer::{Buffer, Draw, Static},
     program::Program,
     vertex_array::VertexArray,
 };
+use glsl::{binding, MatchingInputs, UniformBinding};
 
-use crate::prelude::*;
 use nalgebra_glm as glm;
+
+use winit::application::ApplicationHandler;
+use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
+use winit::event_loop::{self, ActiveEventLoop, EventLoop};
+use winit::window::{self, Window, WindowId};
+
+use glutin::{context, display, surface};
+use glutin::prelude::*;
+
+
+thread_local! {
+    static CONTEXT: std::cell::OnceCell<Context> = std::cell::OnceCell::new();
+}
+
+/// FIXME: This is a temporary solution to the question of context handling.
+pub struct Context {
+    inner: glutin::context::PossiblyCurrentContext,
+}
+
+// impl Context {
+//     pub fn global(&self) {
+//         CONTEXT.with(|once_cell| {
+//             once_cell.get_or_init(|inner| );
+//         });
+//     }
+// }
 
 fn main() -> anyhow::Result<()> {
     println!("opening event loop...");
@@ -55,14 +61,14 @@ fn main() -> anyhow::Result<()> {
     let height = 640;
 
     println!("creating window...");
-    let window = window::Window::bu
-        .with_inner_size(dpi::PhysicalSize { width, height })
+    let window = winit::window::Window::new()
+        .with_inner_size(winit::dpi::PhysicalSize { width, height })
         .with_title("gpu-bulwark")
         .with_resizable(false)
         .build(&event_loop)
         .expect("window creation is successful");
 
-    let version = Version::new(4, 6);
+    let version = context::Version::new(4, 6);
     println!(
         "initializing OpenGL {}.{} core",
         version.major, version.minor
@@ -71,11 +77,11 @@ fn main() -> anyhow::Result<()> {
     let window_handle = window.raw_window_handle();
     let display_handle = window.raw_display_handle();
 
-    let template = ConfigTemplateBuilder::new().build();
-    let context_attributes = ContextAttributesBuilder::new()
+    let template = glutin::config::ConfigTemplateBuilder::new().build();
+    let context_attributes = context::ContextAttributesBuilder::new()
         .with_debug(true)
-        .with_context_api(ContextApi::OpenGl(Some(version)))
-        .with_profile(GlProfile::Core)
+        .with_context_api(context::ContextApi::OpenGl(Some(version)))
+        .with_profile(context::GlProfile::Core)
         .build(Some(window_handle));
 
     let (window_width, window_height) = {
@@ -85,13 +91,13 @@ fn main() -> anyhow::Result<()> {
         )
     };
 
-    let surface_attributes = SurfaceAttributesBuilder::<WindowSurface>::new().build(
+    let surface_attributes = surface::SurfaceAttributesBuilder::<surface::WindowSurface>::new().build(
         window_handle,
         window_width,
         window_height,
     );
 
-    let preference = DisplayApiPreference::WglThenEgl(Some(window_handle));
+    let preference = display::DisplayApiPreference::WglThenEgl(Some(window_handle));
 
     // SAFETY: we just checked if handle is valid? (maybe there are some more cavitates to this)
     let display = unsafe { glutin::display::Display::new(display_handle, preference).unwrap() };
@@ -192,6 +198,9 @@ fn main() -> anyhow::Result<()> {
     let mut camera = camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, width as f32 / height as f32);
 
     let mut program = Program::builder()
+        .uniform_definitions(|definitions| definitions
+            .define(&view_matrix_location, &[[0f32; 4]; 4])
+        )
         .vertex_main(&vs)
         .uniforms(|matcher| matcher.bind(&view_matrix_location))
         .vertex_shared(&common)
@@ -199,7 +208,7 @@ fn main() -> anyhow::Result<()> {
         .build()?;
 
     let mut positions = Buffer::create();
-    positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0]]);
+    positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
 
     let mut colors = Buffer::create();
     colors.data::<(Static, Draw)>(&[
@@ -212,9 +221,9 @@ fn main() -> anyhow::Result<()> {
     texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
 
     let vao = VertexArray::create()
-        .attach(&vin_position, &positions)
-        .attach(&vin_color, &colors)
-        .attach(&vin_tex, &texture_coords);
+        .vertex_attrib_pointer(&vin_position, &positions)
+        .vertex_attrib_pointer(&vin_color, &colors)
+        .vertex_attrib_pointer(&vin_tex, &texture_coords);
 
     println!("running main loop...");
 
@@ -259,61 +268,22 @@ fn main() -> anyhow::Result<()> {
         }
     }
 
-    event_loop.run(move |event, window_target| {
-        match event {
-            Event::Suspended => {
-                // todo read about context yielding on different platforms.
-                println!("suspended");
+    let render_callback = move |state: &mut AppState| {
+        state.scale += if state.scale > 1.0 { -1.0 } else { 0.01 };
+
+        gl::draw_arrays(&vao, &program);
+
+        state.surface
+            .swap_buffers(&state.context)
+            .expect("buffer swapping is successful");
+        state.window.as_ref().unwrap().request_redraw();
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::Clear(glb::COLOR_BUFFER_BIT);
             }
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(size) => {
-                    println!("resizing...");
-                    if size.width != 0 && size.height != 0 {
-                        // Some platforms like EGL require resizing GL surface to update the size
-                        // Notable platforms here are Wayland and macOS, other don't require it
-                        // and the function is no-op, but it's wise to resize it for portability
-                        // reasons.
-                        surface.resize(
-                            &gl_context,
-                            NonZeroU32::new(size.width).unwrap(),
-                            NonZeroU32::new(size.height).unwrap(),
-                        );
-                    }
-                }
-                WindowEvent::CloseRequested => window_target.exit(),
-                WindowEvent::RedrawRequested => {
-                    scale += if scale > 1.0 { -1.0 } else { 0.01 };
-
-                    gl::draw_arrays(&vao, &program);
-
-                    surface
-                        .swap_buffers(&gl_context)
-                        .expect("buffer swapping is successful");
-                    window.request_redraw();
-                    unsafe {
-                        glb::Clear(glb::COLOR_BUFFER_BIT);
-                    }
-                }
-                _ => (),
-            },
-            Event::DeviceEvent { event, .. } => match event {
-                winit::event::DeviceEvent::MouseMotion { delta: (dx, dy) } => {
-                    camera.process_mouse(dx, dy);
-                    println!("camera yaw {}, pitch {}", camera.yaw, camera.pitch);
-                    program.uniform(&view_matrix_location, &camera.view_projection_matrix());
-                }
-                winit::event::DeviceEvent::Key(RawKeyEvent {
-                    physical_key: PhysicalKey::Code(code),
-                    state: ElementState::Pressed,
-                }) => {
-                    println!("camera at {}", camera.position);
-                    camera.process_input(&code);
-                }
-                _ => (),
-            },
-            _ => (),
-        }
-    })?;
+        };
+    };
 
     Ok(())
 }
@@ -366,10 +336,10 @@ mod camera {
 
         pub fn process_input(&mut self, input: &winit::keyboard::KeyCode) {
             match input {
-                winit::keyboard::KeyCode::KeyW => Some(Vec3::new(0.0, 0.0, -1.0)),
-                winit::keyboard::KeyCode::KeyS => Some(Vec3::new(0.0, 0.0, 1.0)),
-                winit::keyboard::KeyCode::KeyA => Some(Vec3::new(-1.0, 0.0, 0.0)),
-                winit::keyboard::KeyCode::KeyD => Some(Vec3::new(1.0, 0.0, 0.0)),
+                winit::keyboard::KeyCode::KeyW => Some(Vec3::new( 0.0,  0.0, -1.0)),
+                winit::keyboard::KeyCode::KeyS => Some(Vec3::new( 0.0,  0.0,  1.0)),
+                winit::keyboard::KeyCode::KeyA => Some(Vec3::new(-1.0,  0.0,  0.0)),
+                winit::keyboard::KeyCode::KeyD => Some(Vec3::new( 1.0,  0.0,  0.0)),
                 _ => None,
             }
             .inspect(|movement| {
@@ -393,4 +363,110 @@ mod camera {
             }
         }
     }
+}
+
+type Inputs = Inputs! { 
+    layout(location = 0) vec3;
+    layout(location = 1) vec4;
+    layout(location = 2) vec2;
+};
+
+type Outputs = Outputs! {
+    layout(location = 0) vec4;
+    layout(location = 1) vec2;
+};
+
+type Uniforms = Uniforms! {
+    layout(location = 0) mat4;
+};
+
+struct GlState {
+    program: gl::Program<Inputs, Outputs, Uniforms>
+}
+
+struct State {
+    parent_window_id: Option<WindowId>,
+    window: Option<Window>,
+    surface: surface::Surface<surface::WindowSurface>,
+    scale: f32,
+    camera: camera::Camera,
+    context: context::PossiblyCurrentContext,
+}
+
+#[derive(dm::Deref, dm::DerefMut)]
+struct AppState {
+    #[deref_mut]
+    #[deref]
+    state: State,
+    gl_state: GlState,
+}
+
+#[derive(dm::Deref, dm::DerefMut)]
+struct App<T: FnMut(&mut AppState) -> anyhow::Result<()>> {
+    #[deref_mut]
+    #[deref]
+    state: AppState,
+    render_callback: T,
+}
+
+impl<T: FnMut(&mut AppState) -> anyhow::Result<()>> App<T> {
+    fn render(&mut self) {
+        (self.render_callback)(&mut self.state);
+    }
+
+    fn new(callback: T) -> Self {
+        todo!()
+    }
+}
+
+const VIEW_MATRIX_LOCATION: UniformBinding<glsl::Mat4, 0> = UniformBinding::new_phantom();
+
+impl<T: FnMut(&mut AppState) -> anyhow::Result<()>> ApplicationHandler for App<T> {
+    fn suspended(&mut self, _: &ActiveEventLoop) {
+        // TODO: read about context yielding on different platforms.
+        println!("suspended");
+    }
+
+    fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
+        match event {
+            DeviceEvent::MouseMotion { delta: (dx, dy) } => {
+                // NOTE: delegate all of this to a method.
+                self.camera.process_mouse(dx, dy);
+                println!("camera yaw {}, pitch {}", self.camera.yaw, self.camera.pitch);
+                let gl_state = &mut self.gl_state;
+                gl_state.program.uniform(&VIEW_MATRIX_LOCATION, &self.camera.view_projection_matrix());
+            }
+            DeviceEvent::Key(winit::event::RawKeyEvent {
+                physical_key: winit::keyboard::PhysicalKey::Code(code),
+                state: ElementState::Pressed,
+            }) => {
+
+            },
+            _ => (),
+        }
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::Resized(size) => {
+                println!("resizing...");
+                if size.width != 0 && size.height != 0 {
+                    // Some platforms like EGL require resizing GL surface to update the size
+                    // Notable platforms here are Wayland and macOS, other don't require it
+                    // and the function is no-op, but it's wise to resize it for portability
+                    // reasons.
+                    self.surface.resize(
+                        &self.context,
+                        NonZeroU32::new(size.width).unwrap(),
+                        NonZeroU32::new(size.height).unwrap(),
+                    );
+                }
+            },
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::RedrawRequested => self.render(),
+            _ => (),
+        }
+    }
+    
+    fn resumed(&mut self, _: &event_loop::ActiveEventLoop) { }
 }

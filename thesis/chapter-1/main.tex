@@ -98,7 +98,43 @@ Type parameters represent an abstract type
 
 \section{Type level abstraction}
 
-Traits provide an ability to express shared behavior in abstract way.
+Traits provide an ability to express shared behavior in abstract way \cite{rustbook}. We are mostly interested in their use in \testit{trait bounds} on types and type parameters.
+Trait bounds declare contracts that types must fulfil or else the program will be rejected. 
+We used it to enforce use of valid data formats and proper sequencing of operations.
+
+\begin{lstlisting}[Language=Rust]
+    // Empty traits are commonly referred to as marker traits or just marker
+    trait VertexAttribute {
+        const GL_TYPE_ENUMERATOR: usize;
+        const N_COMPONENTS: usize;
+    }
+
+    impl VertexAttribute for f32 { 
+        const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+        const N_COMPONENTS: usize = 1;
+    }
+    impl VertexAttribute for [f32; 2] { 
+        const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+        const N_COMPONENTS: usize = 2;
+    }
+    impl VertexAttribute for [f32; 3] { 
+        const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+        const N_COMPONENTS: usize = 3;
+    }
+    impl VertexAttribute for [f32; 4] { 
+        const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+        const N_COMPONENTS: usize = 4;
+    }
+
+    fn send_vertex_attributes(attributes: &[T])
+    where
+        T: VertexAttribute,
+    {
+        unsafe {
+            // call appropriate OpenGL routine
+        }
+    }
+\end{lstlisting}
 
 \section{Implementation Coherence}
 

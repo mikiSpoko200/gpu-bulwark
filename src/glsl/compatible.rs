@@ -127,12 +127,19 @@ where
 
 // --------==========[ HList integration ]==========--------
 
-// impl hlist::Compatible<()> for () {}
+impl hlist::Compatible<()> for () {}
 
-// impl<'buffers, A, AS, PS, const ATTRIBUTE_INDEX: usize> hlist::Compatible<(PS, InParameterBinding<A, ATTRIBUTE_INDEX>)> 
-// for (AS, Attribute<'buffers, A, ATTRIBUTE_INDEX>)
-// where
-//     A: valid::Attribute,
-//     PS: Attributes,
-//     AS: hlist::Compatible<PS>,
-// { }
+use crate::gl::vertex_array as vao;
+use vao::attribute::Attribute;
+
+impl<'buffer, PH, AH, GLSL, GL,
+    const ATTRIB_INDEX: usize, 
+    const BINDING_INDEX: usize,
+    > hlist::Compatible<(PH, glsl::InBinding<GLSL, ATTRIB_INDEX>)> for (AH, Attribute<'buffer, GL, ATTRIB_INDEX, BINDING_INDEX>)
+where
+    GLSL: glsl::parameters::Parameter<glsl::storage::In>,
+    PH: glsl::parameters::Parameters<glsl::storage::In>,
+    AH: vao::valid::Attributes,
+    GL: vao::bounds::AttribFormat,
+    AH: hlist::Compatible<PH>,
+{ }
