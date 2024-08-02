@@ -61,14 +61,14 @@ impl<AS> VertexArrayState<AS>
 where
     AS: valid::Attributes,
 {
-    pub fn vertex_attrib_pointer<'buffer, A, const ATTRIBUTE_INDEX: usize>(self, vbo: &'buffer Buffer<buffer::Array, A>) -> 
-    VertexArrayState<(AS, Attribute<'buffer, A, ATTRIBUTE_INDEX>)>
+    pub fn vertex_attrib_pointer<A, const ATTRIBUTE_INDEX: usize>(self, vbo: Buffer<buffer::Array, A>) -> 
+    VertexArrayState<(AS, Attribute<A, ATTRIBUTE_INDEX>)>
     where
         A: bounds::AttribFormat,
     {
         let attribute = Attribute::new(vbo);
         VertexArrayState {
-            length: vbo.len(),
+            length: attribute.as_ref().len(),
             attributes: self.attributes.append(attribute),
         }
     }

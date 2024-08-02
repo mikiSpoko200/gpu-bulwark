@@ -16,22 +16,24 @@ use gl::types;
 use gl::vertex_array::bounds;
 use gl::vertex_array::{Format, VertexBufferBinding};
 
-pub struct Attribute<'buffer, GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize = ATTRIB_INDEX>
+#[derive(dm::AsRef)]
+pub struct Attribute<GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize = ATTRIB_INDEX>
 where
     GL: bounds::AttribFormat,
 {
-    binding: VertexBufferBinding<'buffer, BINDING_INDEX>,
+    #[as_ref(forward)]
+    binding: VertexBufferBinding<BINDING_INDEX, GL>,
     format: Format<ATTRIB_INDEX, GL>
 }
 
-impl<'buffer, GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize> Attribute<'buffer, GL, ATTRIB_INDEX, BINDING_INDEX>
+impl<GL, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize> Attribute<GL, ATTRIB_INDEX, BINDING_INDEX>
 where
     GL: bounds::AttribFormat,
 {
-    pub(in crate::gl) fn new(vbo: &'buffer buffer::Buffer<target::Array, GL>) -> Self {
+    pub(in crate::gl) fn new(vbo: buffer::Buffer<target::Array, GL>) -> Self {
         Self {
+            format: Format::new(&vbo),
             binding: VertexBufferBinding::new(vbo),
-            format: Format::new(vbo),
         }
     }
 }

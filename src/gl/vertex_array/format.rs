@@ -8,7 +8,7 @@ pub struct Format<const ATTRIB_INDEX: usize, T: AttribFormat, const RELATIVE_OFF
 
 
 impl<const ATTRIB_INDEX: usize, T: AttribFormat, const RELATIVE_OFFSET: u16> Format<ATTRIB_INDEX, T, RELATIVE_OFFSET> {
-    pub (in crate::gl) fn new(vbo: &gl::Buffer<target::Array, T>) -> Self {
+    pub (in crate::gl) fn new(_: &gl::Buffer<target::Array, T>) -> Self {
         Self(PhantomData)
     }
 }

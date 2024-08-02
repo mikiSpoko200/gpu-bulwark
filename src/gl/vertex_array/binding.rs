@@ -5,12 +5,13 @@ use crate::prelude::internal::*;
 use crate::gl;
 
 use gl::object::ObjectBase;
-use gl::buffer::{Buffer, BufferObject, Target, target};
+use gl::buffer::{Buffer, target};
 
-pub struct VertexBufferBinding<'buffer, const BINDING_INDEX: usize>(&'buffer ObjectBase<BufferObject<target::Array>>);
+#[derive(dm::AsRef)]
+pub struct VertexBufferBinding<const BINDING_INDEX: usize, GL>(pub(in crate::gl::vertex_array) Buffer<target::Array, GL>);
 
-impl<'buffer, const BINDING_INDEX: usize> VertexBufferBinding<'buffer, BINDING_INDEX> {
-    pub(in crate::gl) fn new<GL>(vbo: &'buffer Buffer<target::Array, GL>) -> Self {
+impl<const BINDING_INDEX: usize, GL> VertexBufferBinding<BINDING_INDEX,  GL> {
+    pub(in crate::gl) fn new(vbo: Buffer<target::Array, GL>) -> Self {
         Self(vbo)
     }
 }
