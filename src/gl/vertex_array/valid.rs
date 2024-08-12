@@ -9,7 +9,7 @@ pub trait Attributes: crate::hlist::lhlist::Base { }
 
 impl Attributes for () { }
 
-impl<H, Attr, const ATTRIB_INDEX: usize, const BINDING_INDEX: usize> Attributes for (H, Attribute<Attr, ATTRIB_INDEX, BINDING_INDEX>)
+impl<H, Attr, const ATTRIB_INDEX: usize> Attributes for (H, Attribute<Attr, ATTRIB_INDEX>)
 where
     H: Attributes,
     Attr: bounds::AttribFormat

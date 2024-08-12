@@ -1,4 +1,4 @@
-/// Provide binding point
+/// Provide var point
 
 use crate::prelude::internal::*;
 
@@ -7,10 +7,14 @@ use crate::gl;
 use gl::object::ObjectBase;
 use gl::buffer::{Buffer, target};
 
-#[derive(dm::AsRef)]
-pub struct VertexBufferBinding<const BINDING_INDEX: usize, GL>(pub(in crate::gl::vertex_array) Buffer<target::Array, GL>);
+// NOTE: Single buffer in the future should provide bindings due to containing multiple type arrays consecutively in memory. Bindings would be set per one such type.
+// This means that Binding does not necessarily contains a buffer, but rather reference to single type of type list in buffer.
+// All of this is temporarily ignored and VertexBufferBinding contains a whole buffer to preserve structure.
 
-impl<const BINDING_INDEX: usize, GL> VertexBufferBinding<BINDING_INDEX,  GL> {
+#[derive(dm::AsRef)]
+pub struct VertexBufferBinding<GL>(pub(in crate::gl::vertex_array) Buffer<target::Array, GL>);
+
+impl<GL> VertexBufferBinding<GL> {
     pub(in crate::gl) fn new(vbo: Buffer<target::Array, GL>) -> Self {
         Self(vbo)
     }

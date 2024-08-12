@@ -19,7 +19,7 @@ pub(super) use lib::Lib;
 pub(super) use main::Main;
 
 use gl::object::{ObjectBase, PartialObject};
-use glsl::UniformBinding;
+use glsl::UniformVariable;
 
 use super::uniform::Declarations;
 
@@ -46,7 +46,7 @@ pub enum QueryParam {
 
 /// Allocator for Shader Objects.
 #[hi::mark(PartialObject)]
-pub(in crate::gl) struct ShaderObject<T>(PhantomData<T>)
+pub struct ShaderObject<T>(PhantomData<T>)
 where
     T: Target;
 
@@ -127,7 +127,7 @@ where
     Decls: uniform::bounds::Declarations,
 { 
     /// Declare uniform variable used by this shader
-    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformBinding<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, glsl::UniformBinding<U, LOCATION>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformVariable<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, glsl::UniformVariable<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {

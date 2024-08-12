@@ -14,7 +14,7 @@ impl<const INDEX: usize, T> Indexed<INDEX, T> {
 }
 
 pub mod lhlist {
-    use frunk::hlist::Selector;
+    use unordered_rhlist::Selector;
 
     use super::*;
 
@@ -31,7 +31,7 @@ pub mod lhlist {
     pub trait Empty: Base {
         fn default() -> Self;
 
-        fn appned_indexed<E>(self, value: E) -> (Self, Indexed<0, E>);
+        fn append_indexed<E>(self, value: E) -> (Self, Indexed<0, E>);
 
         fn new<E>(value: E) -> (Self, Indexed<0, E>);
     }
@@ -45,7 +45,7 @@ pub mod lhlist {
             ((), Indexed::new(value))
         }
 
-        fn appned_indexed<E>(self, value: E) -> (Self, Indexed<0, E>) {
+        fn append_indexed<E>(self, value: E) -> (Self, Indexed<0, E>) {
             <Self as Empty>::new(value)
         }
     }

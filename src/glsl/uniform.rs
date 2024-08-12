@@ -122,7 +122,7 @@ pub trait Uniforms: hlist::Base { }
 
 impl Uniforms for () { }
 
-impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::binding::UniformBinding<T, LOCATION, S>)
+impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::variable::UniformVariable<T, LOCATION, S>)
 where
     H: Uniforms,
     T: glsl::Uniform,
@@ -152,7 +152,6 @@ pub mod bounds {
         T: TransparentUniform + glsl::bounds::ScalarType
         + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
     { }
-
 
     pub trait VectorUniform<const DIM: usize>: TransparentUniform + glsl::bounds::VectorType<DIM>
         + DispatchSetters<Signature = signature::UniformV<<Self::Layout as ext::Array>::Type>>
@@ -184,14 +183,14 @@ pub mod ops {
 
     use crate::ffi;
     use crate::gl;
-    use glsl::binding::UniformBinding;
+    use glsl::variable::UniformVariable;
     use ffi::FFIExt;
 
     pub trait Set<Subtype = <Self as glsl::bounds::TransparentType>::Subtype>: glsl::bounds::TransparentType + DispatchSetters
     where
         Subtype: valid::Subtype,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
+        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
     }
 
     impl<U> Set<valid::Scalar> for U
@@ -199,7 +198,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -215,7 +214,7 @@ pub mod ops {
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
         Const<DIM>: valid::VecDim,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -230,7 +229,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformBinding<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {

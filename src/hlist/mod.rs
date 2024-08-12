@@ -3,6 +3,128 @@ pub mod indexed;
 
 use crate::utils::Disjoint;
 
+#[macro_export]
+macro_rules! HList {
+    ($ty:ty $(,)?) => {
+        ((), $ty)
+    };
+    ($ty:ty, $($tail:ty),+ $(,)?) => {
+        crate::HList!(@ ((), $ty) => $($tail),+)
+    };
+    (@ $acc:ty => $ty:ty) => {
+        ($acc, $ty)
+    };
+    (@ $acc:ty => $ty:ty, $($tail:ty),+) => {
+        crate::HList!(@ ($acc, $ty) => $($tail),+)
+    };
+}
+
+pub use HList;
+
+mod const_ops {
+    use super::*;
+
+    const DEFAULT_BUFFER_SIZE: usize = 512;
+
+    pub const fn buffer_size() -> usize {
+        let custom_size = option_env!("CONST_OP_BUFFER_SIZE");
+    
+        if custom_size.is_none() {
+            return DEFAULT_BUFFER_SIZE
+        }
+    
+        let mut res: usize = 0;
+        let Some(string) = custom_size else {
+            panic!("bytes must be not None");
+        };
+        let mut bytes = string.as_bytes();
+        while let [byte, rest @ ..] = bytes {
+            bytes = rest;
+            if let b'0'..=b'9' = byte {
+                res *= 10;
+                res += (*byte - b'0') as usize;
+            } else {
+                panic!("`CONST_OP_BUFFER_SIZE` was not set to a integer value");
+            }
+        }
+        if res > DEFAULT_BUFFER_SIZE { res } else { DEFAULT_BUFFER_SIZE }
+    }
+
+    pub const BUFFER_SIZE: usize = buffer_size();
+
+    pub type Buffer<T> = [T; BUFFER_SIZE];
+
+    const EMPTY: usize = 0;
+
+    const fn fill_buffer<T: Copy>(value: T) -> Buffer<T> {
+        [value; BUFFER_SIZE]
+    }
+
+    const fn empty_buffer() -> Buffer<usize> {
+        fill_buffer(EMPTY)
+    }
+
+    const fn all_different(array: Buffer<usize>, len: usize, value: usize) -> Buffer<usize> {
+        if len > array.len() {
+            panic!(
+                concat!(
+                    module_path!(), "::BUFFER_SIZE too small, you can increase it by setting `CONST_OP_BUFFER_SIZE` environment variable to a greater value. Current value: "
+                )
+            );
+        }
+    
+        let mut i = 0;
+        let mut new_array = empty_buffer();
+        while i < len {
+            if array[i] == value as _ {
+                panic!("items are overlapping");
+            }
+            new_array[i] = array[i];
+            i += 1;
+        }
+        new_array[len] = value as _;
+        new_array
+    }
+
+    use lhlist::Base as _;
+
+    pub trait ConstOp: Sized + lhlist::Base { }
+
+    impl ConstOp for () { }
+    impl<H, T> ConstOp for (H, T) where H: ConstOp, T: IndexedItem { }
+
+    pub trait AllDifferent: ConstOp + lhlist::Base {
+        const MEMORY: Buffer<usize>;
+    }
+
+    impl AllDifferent for () {
+        const MEMORY: Buffer<usize> = [0; BUFFER_SIZE];
+    }
+
+    impl<H, T> AllDifferent for (H, T)
+    where
+        H: AllDifferent,
+        T: IndexedItem,
+    {
+        const MEMORY: Buffer<usize> = all_different(H::MEMORY, Self::LENGTH - 1, T::INDEX);
+    }
+}
+
+pub trait IndexedItem {
+    const INDEX: usize;
+}
+
+pub trait Indexed {
+    const CURRENT_ELEMENT_INDEX: usize;
+}
+
+impl<E> Indexed for ((), E) where E: IndexedItem {
+    const CURRENT_ELEMENT_INDEX: usize = E::INDEX;
+}
+impl<H, E, T> Indexed for ((H, E), T) where H: Indexed, E: IndexedItem, T: IndexedItem {
+    const CURRENT_ELEMENT_INDEX: usize = T::INDEX;
+}
+
 pub mod lhlist {
     #[allow(unused)]
     use super::{counters, Disjoint, Left};
@@ -619,26 +741,6 @@ impl Disjoint for Left {
 
 impl Disjoint for Right {
     type Discriminant = Self;
-}
-
-pub trait HList {
-    type Prepended: HList;
-    type Appended: HList;
-
-    type Last;
-    type First;
-
-    type Inverted: HList;
-    type Reversed: HList;
-
-    fn prepend<E>(self, value: E) -> Self::Prepended;
-    fn append<E>(self, value: E) -> Self::Appended;
-
-    fn first(&self) -> Self::First;
-    fn last(&self) -> Self::Last;
-
-    fn invert(&self) -> Self::Inverted;
-    fn reverse(self) -> Self::Reversed;
 }
 
 mod private {

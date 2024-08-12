@@ -1,6 +1,7 @@
 
 use crate::prelude::internal::*;
 use crate::gl;
+use gl::texture::storage;
 
 /// NOTE: Target dispatches storage allocation (https://www.khronos.org/opengl/wiki/Texture_Storage#Anatomy_of_storage)
 
@@ -9,7 +10,7 @@ pub mod _valid {
 }
 
 #[hi::marker]
-pub trait Target: gl::target::Target { }
+pub trait Target: gl::target::Target + Dimensionality { }
 
 pub enum D<const N: usize> { }
 
@@ -61,3 +62,22 @@ impl_target! { CubeMap as TEXTURE_CUBE_MAP }
 impl_target! { CubeMapArray as TEXTURE_CUBE_MAP_ARRAY }
 impl_target! { D2MultiSample as TEXTURE_2D_MULTISAMPLE }
 impl_target! { D2MultiSampleArray as TEXTURE_2D_MULTISAMPLE_ARRAY }
+
+
+/// Dimensionality of storage using given target
+pub trait Dimensionality {
+    type Index;
+}
+
+
+macro_rules! impl_dimensionality {
+    ([$dim:literal] $($target:ty),+ $(,)?) => {
+        $(
+            impl Dimensionality for $target { type Index = [u32; $dim]; }
+        )+
+    };
+}
+
+impl_dimensionality! { [1] D1, Buffer }
+impl_dimensionality! { [2] D2, Rectangle, D1Array, CubeMap, D2MultiSample }
+impl_dimensionality! { [3] D3, CubeMapArray, D2Array, D2MultiSampleArray }

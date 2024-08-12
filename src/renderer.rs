@@ -8,7 +8,7 @@ use crate::glsl;
 
 use crate::gl::{buffer, buffer::Buffer};
 
-type Inputs = crate::Bindings! {
+type Inputs = crate::Glsl! {
     layout(location = 0) in vec3;
     layout(location = 1) in vec4;
     layout(location = 2) in vec2;

@@ -19,14 +19,14 @@ impl<B: Binder> Drop for Bind<B> {
     }
 }
 
-pub(crate) trait Binder: Sized {
+pub(in crate::gl) trait Binder: Sized {
     fn bind(name: u32);
     fn unbind() {
         Self::bind(0);
     }
 }
 
-pub unsafe trait Allocator: Sized {
+pub(in crate::gl) unsafe trait Allocator: Sized {
     fn allocate(names: &mut [u32]);
 
     fn free(names: &[u32]);

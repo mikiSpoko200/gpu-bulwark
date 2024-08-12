@@ -1,7 +1,7 @@
 
 pub trait Qualifier { }
 
-pub trait Binding {
+pub trait Variable {
     const BINDING: usize;
 }
 

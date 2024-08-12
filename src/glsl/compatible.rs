@@ -13,7 +13,12 @@ where
 { }
 
 pub mod hlist {
-    pub trait Compatible<T> { }
+    use crate::{gl, glsl};
+
+    pub trait Compatible<T>: gl::vertex_array::valid::Attributes
+    where
+        T: glsl::Parameters<glsl::storage::In>
+    { }
 }
 
 macro_rules! compatible {
@@ -132,10 +137,7 @@ impl hlist::Compatible<()> for () {}
 use crate::gl::vertex_array as vao;
 use vao::attribute::Attribute;
 
-impl<'buffer, PH, AH, GLSL, GL,
-    const ATTRIB_INDEX: usize, 
-    const BINDING_INDEX: usize,
-    > hlist::Compatible<(PH, glsl::InBinding<GLSL, ATTRIB_INDEX>)> for (AH, Attribute<'buffer, GL, ATTRIB_INDEX, BINDING_INDEX>)
+impl<'buffer, PH, AH, GLSL, GL, const ATTRIB_INDEX: usize> hlist::Compatible<(PH, glsl::InVariable<GLSL, ATTRIB_INDEX>)> for (AH, Attribute<GL, ATTRIB_INDEX>)
 where
     GLSL: glsl::parameters::Parameter<glsl::storage::In>,
     PH: glsl::parameters::Parameters<glsl::storage::In>,

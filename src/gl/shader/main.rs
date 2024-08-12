@@ -12,7 +12,7 @@ use crate::hlist::indexed::lhlist::Append;
 use gl::uniform;
 use gl::shader::target;
 
-use glsl::{InBinding, OutBinding};
+use glsl::{InVariable, OutVariable};
 use glsl::storage::{In, Out};
 use glsl::storage;
 
@@ -47,7 +47,7 @@ where
     Outs: glsl::Parameters<Out>,
     Decls: uniform::bounds::Declarations,
 {
-    pub fn input<In, const LOCATION: usize>(self, _: &InBinding<In, LOCATION>) -> Main<Target, (Ins, InBinding<In, LOCATION>), Outs, Decls>
+    pub fn input<In, const LOCATION: usize>(self, _: &InVariable<In, LOCATION>) -> Main<Target, (Ins, InVariable<In, LOCATION>), Outs, Decls>
     where
         In: glsl::parameters::Parameter<storage::In>,
     {
@@ -55,7 +55,7 @@ where
         Main::new(shader)
     }
 
-    pub fn output<Out, const LOCATION: usize>(self, _: &OutBinding<Out, LOCATION>) -> Main<Target, Ins, (Outs, OutBinding<Out, LOCATION>), Decls>
+    pub fn output<Out, const LOCATION: usize>(self, _: &OutVariable<Out, LOCATION>) -> Main<Target, Ins, (Outs, OutVariable<Out, LOCATION>), Decls>
     where
         Out: glsl::parameters::Parameter<storage::Out>,
     {

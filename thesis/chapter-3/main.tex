@@ -12,7 +12,7 @@ TODO: opis opengl'a
 
 \section{OpenGL objects}
 
-OpenGL exposes an abstraction over GPU's resources called objects. In order to use given object it first must be bound to a binding point in current OpenGL context. 
+OpenGL exposes an abstraction over GPU's resources called objects. In order to use given object it first must be bound to a var point in current OpenGL context. 
 
 Objects contain internal state which can be queried using introspection. Objects are identified by a \textit{name} which is an unsigned 32 bit integer. There exists common object model which describes how most types of objects are managed.
 
@@ -35,7 +35,7 @@ Objects contain internal state which can be queried using introspection. Objects
 
 The most notable outliers that do not conform to the rules above are program objects, shader objects 
 
-Objects can be deleted with \texttt{void} \textbf{Delete*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects}), bound with aforementioned \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...) which usually accepts additional parameter that specifies binding point.
+Objects can be deleted with \texttt{void} \textbf{Delete*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects}), bound with aforementioned \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...) which usually accepts additional parameter that specifies var point.
 
 OpenGL specification defines set of publicly available object parameters which can be queries using introspection with \textbf{GetInteger*} family of functions. One notable usage is determining compilation and linking status for shaders and programs. 
 

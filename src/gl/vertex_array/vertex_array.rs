@@ -15,7 +15,7 @@ use vertex_array::attribute::Attribute;
 use crate::hlist::lhlist::Base as HList;
 
 #[hi::mark(Object, PartialObject)]
-enum VertexArrayObject { }
+pub enum VertexArrayObject { }
 
 unsafe impl Allocator for VertexArrayObject {
     fn allocate(names: &mut [u32]) {
@@ -97,11 +97,11 @@ impl<AS> VertexArray<AS>
 where
     AS: valid::Attributes,
 {
-    pub fn vertex_attrib_pointer<'buffer, Attr, Param, const ATTRIBUTE_INDEX: usize>(
+    pub fn vertex_attrib_pointer<Attr, Param, const ATTRIBUTE_INDEX: usize>(
         self,
-        binding: &glsl::InBinding<Param, ATTRIBUTE_INDEX>,
-        buffer: &'buffer Buffer<buffer::Array, Attr>
-    ) -> VertexArray<(AS, Attribute<'buffer, Attr, ATTRIBUTE_INDEX>)>
+        var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>,
+        buffer: Buffer<buffer::Array, Attr>
+    ) -> VertexArray<(AS, Attribute<Attr, ATTRIBUTE_INDEX>)>
     where
         Attr: bounds::AttribFormat,
         Param: glsl::bounds::Parameter<glsl::storage::In>

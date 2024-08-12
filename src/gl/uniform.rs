@@ -10,7 +10,7 @@ use crate::ts;
 use crate::hlist::HList;
 use crate::hlist::{self, indexed, lhlist, rhlist};
 use gl::shader;
-use glsl::binding::{UniformBinding, UniformDefinition};
+use glsl::variable::{UniformVariable, UniformDefinition};
 use ffi::FFIExt;
 
 pub mod bounds {
@@ -23,7 +23,7 @@ pub mod bounds {
 
     impl Declarations for () {}
 
-    impl<H, U, const LOCATION: usize> Declarations for (H, UniformBinding<U, LOCATION>)
+    impl<H, U, const LOCATION: usize> Declarations for (H, UniformVariable<U, LOCATION>)
     where
         H: Declarations,
         U: glsl::Uniform,
@@ -42,7 +42,7 @@ pub mod bounds {
         H: Definitions,
         U: glsl::uniform::bounds::TransparentUniform,
     {
-        type AsDeclarations = (H::AsDeclarations, UniformBinding<U, LOCATION>);
+        type AsDeclarations = (H::AsDeclarations, UniformVariable<U, LOCATION>);
     }
 }
 
@@ -52,11 +52,11 @@ pub(super) struct Declaration<U, const LOCATION: usize>(PhantomData<U>)
 where
     U: glsl::Uniform;
 
-impl<U, const LOCATION: usize> From<&'_ UniformBinding<U, LOCATION>> for Declaration<U, LOCATION>
+impl<U, const LOCATION: usize> From<&'_ UniformVariable<U, LOCATION>> for Declaration<U, LOCATION>
 where
     U: glsl::Uniform,
 {
-    fn from(value: &UniformBinding<U, LOCATION>) -> Self {
+    fn from(value: &UniformVariable<U, LOCATION>) -> Self {
         Self(PhantomData)
     }
 }
@@ -99,13 +99,13 @@ impl From<()> for Declarations<ts::Mutable, ()> {
     }
 }
 
-impl<H, Decls, U, const LOCATION: usize> From<&'_ (H, UniformBinding<U, LOCATION>)> for Declarations<ts::Mutable, (Decls, UniformBinding<U, LOCATION>)>
+impl<H, Decls, U, const LOCATION: usize> From<&'_ (H, UniformVariable<U, LOCATION>)> for Declarations<ts::Mutable, (Decls, UniformVariable<U, LOCATION>)>
 where
     Decls: bounds::Declarations,
     Declarations<ts::Mutable, Decls>: From<H>,
     U: glsl::Uniform,
 {
-    fn from((head, binding): &(H, UniformBinding<U, LOCATION>)) -> Self {
+    fn from((head, var): &(H, UniformVariable<U, LOCATION>)) -> Self {
         Declarations(PhantomData)
     }
 }
@@ -116,7 +116,7 @@ where
     Decls: bounds::Declarations,
 {
     /// Declare a new uniform at specified location.
-    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Decls, UniformBinding<U, LOCATION>)>
+    pub fn declare<U, const LOCATION: usize>(self, _: Declaration<U, LOCATION>) -> Declarations<ts::Mutable, (Decls, UniformVariable<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
@@ -128,12 +128,12 @@ where
     }
 }
 
-impl<H, U, const LOCATION: usize> Declarations<ts::Immutable, (H, UniformBinding<U, LOCATION>)>
+impl<H, U, const LOCATION: usize> Declarations<ts::Immutable, (H, UniformVariable<U, LOCATION>)>
 where
     H: bounds::Declarations,
     U: glsl::Uniform,
 {
-    pub(super) fn bind(self, _: &UniformBinding<U, LOCATION>) -> Declarations<ts::Immutable, H> {
+    pub(super) fn bind(self, _: &UniformVariable<U, LOCATION>) -> Declarations<ts::Immutable, H> {
         Declarations(PhantomData)
     }
 }
@@ -165,7 +165,7 @@ where
     Unis: bounds::Definitions,
 {
     /// Define a new uniform at specified location.
-    pub fn define<'defs, U, const LOCATION: usize>(self, _: &'_ UniformBinding<U, LOCATION>, uniform: &'defs impl glsl::Compatible<U>) -> Definitions<(Unis, Definition<'defs, U, LOCATION>)>
+    pub fn define<'defs, U, const LOCATION: usize>(self, _: &'_ UniformVariable<U, LOCATION>, uniform: &'defs impl glsl::Compatible<U>) -> Definitions<(Unis, Definition<'defs, U, LOCATION>)>
     where
         U: glsl::bounds::TransparentUniform,
     {
@@ -219,21 +219,21 @@ where
     }
 }
 
-impl<'defs, Defs, H, U, const LOCATION: usize> Matcher<Defs, (H, UniformBinding<U, LOCATION>)>
+impl<'defs, Defs, H, U, const LOCATION: usize> Matcher<Defs, (H, UniformVariable<U, LOCATION>)>
 where
     Defs: bounds::Definitions + 'defs,
     H: bounds::Declarations,
     U: glsl::uniform::bounds::TransparentUniform,
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn bind<GLU, IDX>(self, binding: &UniformBinding<U, LOCATION>) -> Matcher<Defs, H>
+    pub fn bind<IDX>(self, var: &UniformVariable<U, LOCATION>) -> Matcher<Defs, H>
     where
         Defs: hlist::lhlist::Find<Definition<'defs, U, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
         Matcher {
             definitions: self.definitions,
-            declarations: self.declarations.bind(binding),
+            declarations: self.declarations.bind(var),
         }
     }
 }

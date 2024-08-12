@@ -72,7 +72,7 @@ impl_usage!((Dynamic, Copy): glb::DYNAMIC_COPY);
 
 /// Allocator for OpenGL buffer objects.
 #[hi::mark(PartialObject, Object)]
-pub(in crate::gl) struct BufferObject<T: Target>(PhantomData<T>);
+pub struct BufferObject<T: Target>(PhantomData<T>);
 
 unsafe impl<T: Target> object::Allocator for BufferObject<T> {
     fn allocate(names: &mut [u32]) {

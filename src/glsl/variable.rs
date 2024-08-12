@@ -22,11 +22,6 @@ pub enum Layout { }
 #[derive(Debug)]
 pub enum Interpolation { }
 
-/// GL / GLSL binding target --
-pub trait Variable {
-    type Type: glsl::Type;
-}
-
 /// storage qualifiers
 pub mod storage {
     use super::{Qualifier, Storage};
@@ -59,19 +54,19 @@ pub mod layout {
     pub enum Location<const N: usize> { }
     impl<const N: usize> Qualifier<Layout> for Location<N> {}
 
-    pub enum Binding<const N: usize> { }
-    impl<const N: usize> Qualifier<Layout> for Binding<N> {}
+    pub enum Variable<const N: usize> { }
+    impl<const N: usize> Qualifier<Layout> for Variable<N> {}
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct Binding<S, L, T, Store = md::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
+pub struct Variable<S, L, T, Store = md::Phantom>(Store::Store<T>, PhantomData<(S, L)>)
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
     L: Qualifier<Layout>,
     Store: md::Storage;
 
-impl<S, L, T> Default for Binding<S, L, T>
+impl<S, L, T> Default for Variable<S, L, T>
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
@@ -82,7 +77,7 @@ where
     }
 }
 
-impl<S, L, T> Binding<S, L, T, md::Phantom>
+impl<S, L, T> Variable<S, L, T, md::Phantom>
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
@@ -93,7 +88,7 @@ where
     }
 }
 
-impl<S, L, T> Binding<S, L, T, md::Inline>
+impl<S, L, T> Variable<S, L, T, md::Inline>
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
@@ -104,23 +99,23 @@ where
     }
 }
 
-pub type UniformBinding<U, const LOCATION: usize, S = md::Phantom> = Binding<storage::Uniform, layout::Location<LOCATION>, U, S>;
-pub type UniformDefinition<U, const LOCATION: usize> = UniformBinding<U, LOCATION, md::Inline>;
+pub type UniformVariable<U, const LOCATION: usize, S = md::Phantom> = Variable<storage::Uniform, layout::Location<LOCATION>, U, S>;
+pub type UniformDefinition<U, const LOCATION: usize> = UniformVariable<U, LOCATION, md::Inline>;
 
 
-pub type InBinding<T, const LOCATION: usize, S = md::Phantom> = Binding<storage::In, layout::Location<LOCATION>, T, S>;
-pub type OutBinding<T, const LOCATION: usize, S = md::Phantom> = Binding<storage::Out, layout::Location<LOCATION>, T, S>;
+pub type InVariable<T, const LOCATION: usize, S = md::Phantom> = Variable<storage::In, layout::Location<LOCATION>, T, S>;
+pub type OutVariable<T, const LOCATION: usize, S = md::Phantom> = Variable<storage::Out, layout::Location<LOCATION>, T, S>;
 
-impl<T, const LOCATION: usize> OutBinding<T, LOCATION>
+impl<T, const LOCATION: usize> OutVariable<T, LOCATION>
 where
     T: glsl::bounds::TransparentType,
 {
-    fn matching_input(&self) -> InBinding<T, LOCATION> {
-        InBinding::default()
+    fn matching_input(&self) -> InVariable<T, LOCATION> {
+        InVariable::default()
     }
 }
 
-impl<S, L, T> constraint::ConstFnValid for ((), Binding<S, L, T>)
+impl<S, L, T> constraint::ConstFnValid for ((), Variable<S, L, T>)
 where
     T: glsl::Type,
     S: Qualifier<Storage>,
@@ -145,10 +140,10 @@ where
 }
 
 impl<H, S, PT, CT, const PL: usize, const CL: usize, Store> constraint::ConstFnValid for (
-    (H, Binding<S, layout::Location<PL>, PT, Store>), Binding<S, layout::Location<CL>, CT, Store>,
+    (H, Variable<S, layout::Location<PL>, PT, Store>), Variable<S, layout::Location<CL>, CT, Store>,
 )
 where
-    (H, Binding<S, layout::Location<PL>, PT, Store>): constraint::ConstFnValid,
+    (H, Variable<S, layout::Location<PL>, PT, Store>): constraint::ConstFnValid,
     H: HList,
     S: Qualifier<Storage>,
     PT: glsl::bounds::TransparentType,
@@ -172,12 +167,12 @@ impl MatchingInputs for () {
     }
 }
 
-impl<H, T, const LOCATION: usize> MatchingInputs for (H, OutBinding<T, LOCATION>)
+impl<H, T, const LOCATION: usize> MatchingInputs for (H, OutVariable<T, LOCATION>)
 where
     H: MatchingInputs,
     T: glsl::bounds::Parameter<storage::In>,
 {
-    type Inputs = (H::Inputs, InBinding<T, LOCATION>);
+    type Inputs = (H::Inputs, InVariable<T, LOCATION>);
 
     fn matching_inputs(&self) -> Self::Inputs {
         let (head, tail) = self;
@@ -188,20 +183,20 @@ where
 #[macro_export]
 macro_rules! layout_qualifier {
     (location = $value:literal) => {
-        crate::glsl::binding::layout::Location<$value>
+        crate::glsl::variable::layout::Location<$value>
     };
 }
 
 #[macro_export]
 macro_rules! storage_qualifier {
     (in) => {
-        crate::glsl::binding::storage::In
+        crate::glsl::variable::storage::In
     };
     (out) => {
-        crate::glsl::binding::storage::Out
+        crate::glsl::variable::storage::Out
     };
     (uniform) => {
-        crate::glsl::binding::storage::Uniform
+        crate::glsl::variable::storage::Uniform
     };
 }
 
@@ -258,9 +253,9 @@ macro_rules! type_qualifier {
 }
 
 #[macro_export]
-macro_rules! Bindings {
+macro_rules! Glsl {
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*;) => {
-        ((), crate::glsl::binding::Binding::<
+        ((), crate::glsl::variable::Variable::<
             crate::storage_qualifier!($storage),
             crate::layout_qualifier!($qualifier = $value),
             crate::type_qualifier!($type $([$size])*)
@@ -268,8 +263,8 @@ macro_rules! Bindings {
     )
     };
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);* ;) => {
-        crate::Bindings! {
-            @ ((), crate::glsl::binding::Binding::<
+        crate::Glsl! {
+            @ ((), crate::glsl::variable::Variable::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
                 crate::type_qualifier!($type $([$size])*)
@@ -279,15 +274,15 @@ macro_rules! Bindings {
         }
     };
     (@ $acc:ty => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*) => {
-        ($acc, crate::glsl::binding::Binding::<
+        ($acc, crate::glsl::variable::Variable::<
             crate::storage_qualifier!($storage),
             crate::layout_qualifier!($qualifier = $value),
             crate::type_qualifier!($type $([$size])*)
         >)
     };
     (@ $acc: ty => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);*) => {
-        crate::Bindings! {
-            @ ($acc, crate::glsl::binding::Binding::<
+        crate::Glsl! {
+            @ ($acc, crate::glsl::variable::Variable::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
                 crate::type_qualifier!($type $([$size])*)
@@ -299,10 +294,10 @@ macro_rules! Bindings {
 }
 
 #[macro_export]
-macro_rules! bindings {
+macro_rules! glsl {
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*;) => {
         crate::constraint::ValidExt::validated(
-            ((), crate::glsl::binding::Binding::<
+            ((), crate::glsl::variable::Variable::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
                 crate::type_qualifier!($type $([$size])*)
@@ -310,10 +305,10 @@ macro_rules! bindings {
         )
     };
     (layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);* ;) => {
-        crate::bindings! {
+        crate::glsl! {
             @
             crate::constraint::ValidExt::validated(
-                ((), crate::glsl::binding::Binding::<
+                ((), crate::glsl::variable::Variable::<
                     crate::storage_qualifier!($storage),
                     crate::layout_qualifier!($qualifier = $value),
                     crate::type_qualifier!($type $([$size])*)
@@ -325,7 +320,7 @@ macro_rules! bindings {
     };
     (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*) => {
         crate::constraint::ValidExt::validated(
-            ($acc, crate::glsl::binding::Binding::<
+            ($acc, crate::glsl::variable::Variable::<
                 crate::storage_qualifier!($storage),
                 crate::layout_qualifier!($qualifier = $value),
                 crate::type_qualifier!($type $([$size])*)
@@ -333,10 +328,10 @@ macro_rules! bindings {
         )
     };
     (@ $acc:expr => layout($qualifier:ident = $value:literal) $storage:ident $type:ident $([$size:literal])*; $(layout($qualifiers:ident = $values:literal) $storages:ident $types:ident $([$sizes:literal])*);*) => {
-        crate::bindings! {
+        crate::glsl! {
             @
             crate::constraint::ValidExt::validated(
-                ($acc, crate::glsl::binding::Binding::<
+                ($acc, crate::glsl::variable::Variable::<
                     storage_qualifier!($storage),
                     layout_qualifier!($qualifier = $value),
                     type_qualifier!($type $([$size])*)
@@ -351,12 +346,12 @@ macro_rules! bindings {
 #[macro_export]
 macro_rules! inputs {
     (layout ($qualifier:ident = $value:literal) $type:ident $(;)?) => {
-        crate::bindings! {
+        crate::glsl! {
             layout($qualifier = $value) in $type;
         }
     };
     (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::bindings! {
+        crate::glsl! {
             layout ($qualifier = $value) in $type;
             $(layout ($qualifiers = $values) in $types);* ;
         }
@@ -366,12 +361,12 @@ macro_rules! inputs {
 #[macro_export]
 macro_rules! Inputs {
     (layout ($qualifier:ident = $value:literal) $type:ident;) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout($qualifier = $value) in $type;
         }
     };
     (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout($qualifier = $value) in $type;
             $(layout ($qualifiers = $values) in $types);* ;
         }
@@ -381,12 +376,12 @@ macro_rules! Inputs {
 #[macro_export]
 macro_rules! outputs {
     (layout ($qualifier:ident = $value:literal) $type:ident $(;)?) => {
-        crate::bindings! {
+        crate::glsl! {
             layout($qualifier = $value) out $type;
         }
     };
     (layout ($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::bindings! {
+        crate::glsl! {
             layout ($qualifier = $value) out $type;
             $(layout($qualifiers = $values) out $types);* ;
         }
@@ -396,12 +391,12 @@ macro_rules! outputs {
 #[macro_export]
 macro_rules! Outputs {
     (layout($qualifier:ident = $value:literal) $type:ident ;) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout($qualifier = $value) out $type;
         }
     };
     (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout ($qualifier = $value) out $type;
             $(layout($qualifiers = $values) out $types);* ;
         }
@@ -411,12 +406,12 @@ macro_rules! Outputs {
 #[macro_export]
 macro_rules! uniforms {
     (layout($qualifier:ident = $value:literal) $type:ident $(;)?) => {
-        crate::bindings! {
+        crate::glsl! {
             layout($qualifier = $value) uniform $type;
         }
     };
     (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::bindings! {
+        crate::glsl! {
             layout($qualifier = $value) uniform $type;
             $(layout($qualifiers = $values) uniform $types);* ;
         }
@@ -426,12 +421,12 @@ macro_rules! uniforms {
 #[macro_export]
 macro_rules! Uniforms {
     (layout($qualifier:ident = $value:literal) $type:ident $(;)?) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout($qualifier = $value) uniform $type;
         }
     };
     (layout($qualifier:ident = $value:literal) $type:ident; $(layout ($qualifiers:ident = $values:literal) $types:ident);* ;) => {
-        crate::Bindings! {
+        crate::Glsl! {
             layout($qualifier = $value) uniform $type;
             $(layout($qualifiers = $values) uniform $types);* ;
         }
@@ -440,19 +435,25 @@ macro_rules! Uniforms {
 
 /// Unpack bindings into separate variables
 #[macro_export]
-macro_rules! unpack {
+macro_rules! vars {
     ($ident: ident $(,)?) => {
         ((), $ident)
     };
     ($ident: ident, $($idents: tt),* $(,)?) => {
-        crate::glsl::binding::unpack!(@ ((), $ident), $($idents),*)
+        crate::glsl::variable::vars!(@ ((), $ident), $($idents),*)
     };
     (@ $acc: tt, $ident: tt $(,)?) => {
         ($acc, $ident)
     };
     (@ $acc: tt, $ident: ident, $($idents: tt),* $(,)?) => {
-        crate::glsl::binding::unpack!(@ ($acc, $ident), $($idents),*)
+        crate::glsl::variable::vars!(@ ($acc, $ident), $($idents),*)
     };
 }
 
-pub use unpack;
+pub use vars;
+pub use uniforms;
+pub use Uniforms;
+pub use inputs;
+pub use Inputs;
+pub use outputs;
+pub use Outputs;

@@ -1,4 +1,4 @@
-pub mod binding;
+pub mod variable;
 pub mod compatible;
 mod glsl;
 pub mod location;
@@ -16,14 +16,21 @@ pub use parameters::Parameters;
 pub use uniform::{Uniforms, Uniform};
 pub use compatible::Compatible;
 
-pub use binding::{
+pub use variable::{
     storage,
     layout,
     Storage,
-    Binding,
-    InBinding,
-    OutBinding,
-    UniformBinding,
+    Variable,
+    InVariable,
+    OutVariable,
+    UniformVariable,
     Qualifier,
     MatchingInputs,
+    vars,
+    uniforms,
+    Uniforms,
+    inputs,
+    Inputs,
+    outputs,
+    Outputs,
 };

@@ -3,7 +3,7 @@
 use crate::prelude::internal::*;
 use crate::glsl;
 use crate::hlist::lhlist::Base as HList;
-use glsl::{InBinding, OutBinding, Storage, Qualifier, storage};
+use glsl::{InVariable, OutVariable, Storage, Qualifier, storage};
 
 
 #[hi::marker]
@@ -46,13 +46,13 @@ where
 
 impl<Q> Parameters<Q> for () where Q: Qualifier<Storage> { }
 
-impl<PH, T, const LOCATION: usize> Parameters<storage::In> for (PH, InBinding<T, LOCATION>)
+impl<PH, T, const LOCATION: usize> Parameters<storage::In> for (PH, InVariable<T, LOCATION>)
 where
     PH: Parameters<storage::In>,
     T: Parameter<storage::In>,
 { }
 
-impl<Head, T, const LOCATION: usize> Parameters<storage::Out> for (Head, OutBinding<T, LOCATION>)
+impl<Head, T, const LOCATION: usize> Parameters<storage::Out> for (Head, OutVariable<T, LOCATION>)
 where
     Head: Parameters<storage::Out>,
     T: Parameter<storage::Out>,
@@ -63,7 +63,7 @@ where
 mod tests {
     use super::*;
 
-    use glsl::binding::{Qualifier, Storage};
+    use glsl::variable::{Qualifier, Storage};
 
     fn require_parameter<P: Parameter<Q>, Q: Qualifier<Storage>>() { }
 

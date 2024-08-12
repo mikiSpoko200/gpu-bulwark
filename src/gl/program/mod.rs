@@ -19,11 +19,11 @@ use gl::object::*;
 use gl::shader;
 use gl::shader::prelude::*;
 use gl::uniform;
-use glsl::binding;
+use glsl::variable;
 
-use binding::UniformBinding;
+use variable::UniformVariable;
 
-use binding::{layout, storage};
+use variable::{layout, storage};
 use glutin::error;
 
 use super::uniform::Declaration;
@@ -96,7 +96,7 @@ pub struct Linked;
 impl LinkingStatus for Linked {}
 
 #[hi::mark(PartialObject, Object)]
-enum ProgramObject { }
+pub enum ProgramObject { }
 
 unsafe impl Allocator for ProgramObject {
     fn allocate(names: &mut [u32]) {
@@ -291,16 +291,16 @@ where
         )
     }
 
-    /// Set new value for given uniform binding
+    /// Set new value for given uniform variable
     pub fn uniform<GLSL, const LOCATION: usize, IDX>(
         &mut self,
-        binding: &UniformBinding<GLSL, LOCATION>,
+        var: &UniformVariable<GLSL, LOCATION>,
         uniform: &impl glsl::Compatible<GLSL>,
     ) where
         GLSL: glsl::bounds::TransparentUniform,
         IDX: Index,
-        DUS: Find<UniformBinding<GLSL, LOCATION>, IDX>,
+        DUS: Find<UniformVariable<GLSL, LOCATION>, IDX>,
     {
-        self.bound(|_| GLSL::set(binding, uniform));
+        self.bound(|_| GLSL::set(var, uniform));
     }
 }

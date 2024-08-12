@@ -15,5 +15,6 @@
         "Uncompiled",
         "urgb",
         "VARYINGS"
-    ]
+    ],
+    // "rust-analyzer.cargo.extraArgs": ["--verbose"],
 }

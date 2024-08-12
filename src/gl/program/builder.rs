@@ -4,7 +4,7 @@ use crate::prelude::internal::*;
 // root imports
 use crate::gl;
 use crate::glsl;
-use crate::glsl::binding;
+use crate::glsl::variable;
 use crate::hlist;
 use crate::hlist::lhlist;
 use crate::ts;
@@ -15,7 +15,7 @@ use gl::shader;
 use gl::uniform;
 
 // item imports
-use binding::storage::{In, Out};
+use variable::storage::{In, Out};
 use gl::uniform::{Definitions, Matcher};
 use gl::object::ObjectBase;
 use gl::shader::*;
@@ -233,7 +233,7 @@ where
 impl<'s, Ins, Outs, Defs> Builder<'s, ts::Some<Vertex>, Ins, Outs, Defs, ()>
 where
     Ins: glsl::Parameters<In>,
-    Outs: glsl::Parameters<Out> + glsl::binding::MatchingInputs,
+    Outs: glsl::Parameters<Out> + glsl::variable::MatchingInputs,
     Defs: uniform::bounds::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
