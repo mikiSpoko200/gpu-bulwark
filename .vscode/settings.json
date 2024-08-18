@@ -8,13 +8,15 @@
         "impls",
         "irgb",
         "lhlist",
+        "Lsizei",
         "Parameteri",
         "Programiv",
         "rhlist",
         "Shaderiv",
         "Uncompiled",
         "urgb",
-        "VARYINGS"
+        "VARYINGS",
+        "xoffset"
     ],
     // "rust-analyzer.cargo.extraArgs": ["--verbose"],
 }

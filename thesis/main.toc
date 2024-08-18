@@ -33,12 +33,13 @@
 \contentsline {section}{\numberline {3.4}Modern OpenGL}{17}{section.3.4}%
 \contentsline {section}{\numberline {3.5}Graphics pipeline}{17}{section.3.5}%
 \contentsline {subsection}{\numberline {3.5.1}Vertex Specification}{17}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Vertex shading}{17}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}Tesselation}{17}{subsection.3.5.3}%
-\contentsline {subsection}{\numberline {3.5.4}Geometry shading}{17}{subsection.3.5.4}%
-\contentsline {subsection}{\numberline {3.5.5}Primitive assembly}{17}{subsection.3.5.5}%
-\contentsline {subsection}{\numberline {3.5.6}Rasterization}{17}{subsection.3.5.6}%
-\contentsline {subsection}{\numberline {3.5.7}Fragment shading}{17}{subsection.3.5.7}%
-\contentsline {subsection}{\numberline {3.5.8}Fragment post processing}{17}{subsection.3.5.8}%
-\contentsline {subsection}{\numberline {3.5.9}Compute shaders}{17}{subsection.3.5.9}%
-\contentsline {section}{\numberline {3.6}GLSL}{17}{section.3.6}%
+\contentsline {subsection}{\numberline {3.5.2}Vertex Shader}{18}{subsection.3.5.2}%
+\contentsline {subsection}{\numberline {3.5.3}Tessellation}{18}{subsection.3.5.3}%
+\contentsline {subsection}{\numberline {3.5.4}Geometry shading}{19}{subsection.3.5.4}%
+\contentsline {subsection}{\numberline {3.5.5}Fixed function vertex post-processing}{19}{subsection.3.5.5}%
+\contentsline {subsection}{\numberline {3.5.6}Primitive assembly}{19}{subsection.3.5.6}%
+\contentsline {subsection}{\numberline {3.5.7}Rasterization}{19}{subsection.3.5.7}%
+\contentsline {subsection}{\numberline {3.5.8}Fragment shading}{19}{subsection.3.5.8}%
+\contentsline {subsection}{\numberline {3.5.9}Fragment post processing}{19}{subsection.3.5.9}%
+\contentsline {subsection}{\numberline {3.5.10}Compute shaders}{19}{subsection.3.5.10}%
+\contentsline {section}{\numberline {3.6}GLSL}{19}{section.3.6}%

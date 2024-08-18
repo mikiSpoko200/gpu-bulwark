@@ -3,6 +3,7 @@ use crate::glsl;
 use crate::impl_target;
 use crate::md;
 use crate::gl;
+use gl::texture;
 
 /// Buffer object target types.
 #[hi::marker]
@@ -42,13 +43,12 @@ pub enum Query { }
 pub enum ShaderStorage { }
 
 #[hi::mark(Target)]
-pub enum Texture { }
-
-#[hi::mark(Target)]
 pub enum TransformFeedback { } 
 
 #[hi::mark(Target)]
 pub enum Uniform { }
+
+hi::denmark! { texture::Buffer as Target }
 
 impl_target!{ Array as ARRAY_BUFFER }
 impl_target!{ AtomicCounter as ATOMIC_COUNTER_BUFFER }
@@ -61,6 +61,5 @@ impl_target!{ PixelPack as PIXEL_PACK_BUFFER }
 impl_target!{ PixelUnpack as PIXEL_UNPACK_BUFFER }
 impl_target!{ Query as QUERY_BUFFER }
 impl_target!{ ShaderStorage as SHADER_STORAGE_BUFFER }
-impl_target!{ Texture as TEXTURE_BUFFER }
 impl_target!{ TransformFeedback as TRANSFORM_FEEDBACK_BUFFER }
 impl_target!{ Uniform as UNIFORM_BUFFER }

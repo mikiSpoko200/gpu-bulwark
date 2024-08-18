@@ -70,29 +70,84 @@ In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it wa
 
 \section{Modern OpenGL}
 
-%TODO: Opisz istotne zmiany w różnych wersjach?
-
-OpenGL release 3.0 was a turning point in the specification's development. It deprecated  
-
 \section{Graphics pipeline}
-
-%TODO: Opisz jak OpenGL 4.6 modeluje potok graficzny
-%NOTE: GL spec 4.6 core: Chapter 3
 
 OpenGL 4.6 models graphics pipeline as follows:
 
+\section*{OpenGL 4.6 Pipeline Description}
+
+The OpenGL 4.6 pipeline is a sequence of stages that process and render 3D graphics onto the screen. It involves both fixed-function stages and programmable shader stages. Below is a detailed breakdown of each stage:
+
 \subsection{Vertex Specification}
 
-%TODO: opisz pojęcia client / server w kontekście OpenGL'a.
-Before any draw calls can be made geometric data must be transferred to the client and generic vertex attributes must be configured.
+Before any rendering can being geometric information needs to provided as generic vertex attributes.
 
-\subsection{Vertex shading}
+Vertex is an abstract composition of attributes that means to represent a point in 3D space of some object that is being modelled.
+Generic stands from the fact that data associated with vertices has no intrinsic meaning.
+Semantics of data are dictated by client provided vertex shader.
 
-\subsection{Tesselation}
+OpenGL sources data for each vertex attribute form a buffer. Each attribute is assigned an index.
+Association between attribute with given index and a buffer from which should that attribute source its data is established by Vertex Array Object (abbriev. VAO).
+
+Once all vertex attributes have their data sources assigned and properly configured, vertex specification can be considered finished and one could precede with further pipeline configuration.
+In this instance vertices would be interpreted sequentially as appropriate primitives. This forces vertex data to be specified redundantly for lines and especially raw triangles since each triangle shares each edge with each neighboring triangle.
+
+To better conserve memory one can use indexed rendering. This requires additional buffer filled with indices into main vertex buffer instead of inlined vertex data.
+In case of basic triangle rendering (without using compressed representations like triangle fan or triangle / line strip) will still cause repetition but now only few byte wide indices instead of whole attributes which are substantially larger.
+
+\subsection{Vertex Shader}
+
+Vertex shader is the first programmable stage of OpenGL Pipeline and is one of two required shaders to execute a draw call, the other being the fragment shader.
+
+Most commonly vertex shader performs 3 translations. From initial model space, world space, view space to final clip space which we will now discuss briefly.
+
+\textbf{model space} - when a 3D model is created in 3D modelling software its vertex positions are specified to some local coordinate system (commonly center of an object).
+These positions would commonly be loaded into gpu memory. Such objects can be easily placed in broader scene by providing a so called world transform performs transformation from model's local coordinate system
+to scene's coordinate system.
+
+\textbf{world space} - world space refers to coordinate system of a scene that uses multiple models by translating, scaling or rotating them.
+
+\textbf{view space} - its common for 3D rendering applications to provide means of interacting with the scene. Wether its a 3D computer game, CAD program or medical data visualization we would like to be able to 
+control how scene is displayed by moving a virtual camera. This can be expressed as yet another transformation of the coordinate system - we would like to transform coordinate system to align with the position of our camera.
+This transformation is commonly called view transform.
+
+\textbf{clip space} - having accounted for model position in a scene and user interactivity all that remains is to provide vertex data in form that subsequent fixed function pipeline stage - the rasterizer - expects.
+Namely once vertex shader is finished fixed function processing will perform so called perspective divide and then clip all geometry to normalized device coordinates (NDC).
+Output of vertex shader is a 4 component vector which corresponds to a 3D position in homogenious coordinate system used in computer graphics due to its ability to represent non linear transformations using matrices.
+The output position of vertex is divided by the forth component in order to introduce perspective 
+
+% TODO: Correct section about perspective - remark that perspective divide itself does not handle near and far clipping plane.
+
+The main responsibility of vertex shader is to transform vertices to clip space, which will be discussed in future subsection. %TODO: Add link clip space% 
+
+\subsection{Tessellation}
+
+Tesselation stages were added as graphics hardware compute capability grew. With raw compute throughput outperforming bus throughput GPUs were equipped with hardware
+tesselation unit which can subdivide a larger triangle into batch of smaller ones. This allows for efficient generation of geometric detail on chip alleviating the 
+issue of limited PCI throughput.
+To drive the tesselation stage two new shaders were introduced:
+\begin{itemize}
+    \item \textbf{Tesselation control shader} which configures how hardware tesselator should subdivide a triangle.
+    \item \textbf{Tesselation evaluation shader} which performs transformations on vertices generated by the tesselator.
+\end{itemize}
 
 \subsection{Geometry shading}
 
+Geometry shader was introduced prior to tesselation stage. They operate on assembled geometric primitives and may even access primitives neighbors.
+Given primitive input geometry shaders output one or more primitive of the same type.
+
+\subsection{Fixed function vertex post-processing}
+
+Once all vertex programmable stages have concluded a vertex fixed function post processing takes place which includes:
+
+\begin{itemize}
+    \item \textbf{Tesselation control shader} which configures how hardware tesselator should subdivide a triangle.
+    \item \textbf{Tesselation evaluation shader} which performs transformations on vertices generated by the tesselator.
+\end{itemize}
+
 \subsection{Primitive assembly}
+
+Primitive assembly
 
 \subsection{Rasterization}
 
