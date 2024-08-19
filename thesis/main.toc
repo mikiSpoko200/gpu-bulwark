@@ -22,24 +22,25 @@
 \contentsline {section}{\numberline {1.4}Type level abstraction}{10}{section.1.4}%
 \contentsline {section}{\numberline {1.5}Implementation Coherence}{11}{section.1.5}%
 \contentsline {subsection}{\numberline {1.5.1}Orphan Rule}{11}{subsection.1.5.1}%
-\contentsline {chapter}{\numberline {2}Basics of Computer Graphics}{13}{chapter.2}%
-\contentsline {subsection}{\numberline {2.0.1}Programmable graphics pipeline}{13}{subsection.2.0.1}%
-\contentsline {chapter}{\numberline {3}OpenGL}{15}{chapter.3}%
-\contentsline {section}{\numberline {3.1}Introduction}{15}{section.3.1}%
-\contentsline {section}{\numberline {3.2}OpenGL objects}{15}{section.3.2}%
-\contentsline {subsection}{\numberline {3.2.1}Buffer object}{16}{subsection.3.2.1}%
-\contentsline {subsection}{\numberline {3.2.2}Vertex Array object}{16}{subsection.3.2.2}%
-\contentsline {section}{\numberline {3.3}History}{16}{section.3.3}%
-\contentsline {section}{\numberline {3.4}Modern OpenGL}{17}{section.3.4}%
-\contentsline {section}{\numberline {3.5}Graphics pipeline}{17}{section.3.5}%
-\contentsline {subsection}{\numberline {3.5.1}Vertex Specification}{17}{subsection.3.5.1}%
-\contentsline {subsection}{\numberline {3.5.2}Vertex Shader}{18}{subsection.3.5.2}%
-\contentsline {subsection}{\numberline {3.5.3}Tessellation}{18}{subsection.3.5.3}%
-\contentsline {subsection}{\numberline {3.5.4}Geometry shading}{19}{subsection.3.5.4}%
-\contentsline {subsection}{\numberline {3.5.5}Fixed function vertex post-processing}{19}{subsection.3.5.5}%
-\contentsline {subsection}{\numberline {3.5.6}Primitive assembly}{19}{subsection.3.5.6}%
-\contentsline {subsection}{\numberline {3.5.7}Rasterization}{19}{subsection.3.5.7}%
-\contentsline {subsection}{\numberline {3.5.8}Fragment shading}{19}{subsection.3.5.8}%
-\contentsline {subsection}{\numberline {3.5.9}Fragment post processing}{19}{subsection.3.5.9}%
-\contentsline {subsection}{\numberline {3.5.10}Compute shaders}{19}{subsection.3.5.10}%
-\contentsline {section}{\numberline {3.6}GLSL}{19}{section.3.6}%
+\contentsline {chapter}{\numberline {2}OpenGL}{13}{chapter.2}%
+\contentsline {section}{\numberline {2.1}Introduction}{13}{section.2.1}%
+\contentsline {section}{\numberline {2.2}OpenGL objects}{13}{section.2.2}%
+\contentsline {subsection}{\numberline {2.2.1}Buffer object}{14}{subsection.2.2.1}%
+\contentsline {subsection}{\numberline {2.2.2}Vertex Array object}{14}{subsection.2.2.2}%
+\contentsline {section}{\numberline {2.3}History}{14}{section.2.3}%
+\contentsline {section}{\numberline {2.4}Modern OpenGL}{15}{section.2.4}%
+\contentsline {section}{\numberline {2.5}Graphics pipeline}{15}{section.2.5}%
+\contentsline {subsection}{\numberline {2.5.1}Vertex Specification}{15}{subsection.2.5.1}%
+\contentsline {subsection}{\numberline {2.5.2}Vertex Shader}{16}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Tessellation}{16}{subsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.5.4}Geometry shading}{17}{subsection.2.5.4}%
+\contentsline {subsection}{\numberline {2.5.5}Fixed function vertex post-processing}{17}{subsection.2.5.5}%
+\contentsline {subsection}{\numberline {2.5.6}Rasterization}{17}{subsection.2.5.6}%
+\contentsline {subsection}{\numberline {2.5.7}Fragment processing}{18}{subsection.2.5.7}%
+\contentsline {subsection}{\numberline {2.5.8}Fragment post processing}{18}{subsection.2.5.8}%
+\contentsline {section}{\numberline {2.6}GLSL}{18}{section.2.6}%
+\contentsline {subsection}{\numberline {2.6.1}Variables}{19}{subsection.2.6.1}%
+\contentsline {subsection}{\numberline {2.6.2}Variable type qualifiers}{19}{subsection.2.6.2}%
+\contentsline {subsection}{\numberline {2.6.3}Variable storage qualifiers}{19}{subsection.2.6.3}%
+\contentsline {subsection}{\numberline {2.6.4}Variable layout qualifiers}{19}{subsection.2.6.4}%
+\contentsline {chapter}{Bibliography}{23}{chapter*.6}%

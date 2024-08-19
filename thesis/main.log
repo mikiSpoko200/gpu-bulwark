@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.8)  18 AUG 2024 15:06
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  19 AUG 2024 11:27
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -93,7 +93,7 @@ Package: iftex 2022/02/03 v1.0f TeX engine tests
 \Gm@layoutvoffset=\dimen150
 \Gm@dimlist=\toks18
 ) (d:/texlive/2024/texmf-dist/tex/latex/hyperref/hyperref.sty
-Package: hyperref 2024-05-23 v7.01i Hypertext links for LaTeX
+Package: hyperref 2024-07-10 v7.01j Hypertext links for LaTeX
  (d:/texlive/2024/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty
 Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
 ) (d:/texlive/2024/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
@@ -132,7 +132,7 @@ Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO)
 \Hy@linkcounter=\count276
 \Hy@pagecounter=\count277
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/pd1enc.def
-File: pd1enc.def 2024-05-23 v7.01i Hyperref: PDFDocEncoding definition (HO)
+File: pd1enc.def 2024-07-10 v7.01j Hyperref: PDFDocEncoding definition (HO)
 Now handling font encoding PD1 ...
 ... no UTF-8 mapping file for font encoding PD1
 ) (d:/texlive/2024/texmf-dist/tex/generic/intcalc/intcalc.sty
@@ -140,7 +140,7 @@ Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 )
 \Hy@SavedSpaceFactor=\count278
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/puenc.def
-File: puenc.def 2024-05-23 v7.01i Hyperref: PDF Unicode definition (HO)
+File: puenc.def 2024-07-10 v7.01j Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
@@ -184,7 +184,7 @@ package with kernel methods
 )
 Package hyperref Info: Driver: hpdftex.
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/hpdftex.def
-File: hpdftex.def 2024-05-23 v7.01i Hyperref driver for pdfTeX
+File: hpdftex.def 2024-07-10 v7.01j Hyperref driver for pdfTeX
  (d:/texlive/2024/texmf-dist/tex/latex/base/atveryend-ltx.sty
 Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atveryend package
 with kernel methods
@@ -207,29 +207,29 @@ Package: inputenc 2024/02/08 v1.3d Input encoding file
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count286
 \l__pdf_internal_box=\box52
-) (./main.aux)
+) (./main.aux (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux))
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for OT4/cmr/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 23.
-LaTeX Font Info:    ... okay on input line 23.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for OT4/cmr/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 24.
+LaTeX Font Info:    ... okay on input line 24.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -266,16 +266,17 @@ LaTeX Font Info:    ... okay on input line 23.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 23.
+Package hyperref Info: Link coloring OFF on input line 24.
+(./main.out) (./main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 23.
+(Font)              <12> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 23.
+(Font)              <8> on input line 24.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 23.
+(Font)              <6> on input line 24.
 
 
 [1
@@ -290,26 +291,28 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 
 [4
 
-]
-No file main.toc.
+] (./main.toc
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <10.95> on input line 13.
+
+
+[5])
 \tf@toc=\write4
 \openout4 = `main.toc'.
 
 
 
-[5]
+[6]
 \openout2 = `chapter-1/main.aux'.
 
  (./chapter-1/main.tex
-
-[6
-
-
-]
 Chapter 1.
 
 
-[7]
+[7
+
+
+]
 
 [8
 
@@ -324,167 +327,12 @@ LaTeX Font Warning: Font shape `OT4/cmtt/bx/n' in size <10.95> not available
 
 
 
-[9{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/pltt.enc}{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/plit.enc}]
-
-LaTeX Warning: Citation `rustbook' on page 10 undefined on input line 89.
-
-./chapter-1/main.tex:89: Undefined control sequence.
-l.89 ... mostly interested in their use in \testit
-                                                  {trait bounds} on types an...
-The control sequence at the end of the top line
-of your error message was never \def'ed. If you have
-misspelled it (e.g., `\hobx'), type `I' and the correct
-spelling (e.g., `I\hbox'). Otherwise just continue,
-and I'll forget about whatever was undefined.
-
-
-./chapter-1/main.tex:93: LaTeX Error: Environment lstlisting undefined.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.93 \begin{lstlisting}
-                       [Language=Rust]
-Your command was ignored.
-Type  I <command> <return>  to replace it with another command,
-or  <return>  to continue without it.
-
-./chapter-1/main.tex:96: Missing $ inserted.
-<inserted text> 
-                $
-l.96         const GL_
-                      TYPE_ENUMERATOR: usize;
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 96.
-./chapter-1/main.tex:98: Extra }, or forgotten $.
-l.98     }
-          
-I've deleted a group-closing symbol because it seems to be
-spurious, as in `$x}$'. But perhaps the } is legitimate and
-you forgot something else, as in `\hbox{$x}'. In such cases
-the way to recover is to insert both the forgotten and the
-deleted material, e.g., by typing `I$}'.
-
-./chapter-1/main.tex:99: Missing $ inserted.
-<inserted text> 
-                $
-l.99 
-     
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-
-Overfull \hbox (95.15921pt too wide) in paragraph at lines 93--99
-\OT4/cmr/m/n/10.95 just marker trait Ver-tex-At-tribute  const GL$[]\OML/cmm/m/it/10.95 YPE[]NUMERATOR \OT1/cmr/m/n/10.95 : \OML/cmm/m/it/10.95 usize\OT1/cmr/m/n/10.95 ; \OML/cmm/m/it/10.95 constN[]OMPONENTS \OT1/cmr/m/n/10.95 :
- []
-
-./chapter-1/main.tex:101: Missing $ inserted.
-<inserted text> 
-                $
-l.101         const GL_
-                       TYPE_ENUMERATOR: usize = GL_FLOAT;
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-./chapter-1/main.tex:103: Extra }, or forgotten $.
-l.103     }
-           
-I've deleted a group-closing symbol because it seems to be
-spurious, as in `$x}$'. But perhaps the } is legitimate and
-you forgot something else, as in `\hbox{$x}'. In such cases
-the way to recover is to insert both the forgotten and the
-deleted material, e.g., by typing `I$}'.
-
-./chapter-1/main.tex:116: Missing $ inserted.
-<inserted text> 
-                $
-l.116 
-      
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-
-Overfull \hbox (1662.94156pt too wide) in paragraph at lines 100--116
-\OML/cmm/m/it/10.95 GL[]LOAT\OT1/cmr/m/n/10.95 ; \OML/cmm/m/it/10.95 constN[]OMPONENTS \OT1/cmr/m/n/10.95 : \OML/cmm/m/it/10.95 usize \OT1/cmr/m/n/10.95 = 1; \OML/cmm/m/it/10.95 implVertexAttributefor\OT1/cmr/m/n/10.95 [\OML/cmm/m/it/10.95 f\OT1/cmr/m/n/10.95 32; 2][]\OML/cmm/m/it/10.95 implVertexAttributefor\OT1/cmr/m/n/10.95 [\OML/cmm/m/it/10.95 f\OT1/cmr/m/n/10.95 32; 3][]\OML/cmm/m/it/10.95 implVertexAttributefor\OT1/cmr/m/n/10.95 [\OML/cmm/m/it/10.95 f\OT1/cmr/m/n/10.95 32; 4][]$ 
- []
+[9{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/pltt.enc}{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/plit.enc}])
+Underfull \vbox (badness 2486) has occurred while \output is active []
 
 
 
 [10]
-./chapter-1/main.tex:117: Missing $ inserted.
-<inserted text> 
-                $
-l.117     fn send_
-                  vertex_attributes(attributes: &[T])
-I've inserted a begin-math/end-math symbol since I think
-you left one out. Proceed, with fingers crossed.
-
-./chapter-1/main.tex:117: Misplaced alignment tab character &.
-l.117     fn send_vertex_attributes(attributes: &
-                                                 [T])
-I can't figure out why you would want to use a tab mark
-here. If you just want an ampersand, the remedy is
-simple: Just type `I\&' now. But if some right brace
-up above has ended a previous alignment prematurely,
-you're probably due for more error messages, and you
-might try typing `S' now just to see what is salvageable.
-
-
-./chapter-1/main.tex:125: LaTeX Error: \begin{document} ended by \end{lstlisting}.
-
-See the LaTeX manual or LaTeX Companion for explanation.
-Type  H <return>  for immediate help.
- ...                                              
-                                                  
-l.125 \end{lstlisting}
-                      
-Your command was ignored.
-Type  I <command> <return>  to replace it with another command,
-or  <return>  to continue without it.
-
-./chapter-1/main.tex:125: Missing $ inserted.
-<inserted text> 
-                $
-l.125 \end{lstlisting}
-                      
-I've inserted something that you may have forgotten.
-(See the <inserted text> above.)
-With luck, this will get me unwedged. But if you
-really didn't forget anything, try typing `2' now; then
-my insertion and my current dilemma will both disappear.
-
-./chapter-1/main.tex:125: Missing } inserted.
-<inserted text> 
-                }
-l.125 \end{lstlisting}
-                      
-I've inserted something that you may have forgotten.
-(See the <inserted text> above.)
-With luck, this will get me unwedged. But if you
-really didn't forget anything, try typing `2' now; then
-my insertion and my current dilemma will both disappear.
-
-./chapter-1/main.tex:125: Missing } inserted.
-<inserted text> 
-                }
-l.125 \end{lstlisting}
-                      
-I've inserted something that you may have forgotten.
-(See the <inserted text> above.)
-With luck, this will get me unwedged. But if you
-really didn't forget anything, try typing `2' now; then
-my insertion and my current dilemma will both disappear.
-
-
-Overfull \hbox (144.07399pt too wide) in paragraph at lines 117--126
-[]\OT4/cmr/m/n/10.95 fn send$[]\OML/cmm/m/it/10.95 ertex[]ttributes\OT1/cmr/m/n/10.95 (\OML/cmm/m/it/10.95 attributes \OT1/cmr/m/n/10.95 : [\OML/cmm/m/it/10.95 T\OT1/cmr/m/n/10.95 ])\OML/cmm/m/it/10.95 whereT \OT1/cmr/m/n/10.95 : \OML/cmm/m/it/10.95 VertexAttribute; []$ 
- []
-
-)
 
 [11]
 \openout2 = `chapter-2/main.aux'.
@@ -498,24 +346,6 @@ Overfull \hbox (144.07399pt too wide) in paragraph at lines 117--126
 
 ]
 Chapter 2.
-
-Package hyperref Warning: Difference (2) between bookmark levels is greater 
-(hyperref)                than one, level fixed on input line 15.
-
-)
-
-[13]
-\openout2 = `chapter-3/main.aux'.
-
- (./chapter-3/main.tex
-
-[14
-
-
-
-
-]
-Chapter 3.
 
 Underfull \hbox (badness 10000) in paragraph at lines 19--20
 
@@ -533,50 +363,66 @@ Underfull \hbox (badness 10000) in paragraph at lines 29--30
 
 
 
-[15]
+[13]
 Underfull \hbox (badness 10000) in paragraph at lines 58--59
 
  []
 
 
 
+[14]
+
+[15]
+
 [16]
 
-[17]
+[17{d:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]
 
 [18])
 
-[19{d:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}] (./main.bbl) (./main.aux (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux))
+[19]
+\openout2 = `chapter-3/main.aux'.
+
+ (./chapter-3/main.tex)
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
+
+[20
+
+
+
+]
+
+[21] (./main.bbl
+
+[22
+
+
+
+])
+
+[23] (./main.aux (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux))
  ***********
 LaTeX2e <2024-06-01> patch level 2
 L3 programming layer <2024-05-27>
  ***********
-
-
-LaTeX Warning: There were undefined references.
-
-
-Package rerunfilecheck Warning: File `main.out' has changed.
-(rerunfilecheck)                Rerun to get outlines right
-(rerunfilecheck)                or use package `bookmark'.
-
-Package rerunfilecheck Info: Checksums for `main.out':
-(rerunfilecheck)             Before: <no file>
-(rerunfilecheck)             After:  914A57E18B3A89C3F98EEE66A9782CE8;4841.
+Package rerunfilecheck Info: File `main.out' has not changed.
+(rerunfilecheck)             Checksum: 35E9DDC12EB0FCF3DE978950A50373BC;4957.
  ) 
 Here is how much of TeX's memory you used:
- 10013 strings out of 473583
- 158487 string characters out of 5732343
- 1933908 words of memory out of 5000000
- 32724 multiletter control sequences out of 15000+600000
+ 10067 strings out of 473583
+ 159277 string characters out of 5732342
+ 1934908 words of memory out of 5000000
+ 32762 multiletter control sequences out of 15000+600000
  569443 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,6n,93p,794b,638s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (19 pages, 139702 bytes).
+<d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
+Output written on main.pdf (23 pages, 116539 bytes).
 PDF statistics:
- 201 PDF objects out of 1000 (max. 8388607)
- 156 compressed objects within 2 object streams
- 60 named destinations out of 1000 (max. 500000)
- 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 342 PDF objects out of 1000 (max. 8388607)
+ 298 compressed objects within 3 object streams
+ 64 named destinations out of 1000 (max. 500000)
+ 273 words of extra memory for PDF output out of 10000 (max. 10000000)
 
