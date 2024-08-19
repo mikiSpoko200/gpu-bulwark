@@ -1,4 +1,4 @@
-\chapter{OpenGL}
+\chapter{OpenGL and GLSL}
 
 \section{Introduction}
 
@@ -6,39 +6,41 @@ OpenGL is an specification of an API for hardware accelerated computer graphics 
 
 Since it's inception  and up until 2016 with release of Vulkan it has been the only widely supported cross platform graphics API.
 
+\section{History}
 
-% From specification
-TODO: opis opengl'a
+IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
+In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. This task was passed on to Khronos Group in 2006 where it remained ever since.
 
 \section{OpenGL objects}
 
-OpenGL exposes an abstraction over GPU's resources called objects. In order to use given object it first must be bound to a var point in current OpenGL context. 
+OpenGL exposes an abstraction over GPU's resources called objects.
+These roughly correlate with object oriented design as they aggregate data for appropriate subset of operations albeit with certain unique caveats.
+In all but the latest opengl versions, to use given object it first must have been bound to a binding point in global in current OpenGL context.
+In OpenGl 4.6 the \texttt{ARB\_direct\_state\_access} extension was made part of core specification which introduces duplicates of all object manipulating functions to 
+accept as one of parameters the name of object to operate on.
 
-Objects contain internal state which can be queried using introspection. Objects are identified by a \textit{name} which is an unsigned 32 bit integer. There exists common object model which describes how most types of objects are managed.
+Objects contain internal state which can be queried using introspection. 
+Objects are identified by a \textit{name} which is an unsigned 32 bit integer. 
+There exists common object model which describes how most types of objects are managed.
 
-\noindent Most types of object can be created with either call to\\
-
-\centerline{
+\noindent Most types of objects can be created with a call to
+\begin{center}
     \texttt{void} \textbf{Gen*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects})
-}
-\noindent which will allocate object's \textit{name} and subsequent call to \\
-
-\centerline{
-    \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...)
-}
-\noindent which will bind given object to the context and, if given object has never been bound before, allocate their internal state. Alternatively one can use\\
-
-\centerline {
+\end{center}
+\noindent which will allocate the object's \textit{name}. A subsequent call to
+\begin{center}
+    \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, \ldots)
+\end{center}
+\noindent will bind the given object to the context. If the object has never been bound before, this will also allocate its internal state. Alternatively, one can use
+\begin{center}
     \texttt{void} \textbf{Create*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects})
-}
-\noindent which will allocate both object's \textit{name} and its state but it will not set any context bindings. There exist separate namespace for each object type.
+\end{center}
+\noindent which will allocate both the object's \textit{name} and its state, but it will not set any context bindings. There exists a separate namespace for each object type.
 
-The most notable outliers that do not conform to the rules above are program objects, shader objects 
-
-Objects can be deleted with \texttt{void} \textbf{Delete*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects}), bound with aforementioned \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...) which usually accepts additional parameter that specifies var point.
+Objects can be deleted with \texttt{void} \textbf{Delete*s}(\texttt{sizei} \textit{n}, \texttt{uint} *\textit{objects}), bound with aforementioned \texttt{void} \textbf{Bind*}(\texttt{uint} \textit{name}, ...) which usually accepts additional parameter that specifies binding point.
+The most notable outliers that do not conform to the rules above are program objects and shader objects.
 
 OpenGL specification defines set of publicly available object parameters which can be queries using introspection with \textbf{GetInteger*} family of functions. One notable usage is determining compilation and linking status for shaders and programs. 
-
 \subsection{Buffer object}
 
 Buffer objects provide means to allocate data stores in GPU memory. They can contain data of different format and purpose depending on buffer's target. Primary usage for buffers is to provide geometric information which includes vertex attribute values and indices for indexed rendering.
@@ -51,32 +53,18 @@ Each attribute is assigned a zero-based index. Vertex Array object (VAO) assigns
 attribute information on how and where from to source vertex data, as well as, what is the
 data type of provided attribute in glsl.
 
-This can be seen as two separate pieces of information:
-- in memory layout and access frequency
-- interpretation / conversion of the data.
+This can be viewed as two aspects: (1) memory layout and access frequency, and (2) data interpretation/conversion.
 
-Originally all of that information was specified at one with\\
-
-\centerline {
-    void VertexAttrib*Pointer(
+Originally all of that information was specified at one with
+\begin{center}
+    \texttt{void} \textbf{VertexAttrib*Pointer}(
 
     )
-}
-\section{History}
-
-IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
-
-In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. This task was passed on to Khronos Group in 2006 where it remained ever since.
-
-\section{Modern OpenGL}
+\end{center}
 
 \section{Graphics pipeline}
 
-OpenGL 4.6 models graphics pipeline as follows:
-
-\section*{OpenGL 4.6 Pipeline Description}
-
-The OpenGL 4.6 pipeline is a sequence of stages that process and render 3D graphics onto the screen. It involves both fixed-function stages and programmable shader stages. Below is a detailed breakdown of each stage:
+The modern OpenGL pipeline is a sequence of both programmable and fixed function stages that process geometric data to form discrete pixels that end up stored in a framebuffer. 
 
 \subsection{Vertex Specification}
 
@@ -186,7 +174,7 @@ use signed distance functions and implicit surface equations to render otherwise
 
 \section{GLSL}
 
-GLSL is a high level shading language with c like syntax developed by OpenGL Architecture Review Board to power programable processing stages in OpenGL pipeline. 
+GLSL, which stands for OpenGL Shading Language, is a high level shading language with c like syntax developed by OpenGL Architecture Review Board to power programable processing stages in OpenGL pipeline. 
 GLSL code is still relevant as it can be compiled into SPIR-V and used with Vulkan API.
 
 \subsection*{Shaders}
@@ -204,16 +192,76 @@ They function similarly to other existing general purpose GPU compute APIs like 
 
 \subsection{Variables}
 
-Shaders 
+The main purpose of shaders if to transform received data to some other form. The data that the shader expects is defined using global variables with appropriate qualifiers.
+During Program linking OpenGL matches outputs from previous stage with inputs of the next stage. 
+In case of vertex shader \texttt{in} variables should match with vertex attribute definitions specified in vertex array object.
+Tough in case of mismatch if attribute is disabled constant value can be provided, however thats rarely desired behavior.
+Similarly, \texttt{out} variables from fragment shader should match with framebuffer configuration.
+This process can be quite error prone and can lead to undefined behavior which can be difficult to diagnose and may have different consequences depending on actual hardware, os or driver versions.
 
-\subsection{Variable type qualifiers}
+Under no circumstances erroneous pipeline configuration should be allowed. Program containing such malformed configuration should be rejected by static analysis, and that was one of most important aspects of this study.
+To achieve that we attempted to express both GLSL variable declarations along with full OpenGL pipeline in Rust's type system in sucha a way to force type errors for invalid pipeline configurations.
 
-% TODO: Describe that opengl uses different types and expands them into larger formats during execution
+We determined that keeping track of three variable qualifiers is essential to achieve that.
+
+\subsection{Variable types}
+
+Expressing GLSL variable type in Rust types was the obvious first step. GLSL defines a set of built-in types along with ability to create aggregate data types with C-like array and struct definitions.
+
+% FIXME: czy to pasuje do tej sekcji? Może dać to już do rozdziału poświęconemu bibliotece.
+For this work we focused on builtin types and arrays and omitted structures due to Rust's inability to encode layout guarantees for arbitrary types.
+Rust's built-in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
+
+GLSL's built-in types are divided into two groups: transparent and opaque types.
+Transparent types represent numeric data (plain old data) whereas opaque types represent handles to different resources like texture image samplers.
+
+In case of transparent types there are 5 base numeric types: \texttt{float}, \texttt{double}, \texttt{int}, \texttt{uint} and \texttt{bool}.
+Floating point types \texttt{float} and \texttt{double} are accordingly IEEE-754 single and double prevision numbers, integers are two's compliment 32bit values and bool undefined representation but it can take only two values \texttt{true} or \texttt{false}.
+
+All base numeric types can be aggregated into 2, 3 or 4 component vector types. Each vector type is named \texttt{\textbf{T}vec\textbf{N}}
+where \textbf{T} depends on inner base type: \texttt{b} for \texttt{bool}, \texttt{d} for \texttt{double}, \texttt{i} for \texttt{int}, \texttt{u} for \texttt{uint} and for \texttt{float} nothing is prepended to \texttt{vec\textbf{N}}.
+\textbf{N} is the number of components vector should contain.
+
+Finally, there are matrix types of form \texttt{\textbf{T}mat\textbf{N}}. Matrices can contain only \texttt{float}s (\texttt{mat\textbf{N}}) or \texttt{double}s (\texttt{dmat\textbf{N}}).
+The \textbf{N} depends on matrix dimensions it can be a single number 2, 3 or 4 for square matrices or can be arbitrarily combined pair of these numbers of form \texttt{\textbf{N}x\textbf{M}},
+i.e. \texttt{mat2x4}, \texttt{mat4x2} or \texttt{dmat3x3}.
+
+Data types used by GLSL have quite large memory footprint. Thats why OpenGL provides conversion mechanisms for data stored in buffers. Buffer data can be low bitwidth integer or float which will be normalized on access or even completely new OpenGL defined packed formats like \texttt{UNSIGNED\_INT\_2\_10\_10\_10\_REV} - a 32bit value which will be expanded to 4 \texttt{float}s. 
+
+This indirect mapping of OpenGL data to GLSL types is also essential to be statically verified just like shader input / output matching.
 
 \subsection{Variable storage qualifiers}
 
-% TODO: how qualifiers fall into pipeline model in code and how they are matched (hlists)
+The origin of data for a variable is encoded by a storage qualifier. We have already discussed that data within a shader can originate from previous stage / vertex buffers and that it can be saved as input to subsequent stage or framebuffer.
+These sources correspond to \texttt{in} and \texttt{out} qualifiers. 
+Shaders can also declare uniform variables which are data associated with program itself. Value of these variables remains the same across the
+entire primitive being processed. All uniform variables are read-only and are initialized externally either at link time or through the API.
+
+For bidirectional communication between shaders and API there exists \texttt{buffer} qualifier. Variables with such qualification are stored in buffer objects and can be both written to and read from by shaders and API.
+
+Remaining qualifiers are ignored as they are irrelevant for the scope of this study.
 
 \subsection{Variable layout qualifiers}
 
-% TODO: Layout matching between VAO and VS, between pipeline stages and how Program builder in out library matches uniform definitions with declarations based on them.
+Statically asserting that the data passed though the pipeline is correct was the main goal of this study.  ....
+Ability to statically assert that data flow though the pipeline is configured correctly depends on our ability to match neighboring stage inputs and outputs.
+In newer OpenGL versions one can use \texttt{location} layout qualifier to assign a variable a numeric index.
+This integer will be checked for uniqueness among all other variables that it shares storage qualifier with, and generate compilation error in case of overlap.
+When using locations based interface matching each \texttt{out} variable must have
+
+It assigns an variable location and along with its storage qualifier it creates unique 
+
+TODO: tie this subsection together
+
+\say{
+    An output variable is considered to match an input variable in the subsequent shader if:
+    \itemize{
+        \item the two variables match in name, type, and qualification, and neither
+        has a location qualifier, or
+        \item the two variables are declared with the same location and component layout qualifiers and match in type and qualification.
+    }
+    
+    For the purposes of interface matching, variables declared with a location
+    layout qualifier but without a component layout qualifier are considered to
+    have declared a component layout qualifier of zero.
+}
