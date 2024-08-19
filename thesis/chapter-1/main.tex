@@ -8,18 +8,6 @@ Rust is an open-source, general purpose, multi paradigm, compiled, statically an
 Although general purpose, language lends itself particularly well to systems programming, where software reliability, scalability and efficiency are paramount.
 These qualities can be attributed to powerful and expressive type system and ownership based memory management which guarantees memory safety without a garbage collector.
 
-In the following sections we describe
-
-\section{Language history}
-
-Language had it's initial inception in 2006 by Graydon Hoare, a software engineer at Mozzilla. Language's name was inspired by fungus called Rusts \cite{thompson2023rust}. 
-
-Fungus' lifecycle and reproduction cycle which is distributed, parallel and not prone to single point of failure seemed like qualifier -- CITATION NEEDED
-
-Over time more and more people joined Hoare on work on the project and in 2009, Mozilla decided to sponsor the project by founding the development. Rust 1.0 released on the 15th of May 2015.
-
-\section{Language Features}
-
 \section{Data types}
 
 % TODO: Scalars, Boolean, character, tuples, array, slice, str
@@ -98,7 +86,43 @@ Type parameters represent an abstract type
 
 \section{Type level abstraction}
 
-Traits provide an ability to express shared behavior in abstract way.
+Traits provide an ability to express shared behavior in abstract way \cite{rustbook}. We are mostly interested in their use in \textit{trait bounds} on types and type parameters.
+Trait bounds declare contracts that types must fulfil or else the program will be rejected. 
+We used it to enforce use of valid data formats and proper sequencing of operations.
+
+% \begin{lstlisting}[Language=Rust]
+%     // Empty traits are commonly referred to as marker traits or just marker
+%     trait VertexAttribute {
+%         const GL_TYPE_ENUMERATOR: usize;
+%         const N_COMPONENTS: usize;
+%     }
+
+%     impl VertexAttribute for f32 { 
+%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+%         const N_COMPONENTS: usize = 1;
+%     }
+%     impl VertexAttribute for [f32; 2] { 
+%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+%         const N_COMPONENTS: usize = 2;
+%     }
+%     impl VertexAttribute for [f32; 3] { 
+%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+%         const N_COMPONENTS: usize = 3;
+%     }
+%     impl VertexAttribute for [f32; 4] { 
+%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
+%         const N_COMPONENTS: usize = 4;
+%     }
+
+%     fn send_vertex_attributes(attributes: &[T])
+%     where
+%         T: VertexAttribute,
+%     {
+%         unsafe {
+%             // call appropriate OpenGL routine
+%         }
+%     }
+% \end{lstlisting}
 
 \section{Implementation Coherence}
 

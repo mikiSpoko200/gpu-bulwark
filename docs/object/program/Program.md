@@ -19,7 +19,7 @@ These lists seem to be good starting point for modelling the type.
 There are multiple program interfaces, here are some more notable ones:
 - UNIFORM corresponds to the set of active uniform variables used by program.
 - UNIFORM_BLOCK corresponds to the set of active uniform blocks used by program.
-- ATOMIC_COUNTER_BUFFER corresponds to the set of active atomic counter buffer binding points used by program.
+- ATOMIC_COUNTER_BUFFER corresponds to the set of active atomic counter buffer var points used by program.
 - PROGRAM_INPUT corresponds to the set of active input variables used by the
 first shader stage of program. If program includes multiple shader stages,
 input variables from any shader stage other than the first will not be enumerated.

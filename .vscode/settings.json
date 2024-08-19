@@ -1,0 +1,22 @@
+{
+    "cSpell.words": [
+        "cfind",
+        "glsl",
+        "GLSLU",
+        "hlist",
+        "hlists",
+        "impls",
+        "irgb",
+        "lhlist",
+        "Lsizei",
+        "Parameteri",
+        "Programiv",
+        "rhlist",
+        "Shaderiv",
+        "Uncompiled",
+        "urgb",
+        "VARYINGS",
+        "xoffset"
+    ],
+    // "rust-analyzer.cargo.extraArgs": ["--verbose"],
+}

@@ -1,224 +1,147 @@
-use crate::object::attributes::{AttributeDecl, Attribute};
-use crate::object::buffer::target;
+use crate::prelude::internal::*;
 
-use super::prelude::InParameterBinding;
 use crate::glsl;
+use crate::ffi;
 
-pub use marker::Compatible;
-pub use marker::hlist;
+use glsl::valid;
 
-mod marker {
-    use crate::glsl;
+/// A GL type is compatible with GLSL type if their `FFI::Layout`s match.
+#[hi::marker]
+pub trait Compatible<GLSL>: ffi::FFI<Layout = GLSL::Layout>
+where
+    GLSL: glsl::bounds::TransparentType,
+{ }
 
-    pub trait Compatible<T>: Clone + Sized + glsl::FFI
+pub mod hlist {
+    use crate::{gl, glsl};
+
+    pub trait Compatible<T>: gl::vertex_array::valid::Attributes
     where
-        T: glsl::FFI<Primitive=Self::Primitive>,
-    {
-        const CHECK_SAME_SIZE: ();
-        fn as_pod(&self) -> &[T::Primitive];
-    }
-    
-    pub mod hlist {
-        pub trait Compatible<T> { }
-    }
+        T: glsl::Parameters<glsl::storage::In>
+    { }
 }
 
 macro_rules! compatible {
-    (scalar $gl: ty => $glsl: path) => {
-        impl marker::Compatible<$glsl> for $gl {
-            const CHECK_SAME_SIZE: () = assert!({<$gl as glsl::FFI>::SIZE} == {<$glsl as glsl::FFI>::SIZE});
-            fn as_pod(&self) -> &[<$glsl as glsl::FFI>::Primitive] {
-                std::slice::from_ref(self)
-            }
-        }
-    };
-    ($gl: ty => $glsl: path) => {
-        impl marker::Compatible<$glsl> for $gl {
-            const CHECK_SAME_SIZE: () = assert!(<$gl as glsl::FFI>::SIZE == <$glsl as glsl::FFI>::SIZE);
-            fn as_pod(&self) -> &[<$glsl as glsl::FFI>::Primitive] {
-                self
-            }
-        }
+    ($gl:ty => $glsl:path) => {
+        hi::denmark! { $gl as Compatible<$glsl> }
     };
 }
 
-// --------==========[ Rust base types ]==========--------
+compatible! { f32 => f32 }
+compatible! { f64 => f64 }
+compatible! { i32 => i32 }
+compatible! { u32 => u32 }
 
-/// This is causing more trouble then its wodth
-unsafe impl<S, const N: usize> glsl::FFI for [S; N]
-where
-    S: glsl::FFI,
-{
-    type Primitive = S::Primitive;
+compatible! { [f32; 2] => glsl::Vec2 }
+compatible! { [f32; 3] => glsl::Vec3 }
+compatible! { [f32; 4] => glsl::Vec4 }
 
-    const SIZE: usize = N;
-}
+compatible! { [i32; 2] => glsl::IVec2 }
+compatible! { [i32; 3] => glsl::IVec3 }
+compatible! { [i32; 4] => glsl::IVec4 }
 
-compatible!{ scalar f32 => f32 }
-compatible!{ scalar f64 => f64 }
-compatible!{ scalar i32 => i32 }
-compatible!{ scalar u32 => u32 }
+compatible! { [u32; 2] => glsl::UVec2 }
+compatible! { [u32; 3] => glsl::UVec3 }
+compatible! { [u32; 4] => glsl::UVec4 }
 
+compatible! { [f64; 2] => glsl::DVec2 }
+compatible! { [f64; 3] => glsl::DVec3 }
+compatible! { [f64; 4] => glsl::DVec4 }
 
-compatible!{ [f32; 2] => glsl::Vec2 }
-compatible!{ [f32; 3] => glsl::Vec3 }
-compatible!{ [f32; 4] => glsl::Vec4 }
+compatible! { [[f32; 2]; 2] => glsl::Mat2x2 }
+compatible! { [[f32; 3]; 2] => glsl::Mat2x3 }
+compatible! { [[f32; 4]; 2] => glsl::Mat2x4 }
 
-compatible!{ [i32; 2] => glsl::IVec2 }
-compatible!{ [i32; 3] => glsl::IVec3 }
-compatible!{ [i32; 4] => glsl::IVec4 }
+compatible! { [[f32; 2]; 3] => glsl::Mat3x2 }
+compatible! { [[f32; 3]; 3] => glsl::Mat3x3 }
+compatible! { [[f32; 4]; 3] => glsl::Mat3x4 }
 
-compatible!{ [u32; 2] => glsl::UVec2 }
-compatible!{ [u32; 3] => glsl::UVec3 }
-compatible!{ [u32; 4] => glsl::UVec4 }
+compatible! { [[f32; 2]; 4] => glsl::Mat4x2 }
+compatible! { [[f32; 3]; 4] => glsl::Mat4x3 }
+compatible! { [[f32; 4]; 4] => glsl::Mat4x4 }
 
-compatible!{ [f64; 2] => glsl::DVec2 }
-compatible!{ [f64; 3] => glsl::DVec3 }
-compatible!{ [f64; 4] => glsl::DVec4 }
+compatible! { [[f64; 2]; 2] => glsl::DMat2x2 }
+compatible! { [[f64; 3]; 2] => glsl::DMat2x3 }
+compatible! { [[f64; 4]; 2] => glsl::DMat2x4 }
 
-// OpenGL bools are wierd (32 bit not `_Bool`)
-// compatible!([i32; 2], glsl::BVec2);
-// compatible!([i32; 3], glsl::BVec3);
-// compatible!([i32; 4], glsl::BVec4);
-// compatible!([u32; 2], glsl::BVec2);
-// compatible!([u32; 3], glsl::BVec3);
-// compatible!([u32; 4], glsl::BVec4);
+compatible! { [[f64; 2]; 3] => glsl::DMat3x2 }
+compatible! { [[f64; 3]; 3] => glsl::DMat3x3 }
+compatible! { [[f64; 4]; 3] => glsl::DMat3x4 }
 
-compatible!{ [f32; 4] => glsl::Mat2x2 }
-compatible!{ [f32; 6] => glsl::Mat2x3 }
-compatible!{ [f32; 8] => glsl::Mat2x4 }
-
-compatible!{ [f32; 6]  => glsl::Mat3x2 }
-compatible!{ [f32; 9]  => glsl::Mat3x3 }
-compatible!{ [f32; 12] => glsl::Mat3x4 }
-
-compatible!{ [f32; 8]  => glsl::Mat4x2 }
-compatible!{ [f32; 12] => glsl::Mat4x3 }
-compatible!{ [f32; 16] => glsl::Mat4x4 }
-
-compatible!{ [f64; 4] => glsl::DMat2x2 }
-compatible!{ [f64; 6] => glsl::DMat2x3 }
-compatible!{ [f64; 8] => glsl::DMat2x4 }
-
-compatible!{ [f64; 6]  => glsl::DMat3x2 }
-compatible!{ [f64; 9]  => glsl::DMat3x3 }
-compatible!{ [f64; 12] => glsl::DMat3x4 }
-
-compatible!{ [f64; 8]  => glsl::DMat4x2 }
-compatible!{ [f64; 12] => glsl::DMat4x3 }
-compatible!{ [f64; 16] => glsl::DMat4x4 }
-
-
-/// This conflicts with blanket `glsl::FFI` used by `compatible!` above
-// impl<T, const ROW: usize, const COL: usize> Compatible<glsl::Mat<T, ROW, COL>> for [[T; COL]; ROW]
-// where
-//     T: Primitive
-// {
-//     const CHECK_SAME_SIZE: () = assert!(<Self as glsl::FFI>::SIZE == <glsl::Mat<T, ROW, COL> as glsl::FFI>::SIZE);
-
-//     fn as_pod(&self) -> &[<glsl::Mat<T, ROW, COL> as glsl::FFI>::Primitive] {
-//         todo!()
-//     }
-// }
+compatible! { [[f64; 2]; 4] => glsl::DMat4x2 }
+compatible! { [[f64; 3]; 4] => glsl::DMat4x3 }
+compatible! { [[f64; 4]; 4] => glsl::DMat4x4 }
 
 // --------==========[ nalgebra types ]==========--------
 
 #[cfg(feature = "nalgebra")]
 mod nalgebra {
-
+    // TODO: implement this
 }
 
 #[cfg(feature = "nalgebra-glm")]
-mod nalgebra_glm {
-    use nalgebra_glm as glm;
-    use crate::glsl;
-    
-    unsafe impl<T, const ROW: usize, const COL: usize> glsl::FFI for glm::TMat<T, ROW, COL>
+mod impl_nalgebra_glm {
+    use super::*;
+    use ::nalgebra_glm as glm;
+
+    unsafe impl<T, const DIM: usize> ffi::FFI for glm::TVec<T, DIM>
     where
-        T: glsl::marker::ScalarType,
+        T: valid::ForVector<DIM>,
+        Const<DIM>: valid::VecDim,
     {
-        type Primitive = T;
-        const SIZE: usize = ROW * COL;
+        type Layout = [T::Layout; DIM];
     }
 
-    impl<T, const SIZE: usize> super::Compatible<glsl::base::Vec<T, SIZE>> for glm::TVec<T, SIZE>
+    impl<T, const DIM: usize> super::Compatible<glsl::GVec<T, DIM>> for glm::TVec<T, DIM>
     where
-        T: glsl::marker::ScalarType,
-        glsl::Const<SIZE>: glsl::VecSize,
-        glsl::base::Vec<T, SIZE>: glsl::location::marker::Location,
-        Self: AsRef<[T; SIZE]>,
+        T: valid::ForVector<DIM>,
+        Const<DIM>: valid::VecDim,
+        Self: AsRef<Self::Layout>,
+    { }
+
+    unsafe impl<T, const R: usize, const C: usize> ffi::FFI for glm::TMat<T, R, C>
+    where
+        T: valid::ForMatrix<R, C>,
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
     {
-        const CHECK_SAME_SIZE: () = assert!(<Self as glsl::FFI>::SIZE == <glsl::base::Vec<T, SIZE> as glsl::FFI>::SIZE);
-    
-        fn as_pod(&self) -> &[T] {
-            self.as_ref()
-        }
+        type Layout = [[T::Layout; C]; R];
     }
 
-    impl<T, const ROW: usize, const COL: usize> super::Compatible<glsl::Mat<T, ROW, COL>> for glm::TMat<T, ROW, COL>
+    impl<T, const R: usize, const C: usize> super::Compatible<glsl::Mat<T, R, C>> for glm::TMat<T, R, C>
     where
-        T: glsl::marker::ScalarType,
-        glsl::Const<ROW>: glsl::VecSize,
-        glsl::Const<COL>: glsl::VecSize,
-        glsl::Mat<T, ROW, COL>: glsl::Type<Primitive = T>,
-        Self: AsRef<[[T; COL]; ROW]>,
-    {
-        const CHECK_SAME_SIZE: () = assert!(<Self as glsl::FFI>::SIZE == <glsl::Mat<T, ROW, COL> as glsl::FFI>::SIZE);
-    
-        fn as_pod(&self) -> &[T] {
-            unsafe { std::slice::from_raw_parts(self.as_ref().as_ptr() as *const _, ROW * COL)}
-        }
-    }
+        T: valid::ForMatrix<R, C>,
+        Const<R>: valid::VecDim,
+        Const<C>: valid::VecDim,
+    { }
 }
-
-
 
 // --------==========[ Arrays of Compatible types ]==========--------
 
+// impl<GL, GLSL, const N: usize> Compatible<glsl::Array<GLSL, N>> for &GL
+// where
+//     GL: Compatible<GLSL>,
+//     GLSL: glsl::bounds::TransparentType,
+// { }
 
-unsafe impl<S> glsl::FFI for &S
-where
-    S: glsl::FFI,
-{
-    type Primitive = S::Primitive;
-
-    const SIZE: usize = 1;
-}
-
-impl<GL, GLSL, const N: usize> marker::Compatible<glsl::Array<GLSL, N>> for &GL
+impl<GLSL, GL, const N: usize> Compatible<glsl::Array<GLSL, N>> for [GL; N]
 where
     GL: Compatible<GLSL>,
-    GLSL: super::Type<Primitive=GL::Primitive>,
-{
-    const CHECK_SAME_SIZE: () = assert!(<Self as glsl::FFI>::SIZE == <glsl::Array<GLSL, N> as glsl::FFI>::SIZE);
-    fn as_pod(&self) -> &[GLSL::Primitive] {
-        unsafe { std::slice::from_raw_parts(<Self as marker::Compatible<glsl::glsl::Array<GLSL, N>>>::as_pod(self).as_ptr() as *const _, GLSL::SIZE) }
-    }
-}
-
-/// NOTE: This won't work sin
-impl<GLSL, GL, const N: usize> marker::Compatible<glsl::Array<GLSL, N>> for [GL; N]
-where
-    GL: Compatible<GLSL>,
-    GLSL: super::Type<Primitive = GL::Primitive>,
-{
-    const CHECK_SAME_SIZE: () = assert!(<Self as glsl::FFI>::SIZE == <glsl::Array<GLSL, N> as glsl::FFI>::SIZE);
-    fn as_pod(&self) -> &[GLSL::Primitive] {
-        unsafe { std::slice::from_raw_parts(<Self as marker::Compatible<glsl::glsl::Array<GLSL, N>>>::as_pod(self).as_ptr() as *const _, GLSL::SIZE) }
-    }
-}
-
+    GLSL: glsl::bounds::TransparentType,
+{ }
 
 // --------==========[ HList integration ]==========--------
 
+impl hlist::Compatible<()> for () {}
 
-impl marker::hlist::Compatible<()> for () { }
+use crate::gl::vertex_array as vao;
+use vao::attribute::Attribute;
 
-
-impl<'buffers, AS, A, PS, P, const ATTRIBUTE_INDEX: usize> marker::hlist::Compatible<(PS, InParameterBinding<P, ATTRIBUTE_INDEX>)> for (AS, AttributeDecl<'buffers, A, ATTRIBUTE_INDEX>)
+impl<'buffer, PH, AH, GLSL, GL, const ATTRIB_INDEX: usize> hlist::Compatible<(PH, glsl::InVariable<GLSL, ATTRIB_INDEX>)> for (AH, Attribute<GL, ATTRIB_INDEX>)
 where
-    A: Attribute + glsl::FFI<Primitive = <P as glsl::FFI>::Primitive>,
-    A: marker::Compatible<P> + target::format::Valid<target::Array>,
-    AS: marker::hlist::Compatible<PS>,
-    P: glsl::Type,
+    GLSL: glsl::parameters::Parameter<glsl::storage::In>,
+    PH: glsl::parameters::Parameters<glsl::storage::In>,
+    AH: vao::valid::Attributes,
+    GL: vao::bounds::AttribFormat,
+    AH: hlist::Compatible<PH>,
 { }

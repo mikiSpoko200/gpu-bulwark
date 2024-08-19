@@ -1,1 +1,1 @@
-pub use super::binding::*;
+pub use super::var;

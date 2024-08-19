@@ -1,219 +1,96 @@
 #![allow(unused)]
 
-//! Definitions of glsl types.
+use crate::disjoint;
+use crate::gl;
+use crate::prelude::internal::*;
 
-use std::marker::PhantomData;
+use crate::ext;
+use crate::ffi;
 
-mod sealed {
-    pub unsafe trait FFI {
-        type Primitive: super::ScalarType;
-        const SIZE: usize;
-    }
+use super::location::Location;
+use crate::prelude::*;
+
+use glsl::valid;
+
+/// A glsl type.
+pub trait Type {
+    type Group: valid::TypeGroup;
 }
 
-pub use sealed::FFI;
+/// Common trait bound combinations.
+pub mod bounds {
+    use super::*;
 
-pub mod marker {
-    use super::Const;
+    use crate::ffi;
+    use crate::prelude::internal::*;
 
-    use crate::glsl::location;
-    use std::marker::PhantomData;
-        
-    pub trait VecSize { }
+    pub trait TransparentType: Type<Group=valid::Transparent> + Location + Default + Clone + Sized + ffi::FFI {
+        type Subtype: valid::Subtype;
+    }
 
-    impl VecSize for Const<2> { }
+    /// TODO: Do opaque types use locations?
+    #[hi::marker]
+    pub trait OpaqueType: Type<Group=valid::Opaque> { }
 
-    impl VecSize for Const<3> { }
+    #[hi::marker]
+    pub trait ScalarType: TransparentType<Subtype=valid::Scalar> { }
 
-    impl VecSize for Const<4> { }
+    #[hi::marker]
+    pub trait VectorType<const DIM: usize>: TransparentType<Subtype=valid::Vector<DIM>>
+    where
+        Const<DIM>: valid::VecDim
+    { }
     
-    pub trait Subtype { }
-    pub struct Scalar;
-    impl Subtype for Scalar { }
-
-    pub struct Vector;
-    impl Subtype for Vector { }
-
-    pub struct Matrix;
-    impl Subtype for Matrix { }
-
-    /// Marker trait for glsl types.
-    pub trait Type: location::marker::Location + Default + Clone + Sized + super::FFI {
-        type Subtype: Subtype;
-    }
-
-    pub trait ScalarType: Type<Subtype = Scalar> + Copy + crate::types::Primitive { }
-
-    pub trait VectorType: Type<Subtype = Vector> { }
-
-    pub trait MatrixType: Type<Subtype = Matrix> { }
-
-    pub trait ArrayType: Type { }
-
-    pub struct Array<S>(PhantomData<S>) where S: Subtype;
-    impl<S> Subtype for Array<S> where S: Subtype { }
-
-    /// Marker trait for glsl scalar types.
-    impl Type for f32 { type Subtype = Scalar; }
-    unsafe impl super::FFI for f32 {
-        type Primitive = Self;
-        const SIZE: usize = 1;
-    }
-    impl ScalarType for f32 { }
-
-    impl Type for f64 { type Subtype = Scalar; }
-    unsafe impl super::FFI for f64 {
-        type Primitive = Self;
-        const SIZE: usize = 1;
-    }
-    impl ScalarType for f64 { }
-
-    impl Type for i32 { type Subtype = Scalar; }
-    unsafe impl super::FFI for i32 {
-        type Primitive = Self;
-        const SIZE: usize = 1;
-    }
-    impl ScalarType for i32 { }
-
-    impl Type for u32 {type Subtype = Scalar; }
-    unsafe impl super::FFI for u32 {
-        type Primitive = Self;
-        const SIZE: usize = 1;
-    }
-    impl ScalarType for u32 { }
-
-    // unsafe impl Type for bool {
-    //     type Subtype = Scalar;
-    //     type Primitive = Self;
-    // }
-    // impl ScalarType for bool { }
-
-    impl<T, const N: usize> Type for super::base::Vec<T, N>
-    where
-        super::base::Vec<T, N>: location::marker::Location,
-        T: ScalarType,
-        Const<N>: VecSize,
-    {
-        type Subtype = Vector;    
-    }
-
-    unsafe impl<T, const N: usize> super::FFI for super::base::Vec<T, N>
-    where
-        super::base::Vec<T, N>: location::marker::Location,
-        T: ScalarType,
-        Const<N>: VecSize
-    {
-        type Primitive = T;
-        const SIZE: usize = N;
-    }
-
-    impl<T, const N: usize> VectorType for super::base::Vec<T, N>
-    where
-        super::base::Vec<T, N>: location::marker::Location,
-        T: ScalarType,
-        Const<N>: VecSize,
-    { }
-
-    /// Single precision matrix is a valid type.
-    impl<const R: usize, const C: usize> Type for super::Mat<f32, R, C>
-    where
-        Const<R>: VecSize,
-        Const<C>: VecSize,
-    {
-        type Subtype = Matrix;
-    }
-
-    /// Double precision matrix is a valid type.
-    impl<const R: usize, const C: usize> Type for super::Mat<f64, R, C>
-    where
-        Const<R>: VecSize,
-        Const<C>: VecSize,
-    {
-        type Subtype = Matrix;
-    }
-
-    unsafe impl<T, const R: usize, const C: usize> super::FFI for super::Mat<T, R, C>
-    where
-        T: ScalarType,
-        super::Mat<T, R, C>: Type<Subtype=Matrix>,
-        Const<R>: VecSize,
-        Const<C>: VecSize,
-    {
-        type Primitive = T;
-        const SIZE: usize = R * C;
-    }
-
-    impl<T, const R: usize, const C: usize> MatrixType for super::Mat<T, R, C>
-    where
-        T: Type<Subtype=Scalar>,
-        super::Mat<T, R, C>: Type<Subtype=Matrix>,
-        Const<R>: VecSize,
-        Const<C>: VecSize,
-    { }
-
-    /// Array of types is a valid type.
-    impl<T, const N: usize> Type for super::Array<T, N> where T: Type { type Subtype = Array<T::Subtype>; }
-    unsafe impl<T, const N: usize> super::FFI for super::Array<T, N> where T: Type {
-        type Primitive = T::Primitive;
-        const SIZE: usize = N * T::SIZE;
-    }
-    impl<T, const N: usize> ArrayType for super::Array<T, N> where T: Type { }
+    #[hi::marker]
+    pub trait MatrixType: TransparentType<Subtype=valid::Matrix> { }
 }
 
-pub use marker::Type;
+/// Traits for validation markers.
 
-use self::marker::ScalarType;
+// ================[ Types ]================ //
 
-/// Wrapper for integer values that moves them into type system.
-/// Same trick is used in std here `https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html`
-pub(crate) struct Const<const NUMBER: usize>;
-
-
-pub mod base {
-    use std::marker::PhantomData;
-    use super::{Const, marker};
-
-    /// Generic basis for GLSL Vectors. 
-    /// GLSL Vectors can contain multiple data types but can only appear in sized of 2, 3 or 4.
-    /// This constraint is represented by trait bound `VecSize` on `Const`.
-    #[derive(Clone, Debug, Default)]
-    pub struct Vec<T, const SIZE: usize>(PhantomData<T>)
-    where
-        Const<SIZE>: marker::VecSize,
-        T: marker::Type,
-    ;
-}
+/// Generic basis for GLSL Vector types.
+/// 
+/// GLSL Vectors can contain only specific data types and can only appear in sizes of 2, 3 or 4.
+/// Requirements for generic parameters, both type param and const param, are expressed using
+/// `valid::ForVector` (Bound on `Const<N>` in case of const param).
+#[derive(Clone, Debug, Default)]
+pub struct GVec<T, const DIM: usize>(PhantomData<T>)
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
+;
 
 /// Vector of single precision floats.
-pub type Vec<const N: usize> = base::Vec<f32, N>;
+pub type Vec<const N: usize> = GVec<f32, N>;
 
 pub type Vec2 = Vec<2>;
 pub type Vec3 = Vec<3>;
 pub type Vec4 = Vec<4>;
 
-
 /// Vector of signed integers.
-pub type IVec<const N: usize> = base::Vec<i32, N>;
+pub type IVec<const N: usize> = GVec<i32, N>;
 
 pub type IVec2 = IVec<2>;
 pub type IVec3 = IVec<3>;
 pub type IVec4 = IVec<4>;
 
 /// Vector of unsigned integers.
-pub type UVec<const N: usize> = base::Vec<u32, N>;
+pub type UVec<const N: usize> = GVec<u32, N>;
 
 pub type UVec2 = UVec<2>;
 pub type UVec3 = UVec<3>;
 pub type UVec4 = UVec<4>;
+
 /// Vector of Doubles.
-pub type DVec<const N: usize> = base::Vec<f64, N>;
+pub type DVec<const N: usize> = GVec<f64, N>;
 
 pub type DVec2 = DVec<2>;
 pub type DVec3 = DVec<3>;
 pub type DVec4 = DVec<4>;
 
 /// SAFETY: note bool here may be ABI incompatible
-pub type BVec<const N: usize> = base::Vec<bool, N>;
+pub type BVec<const N: usize> = GVec<bool, N>;
 
 pub type BVec2 = BVec<2>;
 pub type BVec3 = BVec<3>;
@@ -226,38 +103,252 @@ pub type BVec4 = BVec<4>;
 #[derive(Clone, Debug, Default)]
 pub struct Mat<T, const ROW: usize, const COL: usize = ROW>(PhantomData<T>)
 where
-    Const<ROW>: marker::VecSize,
-    Const<COL>: marker::VecSize,
-    T: marker::Type,
+    T: valid::ForMatrix<ROW, COL>,
+    Const<ROW>: valid::VecDim,
+    Const<COL>: valid::VecDim,
 ;
 
-pub type Mat2   = Mat<f32, 2, 2>;
+pub type Mat2 = Mat<f32, 2, 2>;
 pub type Mat2x2 = Mat<f32, 2, 2>;
 pub type Mat2x3 = Mat<f32, 2, 3>;
 pub type Mat2x4 = Mat<f32, 2, 4>;
 pub type Mat3x2 = Mat<f32, 3, 2>;
-pub type Mat3   = Mat<f32, 3>;
+pub type Mat3 = Mat<f32, 3>;
 pub type Mat3x3 = Mat<f32, 3, 3>;
 pub type Mat3x4 = Mat<f32, 3, 4>;
 pub type Mat4x2 = Mat<f32, 4, 2>;
 pub type Mat4x3 = Mat<f32, 4, 3>;
-pub type Mat4   = Mat<f32, 4>;
+pub type Mat4 = Mat<f32, 4>;
 pub type Mat4x4 = Mat<f32, 4, 4>;
 
-
-pub type DMat2   = Mat<f64, 2>;
+pub type DMat2 = Mat<f64, 2>;
 pub type DMat2x2 = Mat<f64, 2, 2>;
 pub type DMat2x3 = Mat<f64, 2, 3>;
 pub type DMat2x4 = Mat<f64, 2, 4>;
 pub type DMat3x2 = Mat<f64, 3, 2>;
-pub type DMat3   = Mat<f64, 3>;
+pub type DMat3 = Mat<f64, 3>;
 pub type DMat3x3 = Mat<f64, 3, 3>;
 pub type DMat3x4 = Mat<f64, 3, 4>;
 pub type DMat4x2 = Mat<f64, 4, 2>;
 pub type DMat4x3 = Mat<f64, 4, 3>;
-pub type DMat4   = Mat<f64, 4>;
+pub type DMat4 = Mat<f64, 4>;
 pub type DMat4x4 = Mat<f64, 4, 4>;
 
-/// GLSL array.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
-pub struct Array<T, const N: usize>(PhantomData<T>) where T: marker::Type;
+pub struct Array<T, const N: usize>(PhantomData<T>)
+where
+    T: Type;
+
+// =================[ impl Type / TransparentType ]================= //
+
+macro_rules! impl_transparent {
+    ($ty: ty as $subtype:path) => {
+        impl crate::glsl::Type for $ty {
+            type Group = crate::glsl::valid::Transparent;
+        }
+        impl crate::glsl::bounds::TransparentType for $ty {
+            type Subtype = $subtype;
+        }
+    }
+}
+
+impl_transparent! { f32 as valid::Scalar }
+impl_transparent! { f64 as valid::Scalar }
+impl_transparent! { i32 as valid::Scalar }
+impl_transparent! { u32 as valid::Scalar }
+
+hi::denmark! { f32 as bounds::ScalarType }
+hi::denmark! { f64 as bounds::ScalarType }
+hi::denmark! { i32 as bounds::ScalarType }
+hi::denmark! { u32 as bounds::ScalarType }
+
+// `Type` impls for Vectors.
+
+impl<T, const DIM: usize> Type for GVec<T, DIM>
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
+{
+    type Group = valid::Transparent;
+}
+
+impl<T, const DIM: usize> bounds::TransparentType for GVec<T, DIM>
+where 
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
+{
+    type Subtype = valid::Vector<DIM>;
+}
+
+impl<T, const DIM: usize> bounds::VectorType<DIM> for GVec<T, DIM>
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim
+{ }
+
+// `Type` impls for Matrices.
+
+impl<T, const R: usize, const C: usize> Type for Mat<T, R, C>
+where
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
+{
+    type Group = valid::Transparent;
+}
+
+impl<T, const R: usize, const C: usize> bounds::TransparentType for Mat<T, R, C>
+where
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
+{
+    type Subtype = valid::Matrix;
+}
+
+impl<T, const R: usize, const C: usize> bounds::MatrixType for Mat<T, R, C>
+where 
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
+{ }
+
+// `Type` impls for Array.
+
+impl<T, const N: usize> Type for Array<T, N>
+where
+    T: Type,
+{
+    type Group = T::Group;
+}
+
+impl<T, const N: usize> bounds::TransparentType for Array<T, N>
+where
+    T: bounds::TransparentType
+{
+    type Subtype = valid::Array<T::Subtype>;
+}
+
+// =================[ impl FFI ]================= //
+
+unsafe impl<T, const DIM: usize> ffi::FFI for GVec<T, DIM>
+where
+    T: valid::ForVector<DIM>,
+    Const<DIM>: valid::VecDim,
+{
+    type Layout = [T::Layout; DIM];
+}
+
+unsafe impl<T, const R: usize, const C: usize> ffi::FFI for Mat<T, R, C>
+where
+    T: valid::ForMatrix<R, C>,
+    Const<R>: valid::VecDim,
+    Const<C>: valid::VecDim,
+{
+    type Layout = [[T::Layout; C]; R];
+}
+
+unsafe impl<T, const N: usize> ffi::FFI for Array<T, N>
+where
+    T: bounds::TransparentType,
+{
+    type Layout = [T::Layout; N];
+}
+
+// =================[ impl Disjoint ]================= //
+
+impl<T> Disjoint for T where T: TransparentType {
+    type Discriminant = T::Subtype;
+}
+
+// =================[ Opaque types ]================= //
+
+use bounds::TransparentType;
+use gl::texture;
+
+pub struct Shadow<Target>(PhantomData<Target>) where Target: texture::Target;
+
+pub struct GSampler<Target, Output>(PhantomData<(Target, Output)>)
+where
+    Target: texture::Target,
+    Output: valid::ForSampler
+;
+
+type Sampler<Target> = GSampler<Target, f32>;
+
+pub type Sampler1D                = Sampler<texture::target::D1>;
+pub type Sampler1DShadow          = Sampler<Shadow<texture::target::D1>>;
+pub type Sampler1DArray           = Sampler<texture::target::D1Array>;
+pub type Sampler1DArrayShadow     = Sampler<Shadow<texture::target::D1Array>>;
+pub type Sampler2D                = Sampler<texture::target::D2>;
+pub type Sampler2DShadow          = Sampler<Shadow<texture::target::D2>>;
+pub type Sampler2DArray           = Sampler<texture::target::D2Array>;
+pub type Sampler2DArrayShadow     = Sampler<Shadow<texture::target::D2Array>>;
+pub type Sampler3D                = Sampler<texture::target::D3>;
+pub type Sampler2DMS              = Sampler<texture::target::D2MultiSample>;
+pub type Sampler2DMSArray         = Sampler<texture::target::D2MultiSampleArray>;
+pub type Sampler2DRect            = Sampler<texture::target::Rectangle>;
+pub type Sampler2DRectShadow      = Sampler<Shadow<texture::target::Rectangle>>;
+pub type Sampler2DCube            = Sampler<texture::target::CubeMap>;
+pub type Sampler2DCubeShadow      = Sampler<Shadow<texture::target::CubeMap>>;
+pub type Sampler2DCubeArray       = Sampler<texture::target::CubeMapArray>;
+pub type Sampler2DCubeArrayShadow = Sampler<Shadow<texture::target::CubeMapArray>>;
+pub type SamplerBuffer            = Sampler<texture::target::Buffer>;
+
+
+type ISampler<Target> = GSampler<Target, i32>;
+
+pub type ISampler1D                = ISampler<texture::target::D1>;
+pub type ISampler1DShadow          = ISampler<Shadow<texture::target::D1>>;
+pub type ISampler1DArray           = ISampler<texture::target::D1Array>;
+pub type ISampler1DArrayShadow     = ISampler<Shadow<texture::target::D1Array>>;
+pub type ISampler2D                = ISampler<texture::target::D2>;
+pub type ISampler2DShadow          = ISampler<Shadow<texture::target::D2>>;
+pub type ISampler2DArray           = ISampler<texture::target::D2Array>;
+pub type ISampler2DArrayShadow     = ISampler<Shadow<texture::target::D2Array>>;
+pub type ISampler3D                = ISampler<texture::target::D3>;
+pub type ISampler2DMS              = ISampler<texture::target::D2MultiSample>;
+pub type ISampler2DMSArray         = ISampler<texture::target::D2MultiSampleArray>;
+pub type ISampler2DRect            = ISampler<texture::target::Rectangle>;
+pub type ISampler2DRectShadow      = ISampler<Shadow<texture::target::Rectangle>>;
+pub type ISampler2DCube            = ISampler<texture::target::CubeMap>;
+pub type ISampler2DCubeShadow      = ISampler<Shadow<texture::target::CubeMap>>;
+pub type ISampler2DCubeArray       = ISampler<texture::target::CubeMapArray>;
+pub type ISampler2DCubeArrayShadow = ISampler<Shadow<texture::target::CubeMapArray>>;
+pub type ISamplerBuffer            = ISampler<texture::target::Buffer>;
+
+
+type USampler<Target> = GSampler<Target, u32>;
+
+pub type USampler1D                = USampler<texture::target::D1>;
+pub type USampler1DShadow          = USampler<Shadow<texture::target::D1>>;
+pub type USampler1DArray           = USampler<texture::target::D1Array>;
+pub type USampler1DArrayShadow     = USampler<Shadow<texture::target::D1Array>>;
+pub type USampler2D                = USampler<texture::target::D2>;
+pub type USampler2DShadow          = USampler<Shadow<texture::target::D2>>;
+pub type USampler2DArray           = USampler<texture::target::D2Array>;
+pub type USampler2DArrayShadow     = USampler<Shadow<texture::target::D2Array>>;
+pub type USampler3D                = USampler<texture::target::D3>;
+pub type USampler2DMS              = USampler<texture::target::D2MultiSample>;
+pub type USampler2DMSArray         = USampler<texture::target::D2MultiSampleArray>;
+pub type USampler2DRect            = USampler<texture::target::Rectangle>;
+pub type USampler2DRectShadow      = USampler<Shadow<texture::target::Rectangle>>;
+pub type USampler2DCube            = USampler<texture::target::CubeMap>;
+pub type USampler2DCubeShadow      = USampler<Shadow<texture::target::CubeMap>>;
+pub type USampler2DCubeArray       = USampler<texture::target::CubeMapArray>;
+pub type USampler2DCubeArrayShadow = USampler<Shadow<texture::target::CubeMapArray>>;
+pub type USamplerBuffer            = USampler<texture::target::Buffer>;
+
+impl<T, D> Type for GSampler<T, D>
+where
+    T: texture::Target,
+    D: valid::ForSampler,
+{
+    type Group = valid::Opaque;
+}
+
+impl<T, D> bounds::OpaqueType for GSampler<T, D>
+where
+    T: texture::Target,
+    D: valid::ForSampler
+{ }
