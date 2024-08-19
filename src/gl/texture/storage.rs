@@ -1,5 +1,6 @@
 use std::ops::{Range, RangeBounds};
 
+use crate::gl::object;
 use crate::gl::target::Target;
 use crate::prelude::internal::*;
 use crate::gl;
@@ -8,7 +9,9 @@ use std::ops::RangeInclusive;
 use texture::target;
 use texture::storage;
 
+use super::pixel;
 use super::target::Dimensionality;
+use super::TextureObject;
 
 pub struct Immutable<T>(PhantomData<T>) where T: texture::Target + marker::Internal;
 
@@ -21,7 +24,7 @@ pub mod marker {
 
     /// Type which represent different types of storage that texture can use.
     /// NOTE: They do **not** represent actual storage yet only its origin / mutability.
-    pub trait Kind {
+    pub trait Kind: AllocatorDispatch {
         type Target: texture::Target;
     }
 
@@ -123,7 +126,8 @@ where
     Kind: marker::Kind<Target=D2Target>,
 {
     pub fn sub_image_2d<P: Pixel>(
-        &mut self, 
+        &mut self,
+        _: &gl::object::Bind<texture::TextureObject<D2Target>>,
         x_range: impl std::ops::RangeBounds<usize>, 
         y_range: impl std::ops::RangeBounds<usize>,
         pixels: &[P]
@@ -209,6 +213,78 @@ where
                     pixels.as_ptr() as *const _,
                 );
             }
+        }
+    }
+}
+
+impl<D1Target, Kind, InternalFormat> Storage<D1Target, Kind, InternalFormat, false>
+where
+    D1Target: texture::Target<Dimensions = [usize; 1]>,
+    Kind: marker::Kind<Target=D1Target, Signature = signature::Storage1D>,
+    InternalFormat: pixel::InternalFormat,
+{
+    pub fn storage_1d(_: &gl::object::Bind<TextureObject<D1Target>>, width: usize) -> Self {
+        gl::call! {
+            [panic]
+            unsafe {
+                Kind::ALLOCATOR(D1Target::ID, 0, InternalFormat::ID, width as _);
+            }
+        }
+        Self {
+            kind: PhantomData,
+            layout: Layout {
+                target: PhantomData,
+                internal_format: PhantomData,
+                dimensions: [width],
+            },
+        }
+    }
+}
+
+impl<D2Target, Kind, InternalFormat> Storage<D2Target, Kind, InternalFormat, false>
+where
+    D2Target: texture::Target<Dimensions = [usize; 2]>,
+    Kind: marker::Kind<Target=D2Target, Signature = signature::Storage2D>,
+    InternalFormat: pixel::InternalFormat,
+{
+    pub fn storage_2d(_: &object::Bind<TextureObject<D2Target>>, width: usize, height: usize) -> Self {
+        gl::call! {
+            [panic]
+            unsafe {
+                Kind::ALLOCATOR(D2Target::ID, 0, InternalFormat::ID, width as _, height as _);
+            }
+        }
+        Self {
+            kind: PhantomData,
+            layout: Layout {
+                target: PhantomData,
+                internal_format: PhantomData,
+                dimensions: [width, height],
+            },
+        }
+    }
+}
+
+impl<D3Target, Kind, InternalFormat> Storage<D3Target, Kind, InternalFormat, false>
+where
+    D3Target: texture::Target<Dimensions = [usize; 3]>,
+    Kind: marker::Kind<Target=D3Target, Signature = signature::Storage3D>,
+    InternalFormat: pixel::InternalFormat,
+{
+    pub fn storage_3d(_: &object::Bind<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
+        gl::call! {
+            [panic]
+            unsafe {
+                Kind::ALLOCATOR(D3Target::ID, 0, InternalFormat::ID, width as _, height as _, depth as _);
+            }
+        }
+        Self {
+            kind: PhantomData,
+            layout: Layout {
+                target: PhantomData,
+                internal_format: PhantomData,
+                dimensions: [width, height, depth],
+            },
         }
     }
 }
@@ -326,7 +402,7 @@ pub mod signature {
 }
 
 /// Map storage kinds to functions that allocate them
-pub trait AllocatorDispatch: Dimensionality {
+pub trait AllocatorDispatch {
     /// Type specific allocation routine signature.
     type Signature;
     /// Pointer to OpenGL texture storage allocation routine.
@@ -379,7 +455,11 @@ dispatch_allocator! { [mutable] target::D2MultiSample => glb::TexImage2DMultisam
 
 dispatch_allocator! { [mutable] target::D2MultiSampleArray => glb::TexImage3DMultisample: signature::Image3DMultisample }
 
-impl<GL> AllocatorDispatch for GlSurface::Buffer<texture::Buffer, GL> {
+impl<GL> Dimensionality for gl::Buffer<texture::Buffer, GL> {
+    type Dimensions = [usize; 1];
+}
+
+impl<GL> AllocatorDispatch for gl::Buffer<texture::Buffer, GL> {
     type Signature = signature::Buffer;
     const ALLOCATOR: Self::Signature = glb::TexBuffer;
 }

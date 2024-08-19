@@ -102,19 +102,11 @@ where
     state: TextureState<T, K, InterFormat>
 }
 
-impl<T, K, InterFormat> Texture<T, K, InterFormat>
+impl<T, InterFormat> Texture<T, storage::Immutable<T>, InterFormat>
 where
-    T: Target,
-    K: storage::marker::Kind<Target = T>,
+    T: Target + storage::marker::Internal + storage::AllocatorDispatch,
     InterFormat: InternalFormat,
 {
     const TARGET: u32 = T::ID as _;
     const INTERNAL_FORMAT: u32 = InterFormat::ID as _;
-
-    fn create(width: usize, height: usize) -> Self {
-        Self {
-            object: Default::default(),
-            state: TextureState::new(width),
-        }
-    }
 }

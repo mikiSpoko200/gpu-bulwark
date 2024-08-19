@@ -9,6 +9,11 @@ impl<T, const N: usize> Array for [T; N] where T: Array {
     type Type = T::Type;
 }
 
+impl Array for usize {
+    const SIZE: usize = 1;
+    type Type = Self;
+}
+
 impl Array for f32 {
     const SIZE: usize = 1;
     type Type = Self;
