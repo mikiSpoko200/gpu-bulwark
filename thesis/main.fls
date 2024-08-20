@@ -180,8 +180,8 @@ INPUT d:/texlive/2024/texmf-dist/tex/latex/polski/ot4cmtt.fd
 INPUT d:/texlive/2024/texmf-dist/tex/latex/polski/ot4cmtt.fd
 INPUT d:/texlive/2024/texmf-dist/tex/latex/polski/ot4cmtt.fd
 INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/pltt10.tfm
-INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plti10.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/pltt.enc
+INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plti10.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/plit.enc
 INPUT ./chapter-2/main.tex
 INPUT ./chapter-2/main.tex

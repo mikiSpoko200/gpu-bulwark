@@ -23,7 +23,7 @@ use gl::program::ShaderStage;
 
 use target::*;
 
-pub struct Data<Ins, Outs>
+pub struct Params<Ins, Outs>
 where
     Ins: glsl::Parameters<In>,
     Outs: glsl::Parameters<Out>,
@@ -32,7 +32,7 @@ where
     outputs: PhantomData<Outs>,
 }
 
-impl<Ins, Outs> Default for Data<Ins, Outs>
+impl<Ins, Outs> Default for Params<Ins, Outs>
 where
     Ins: glsl::Parameters<In>,
     Outs: glsl::Parameters<Out>,
@@ -71,11 +71,11 @@ where
     Decls: uniform::bounds::Declarations,
 {
     _target_phantom: PhantomData<Target>,
-    _data: Data<Ins, Outs>,
+    _parameters: Params<Ins, Outs>,
     matcher: Option<uniform::Matcher<Defs, Decls>>,
     vertex: Option<ShaderStage<'shaders, Vertex>>,
     tess_control: Option<ShaderStage<'shaders, TessControl>>,
-    tesselation_evaluation: Option<ShaderStage<'shaders, TessEvaluation>>,
+    tess_evaluation: Option<ShaderStage<'shaders, TessEvaluation>>,
     geometry: Option<ShaderStage<'shaders, Geometry>>,
     fragment: Option<ShaderStage<'shaders, Fragment>>,
     compute: Option<ShaderStage<'shaders, Compute>>,
@@ -85,11 +85,11 @@ impl<'s> Default for Builder<'s, ts::None, (), (), (), ()> {
     fn default() -> Self {
         Self { 
             _target_phantom: Default::default(),
-            _data: Default::default(),
+            _parameters: Default::default(),
             matcher: Default::default(),
             vertex: Default::default(),
             tess_control: Default::default(),
-            tesselation_evaluation: Default::default(),
+            tess_evaluation: Default::default(),
             geometry: Default::default(),
             fragment: Default::default(),
             compute: Default::default()
@@ -107,14 +107,14 @@ impl<'s> Builder<'s, ts::None, (), (), (), ()> {
         let definitions = provider(uniform::Definitions::default());
         Builder {
             _target_phantom: PhantomData,
-            _data: todo!(),
+            _parameters: self._parameters,
             matcher: Some(uniform::Matcher::new(definitions)),
-            vertex: todo!(),
-            tess_control: todo!(),
-            tesselation_evaluation: todo!(),
-            geometry: todo!(),
-            fragment: todo!(),
-            compute: todo!(),
+            vertex: self.vertex,
+            tess_control: self.tess_control,
+            tess_evaluation: self.tess_evaluation,
+            geometry: self.geometry,
+            fragment: self.fragment,
+            compute: self.compute,
         }
     } 
 }
@@ -137,11 +137,11 @@ where
     {
         Builder {
             _target_phantom: PhantomData,
-            _data: Default::default(),
+            _parameters: Default::default(),
             matcher: self.matcher.map(|inner|inner.set_declarations(decls)),
             vertex: self.vertex,
             tess_control: self.tess_control,
-            tesselation_evaluation: self.tesselation_evaluation,
+            tess_evaluation: self.tess_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
@@ -157,11 +157,11 @@ where
     {
         Builder {
             _target_phantom: PhantomData,
-            _data: self._data,
+            _parameters: self._parameters,
             matcher: self.matcher.map(|inner|inner.set_declarations(decls)),
             vertex: self.vertex,
             tess_control: self.tess_control,
-            tesselation_evaluation: self.tesselation_evaluation,
+            tess_evaluation: self.tess_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
@@ -177,11 +177,11 @@ where
     {
         Builder {
             _target_phantom: PhantomData,
-            _data: Default::default(),
+            _parameters: Default::default(),
             matcher: self.matcher.map(|inner|inner.set_declarations(decls)),
             vertex: self.vertex,
             tess_control: self.tess_control,
-            tesselation_evaluation: self.tesselation_evaluation,
+            tess_evaluation: self.tess_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
@@ -201,11 +201,11 @@ where
     pub fn uniforms(self, matcher: impl FnOnce(Matcher<Defs, Decls>) -> Matcher<Defs, ()>) -> Builder<'s, ts::Some<Target>, Ins, Outs, Defs, ()> {
         Builder {
             _target_phantom: PhantomData,
-            _data: self._data,
+            _parameters: self._parameters,
             matcher: self.matcher.map(matcher),
             vertex: self.vertex,
             tess_control: self.tess_control,
-            tesselation_evaluation: self.tesselation_evaluation,
+            tess_evaluation: self.tess_evaluation,
             geometry: self.geometry,
             fragment: self.fragment,
             compute: self.compute,
@@ -302,7 +302,7 @@ where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
     {
-        self.tesselation_evaluation = Some(ShaderStage::new(tess_evaluation_main));
+        self.tess_evaluation = Some(ShaderStage::new(tess_evaluation_main));
         self.attach_main(tess_evaluation_main.declarations())
     }
 }
@@ -318,7 +318,7 @@ where
     where
         Decls: uniform::bounds::Declarations,
     {
-        self.tesselation_evaluation
+        self.tess_evaluation
             .as_mut()
             .expect("tesselation evaluation stage was initialized")
             .libs
@@ -400,7 +400,7 @@ where
         program.attach(self.vertex.as_ref().expect("vertex shader stage is set"));
 
         if let (Some(control_stage), Some(evaluation_stage)) =
-            (&self.tess_control, &self.tesselation_evaluation)
+            (&self.tess_control, &self.tess_evaluation)
         {
             program.attach(control_stage);
             program.attach(evaluation_stage);

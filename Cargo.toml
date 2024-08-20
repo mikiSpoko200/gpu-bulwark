@@ -18,7 +18,8 @@ sealed = "0.5.0"
 hi = { path = "../rust/himark", package = "himark" }
 disjoint_impls = "0.7.1"
 dm = { version = "0.99.18", package = "derive_more" }
-num = "0.4.3"
+concat-idents = "1.1.5"
+
 
 [features]
 default = ["nalgebra-glm"]

@@ -63,22 +63,22 @@ Originally all of that information was specified at one with
 \end{center}
 
 \section{Graphics pipeline}
-
-The modern OpenGL pipeline is a sequence of both programmable and fixed function stages that process geometric data to form discrete pixels that end up stored in a framebuffer. 
+The modern OpenGL pipeline is a sequence of both programmable and fixed function stages that process geometric data to form discrete color values - pixels - that end up stored in a framebuffer. 
 
 \subsection{Vertex Specification}
 
-Before any rendering can being geometric information needs to provided as generic vertex attributes.
+Before rendering can begin, geometric information needs to uploaded to GPU memory along with its description as generic vertex attributes.
 
-Vertex is an abstract composition of attributes that means to represent a point in 3D space of some object that is being modelled.
+Generic Vertex is an abstract composition of values (attributes) that is supposed to represent a vertex of the triangular mesh of an object.
 Generic stands from the fact that data associated with vertices has no intrinsic meaning.
-Semantics of data are dictated by client provided vertex shader.
+Semantics of data are decided by client provided vertex shader.
 
-OpenGL sources data for each vertex attribute form a buffer. Each attribute is assigned an index.
-Association between attribute with given index and a buffer from which should that attribute source its data is established by Vertex Array Object (abbriev. VAO).
+OpenGL sources data for each vertex attribute form a buffer. Each attribute is assigned a unique numeric index.
+Association between attribute with given index and a buffer, from which that attribute should be sourced, is established by Vertex Array Object (abbr. VAO).
 
 Once all vertex attributes have their data sources assigned and properly configured, vertex specification can be considered finished and one could precede with further pipeline configuration.
-In this instance vertices would be interpreted sequentially as appropriate primitives. This forces vertex data to be specified redundantly for lines and especially raw triangles since each triangle shares each edge with each neighboring triangle.
+In this instance vertices would be interpreted sequentially as appropriate geometric primitives. This forces vertex data to be specified redundantly for 
+lines and especially raw triangles, since each triangle shares an edge with each neighboring triangle.
 
 To better conserve memory one can use indexed rendering. This requires additional buffer filled with indices into main vertex buffer instead of inlined vertex data.
 In case of basic triangle rendering (without using compressed representations like triangle fan or triangle / line strip) will still cause repetition but now only few byte wide indices instead of whole attributes which are substantially larger.
@@ -100,7 +100,7 @@ control how scene is displayed by moving a virtual camera. This can be expressed
 This transformation is commonly called view transform.
 
 \textbf{clip space} - having accounted for model position in a scene and user interactivity all that remains is to provide vertex data in form that subsequent fixed function pipeline stage - the rasterizer - expects.
-Namely once vertex shader is finished fixed function processing will perform so called perspective divide and then clip all geometry to normalized device coordinates (NDC).
+Namely once vertex shader is finished fixed function processing will clip all geometry then perform perspective divide to obtain vertices in normalized device coordinates (NDC).
 Output of vertex shader is a 4 component vector which corresponds to a 3D position in homogenious coordinate system used in computer graphics due to its ability to represent non linear transformations using matrices.
 The output position of vertex is divided by the forth component in order to introduce perspective 
 

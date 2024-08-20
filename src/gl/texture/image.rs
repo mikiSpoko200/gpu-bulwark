@@ -104,7 +104,7 @@ pub mod format {
 
     macro_rules! impl_format {
         ($components:ident, $size:literal, $base:path $(,)?) => {
-            concat_idents::concat_idents!(token = $components, $size {
+            ::concat_idents::concat_idents!(token = $components, $size {
                 impl marker::Format for Format<components::$components, $size> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;
@@ -112,7 +112,7 @@ pub mod format {
             });
         };
         ($components:ident, $size:literal, SNORM, $base:path) => {
-            concat_idents::concat_idents!(token = $components, $size, _, SNORM {
+            ::concat_idents::concat_idents!(token = $components, $size, _, SNORM {
                 impl marker::Format for Format<components::$components, $size, ty::SNORM> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;
@@ -120,7 +120,7 @@ pub mod format {
             });
         };
         ($components:ident, $size:literal, $ty:ident, $base:path) => {
-            concat_idents::concat_idents!(token = $components, $size, $ty {
+            ::concat_idents::concat_idents!(token = $components, $size, $ty {
                 impl marker::Format for Format<components::$components, $size, ty::$ty> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;

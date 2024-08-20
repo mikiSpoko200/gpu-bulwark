@@ -13,13 +13,13 @@
 \contentsline {section}{\numberline {1.1}Data types}{9}{section.1.1}%
 \contentsline {subsection}{\numberline {1.1.1}User defined types}{9}{subsection.1.1.1}%
 \contentsline {paragraph}{\texttt {struct}s}{9}{section*.3}%
-\contentsline {section}{\numberline {1.2}Implementations}{9}{section.1.2}%
+\contentsline {section}{\numberline {1.2}Implementations}{10}{section.1.2}%
 \contentsline {subsection}{\numberline {1.2.1}Inherent implementations}{10}{subsection.1.2.1}%
 \contentsline {section}{\numberline {1.3}Generic types}{10}{section.1.3}%
-\contentsline {subsection}{\numberline {1.3.1}Type parameters}{10}{subsection.1.3.1}%
-\contentsline {subsection}{\numberline {1.3.2}Constant parameters}{10}{subsection.1.3.2}%
-\contentsline {subsection}{\numberline {1.3.3}Lifetime parameters}{10}{subsection.1.3.3}%
-\contentsline {section}{\numberline {1.4}Type level abstraction}{10}{section.1.4}%
+\contentsline {subsection}{\numberline {1.3.1}Type parameters}{11}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Constant parameters}{11}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Lifetime parameters}{11}{subsection.1.3.3}%
+\contentsline {section}{\numberline {1.4}Type level abstraction}{11}{section.1.4}%
 \contentsline {section}{\numberline {1.5}Implementation Coherence}{11}{section.1.5}%
 \contentsline {subsection}{\numberline {1.5.1}Orphan Rule}{11}{subsection.1.5.1}%
 \contentsline {chapter}{\numberline {2}OpenGL and GLSL}{13}{chapter.2}%

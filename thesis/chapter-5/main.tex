@@ -9,23 +9,23 @@ Besides the wrapper library the purpose of this study was to identify common pat
 
 The resulting library was named \textit{GPU bulwark} since it provides strong foundations for safer programming on the GPU, and could easily be extended to other GPU programming APIs.
 
-Library at it's root is logically divided into two halves. Main OpenGL wrapper and general purpose auxiliary modules that contain implementations of different patterns we recognized.
-
+Library at it's root is logically divided into two halves: (1) main OpenGL wrapper and (2) general-purpose auxiliary modules which contain implementations of various patterns we have recognized.
+%
 \section{External dependencies}
-
-Our library utilizes several publicly available crates from crates.io, here we briefly discuss their purposes.
-
+%
+Our library utilizes several publicly available crates from crates.io, we will briefly discuss their purposes below:
 \begin{itemize}
-    \item \texttt{gl} - provides raw OpenGL bindings for Rust. It provides one actual function which that allows to inject function pointer loading procedure. All raw bindings use c types and need to be called in unsafe context.
-    \item \texttt{derive\_move} - procedural macro crates that expands capabilities of derive macros for more built-in traits which helps to reduce boilerplate.
-    \item \texttt{concat\_idents} - provides singular procedural macro that allows to concatenate identifiers akin to c's \texttt{\#\#} operator, its used for generation of certain OpenGL identifiers that follow procedural naming convection which to reduces bolder plate and makes library code less prone to typos.
-    \item \texttt{nalgebra} and \texttt{nalgebra-glm} provide algorithms and type definitions for linear algebra computations. They are not used directly in our library for their functionality but rather can be optionally imported in order to integrate their types with \texttt{gpu-bulwark} for clients to use.
+    \item \texttt{gl} - generates raw OpenGL bindings for Rust using build script. Additionally, it exposes a single function that loads function pointers using the provided routine. 
+    These bindings use C types and need to be invoked in \texttt{unsafe} context.
+    \item \texttt{derive\_move} - is a procedural macro crate that expands \texttt{derive} to support more built-in traits. It significantly reduces code boilerplate.
+    \item \texttt{concat\_idents} - provides singular procedural macro that allows to concatenate identifiers akin to C's \texttt{\#\#} operator. We utilize this macro for identifier generation for certain OpenGL names that strictly follow a naming convection. This yet again helps to reduce boilerplate, makes code more succinct and minimizes risk of typos.
+    \item \texttt{nalgebra} and \texttt{nalgebra-glm} define algorithms and types for linear algebra computations. They are not used directly in our library for their functionality but rather for optional integration with \texttt{gpu-bulwark}.
 \end{itemize}
-
-Remaining packages are not part of core library but rather are used by examples.
-
+% FIXME: replace this 
+Remaining packages are imported for use in examples only.
+%
 \begin{itemize}
-    \item \texttt{thiserror} and \texttt{anyhow} - very popular crates that make error handling more ergonomic by allowing to simplify error types using dynamic dispatch on \texttt{std::error::Error} trait and generate new types that implement \texttt{std::error::Error} using procedural macro.
+    \item \texttt{thiserror} and \texttt{anyhow} - very popular crates that make error handling more ergonomic.
     \item \texttt{raw-window-handle}, \texttt{glutin} and \texttt{winit} allow for cross platform window creation and OpenGL context initialization.
 \end{itemize}
 

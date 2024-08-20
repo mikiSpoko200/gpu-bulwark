@@ -28,7 +28,7 @@ use nalgebra_glm as glm;
 
 use winit::application::ApplicationHandler;
 use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
-use winit::event_loop::{self, ActiveEventLoop};
+use winit::event_loop::{self, ActiveEventLoop, EventLoop};
 use winit::keyboard;
 use winit::window::{self};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle as _};
@@ -149,19 +149,18 @@ pub mod config {
 }
 
 pub struct GlState {
+}
+
+pub struct GCtx {
+    window: window::Window,
+    surface: surface::Surface<surface::WindowSurface>,
+    context: context::PossiblyCurrentContext,
     program: gl::Program<Inputs,FsOutputs, Uniforms>,
     vao: gl::VertexArray<Attributes>,
 }
 
-pub struct GraphicsContext {
-    window: window::Window,
-    surface: surface::Surface<surface::WindowSurface>,
-    context: context::PossiblyCurrentContext,
-}
-
 struct App {
-    graphics_context: Option<GraphicsContext>,
-    gl: Option<GlState>,
+    ctx: Option<GCtx>,
     scale: f32,
     camera: camera::Camera,
 }
@@ -169,201 +168,14 @@ struct App {
 impl App {
     pub fn new() -> Self {
         Self {
-            graphics_context: None,
-            gl: None,
+            ctx: None,
             camera: camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0, 1.33),
             scale: 1.0,
         }
     }
     
-    pub fn initialize() -> anyhow::Result<Self> {
-        // ========================[ gpu-bulwark ]========================
-
-        let vs_source = std::fs::read_to_string("samples/shaders/basic.vert")?;
-        let common_source = std::fs::read_to_string("samples/shaders/basic-common.vert")?;
-        let fs_source = std::fs::read_to_string("samples/shaders/basic.frag")?;
-
-
-        let vs_inputs = Inputs::default();
-        let vars![vin_position, vin_color, vin_tex] = &vs_inputs;
-
-        let vs_outputs = VsOutputs::default();
-
-        let fs_inputs = vs_outputs.matching_inputs();
-        let vars![ fs_output ] = FsOutputs::default();
-
-        let vars![ view_matrix_location ] = Uniforms::default();
-
-        let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
-        let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
-        let mut common = shader::create::<shader::target::Vertex>();
-    
-        uncompiled_vs.source(&[&vs_source]);
-        uncompiled_fs.source(&[&fs_source]);
-        common.source(&[&common_source]);
-    
-        let vs = uncompiled_vs
-            .uniform(&view_matrix_location)
-            .compile()?
-            .into_main()
-            .inputs(&vs_inputs)
-            .outputs(&vs_outputs);
-        let fs = uncompiled_fs
-            .compile()?
-            .into_main()
-            .inputs(&fs_inputs)
-            .output(&fs_output);
-        let common = common.compile()?.into_shared();
-    
-        let program = Program::builder()
-            .uniform_definitions(|definitions| definitions
-                .define(&view_matrix_location, &[[0f32; 4]; 4])
-            )
-            .vertex_main(&vs)
-            .uniforms(|matcher| matcher.bind(&view_matrix_location))
-            .vertex_shared(&common)
-            .fragment_main(&fs)
-            .build()?;
-    
-        let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
-    
-        let mut colors = Buffer::create();
-        colors.data::<(Static, Draw)>(&[
-            [1.0, 0.0, 0.0, 1.0],
-            [0.0, 1.0, 0.0, 1.0],
-            [0.0, 0.0, 1.0, 1.0],
-        ]);
-    
-        let mut texture_coords = Buffer::create();
-        texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
-    
-        let vao = VertexArray::create()
-            .vertex_attrib_pointer(&vin_position, positions)
-            .vertex_attrib_pointer(&vin_color, colors)
-            .vertex_attrib_pointer(&vin_tex, texture_coords);
-
-        unsafe {
-            glb::ClearColor(0.29, 0.48, 0.73, 0.5);
-            glb::Clear(glb::COLOR_BUFFER_BIT);
-        }
-
-        let mut texture = 0;
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::ActiveTexture(glb::TEXTURE0 + 8);
-                glb::CreateTextures(glb::TEXTURE_2D, 1, &mut texture);
-
-                let width = config::WIDTH as usize;
-                let height = config::HEIGHT as usize;
-
-                let mut texture_test = Vec::<[u8; 3]>::with_capacity(width * height);
-                for i in 0..(width * height) {
-                    let signed = i as i64 ;
-                    texture_test.push([(signed % 256) as _, ((signed - 64) % 256) as _, (signed % 128) as _]);
-                }
-
-                // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_S, glb::REPEAT as _);
-                // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_T, glb::REPEAT as _);
-                // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MIN_FILTER, glb::LINEAR_MIPMAP_LINEAR as _);
-                // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MAG_FILTER, glb::LINEAR as _);
-
-                // glb::TexStorage2D(
-                    
-                // );
-                // glb::GenerateMipmap(glb::TEXTURE_2D);
-            }
-        }
-
-        Ok(Self {
-            graphics_context: None,
-            scale: 1.0,
-            camera: camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, config::WIDTH as f32 / config::HEIGHT as f32),
-        })
-    }
-
-    fn render(&mut self) {
-        if let Some(ref mut ctx) = self.graphics_context {
-            self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
-
-            gl::draw_arrays(&self.vao, &self.program);
-    
-            ctx.surface
-                .swap_buffers(&ctx.context)
-                .expect("buffer swapping is successful");
-    
-                ctx.window.request_redraw();
-            gl::call! {
-                [panic]
-                unsafe {
-                    glb::Clear(glb::COLOR_BUFFER_BIT);
-                }
-            };
-        }
-    }
-
-    fn process_keyboard_input(&mut self, key: keyboard::KeyCode) {
-        println!("camera at {}", self.camera.position);
-        self.camera.process_input(&key);
-    }
-
-    fn process_mouse_input(&mut self, (dx, dy): (f64, f64)) {
-        let camera = &mut self.camera;
-        camera.process_mouse(dx, dy);
-        println!("camera yaw {}, pitch {}", camera.yaw, camera.pitch);
-        self.program.uniform(&VIEW_MATRIX_LOCATION, &camera.view_projection_matrix());
-    }
-}
-
-const VIEW_MATRIX_LOCATION: UniformVariable<glsl::Mat4, 0> = UniformVariable::new_phantom();
-
-
-impl ApplicationHandler for App {
-    fn suspended(&mut self, _: &ActiveEventLoop) {
-        // TODO: read about context yielding on different platforms.
-        println!("suspended");
-    }
-
-    fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
-        match event {
-            DeviceEvent::MouseMotion { delta } => { self.process_mouse_input(delta) }
-            DeviceEvent::Key(winit::event::RawKeyEvent {
-                physical_key: keyboard::PhysicalKey::Code(key),
-                state: ElementState::Pressed,
-            }) => {
-                self.process_keyboard_input(key)
-            },
-            _ => (),
-        }
-    }
-
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
-        match event {
-            WindowEvent::Resized(size) => {
-                if let Some(ref mut ctx) = self.graphics_context {
-                    println!("resizing...");
-                    if size.width != 0 && size.height != 0 {
-                        // Some platforms like EGL require resizing GL surface to update the size
-                        // Notable platforms here are Wayland and macOS, other don't require it
-                        // and the function is no-op, but it's wise to resize it for portability
-                        // reasons.
-                        ctx.surface.resize(
-                            &ctx.context,
-                            NonZeroU32::new(size.width).unwrap(),
-                            NonZeroU32::new(size.height).unwrap(),
-                        );
-                    }
-            }
-            },
-            WindowEvent::CloseRequested => event_loop.exit(),
-            WindowEvent::RedrawRequested => self.render(),
-            _ => (),
-        }
-    }
-    
-    fn resumed(&mut self, event_loop: &event_loop::ActiveEventLoop) {
-        if self.graphics_context.is_none() {
+    pub fn initialize(&mut self, event_loop: &ActiveEventLoop) -> anyhow::Result<()> {
+        if self.ctx.is_none() {
             let window = event_loop.create_window(
                 winit::window::WindowAttributes::default()
                     .with_inner_size(winit::dpi::PhysicalSize::new(config::WIDTH, config::HEIGHT))
@@ -448,19 +260,205 @@ impl ApplicationHandler for App {
                 let symbol = std::ffi::CString::new(symbol).unwrap();
                 display.get_proc_address(symbol.as_c_str()).cast()
             });
+
+            // ========================[ gpu-bulwark ]========================
+
+            let vs_source = std::fs::read_to_string("samples/shaders/basic.vert")?;
+            let common_source = std::fs::read_to_string("samples/shaders/basic-common.vert")?;
+            let fs_source = std::fs::read_to_string("samples/shaders/basic.frag")?;
+
+
+            let vs_inputs = Inputs::default();
+            let vars![vin_position, vin_color, vin_tex] = &vs_inputs;
+
+            let vs_outputs = VsOutputs::default();
+
+            let fs_inputs = vs_outputs.matching_inputs();
+            let vars![ fs_output ] = FsOutputs::default();
+
+            let vars![ view_matrix_location ] = Uniforms::default();
+
+            let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
+            let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
+            let mut common = shader::create::<shader::target::Vertex>();
         
-            let ctx = GraphicsContext {
+            uncompiled_vs.source(&[&vs_source]);
+            uncompiled_fs.source(&[&fs_source]);
+            common.source(&[&common_source]);
+        
+            let vs = uncompiled_vs
+                .uniform(&view_matrix_location)
+                .compile()?
+                .into_main()
+                .inputs(&vs_inputs)
+                .outputs(&vs_outputs);
+            let fs = uncompiled_fs
+                .compile()?
+                .into_main()
+                .inputs(&fs_inputs)
+                .output(&fs_output);
+            let common = common.compile()?.into_shared();
+        
+            let program = Program::builder()
+                .uniform_definitions(|definitions| definitions
+                    .define(&view_matrix_location, &[[0f32; 4]; 4])
+                )
+                .vertex_main(&vs)
+                .uniforms(|matcher| matcher.bind(&view_matrix_location))
+                .vertex_shared(&common)
+                .fragment_main(&fs)
+                .build()?;
+        
+            let mut positions = Buffer::create();
+            positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
+        
+            let mut colors = Buffer::create();
+            colors.data::<(Static, Draw)>(&[
+                [1.0, 0.0, 0.0, 1.0],
+                [0.0, 1.0, 0.0, 1.0],
+                [0.0, 0.0, 1.0, 1.0],
+            ]);
+        
+            let mut texture_coords = Buffer::create();
+            texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
+        
+            let vao = VertexArray::create()
+                .vertex_attrib_pointer(&vin_position, positions)
+                .vertex_attrib_pointer(&vin_color, colors)
+                .vertex_attrib_pointer(&vin_tex, texture_coords);
+
+            unsafe {
+                glb::ClearColor(0.29, 0.48, 0.73, 0.5);
+                glb::Clear(glb::COLOR_BUFFER_BIT);
+            }
+
+            // let mut texture = 0;
+            // gl::call! {
+            //     [panic]
+            //     unsafe {
+            //         glb::ActiveTexture(glb::TEXTURE0 + 8);
+            //         glb::CreateTextures(glb::TEXTURE_2D, 1, &mut texture);
+
+            //         let width = config::WIDTH as usize;
+            //         let height = config::HEIGHT as usize;
+
+            //         let mut texture_test = Vec::<[u8; 3]>::with_capacity(width * height);
+            //         for i in 0..(width * height) {
+            //             let signed = i as i64 ;
+            //             texture_test.push([(signed % 256) as _, ((signed - 64) % 256) as _, (signed % 128) as _]);
+            //         }
+
+            //         glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_S, glb::REPEAT as _);
+            //         glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_WRAP_T, glb::REPEAT as _);
+            //         glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MIN_FILTER, glb::LINEAR_MIPMAP_LINEAR as _);
+            //         glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MAG_FILTER, glb::LINEAR as _);
+
+            //         glb::TexStorage2D(
+                        
+            //         );
+            //         glb::GenerateMipmap(glb::TEXTURE_2D);
+            //     }
+            // }
+            self.ctx = Some(GCtx {
                 window,
                 surface,
                 context: gl_context,
-            };
-            self.graphics_context = Some(ctx);
+                program,
+                vao,
+            });
         }
+        Ok(())
+    }
+
+    fn render(&mut self) {
+        if let Some(ref mut ctx) = self.ctx {
+            self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
+
+            gl::draw_arrays(&ctx.vao, &ctx.program);
+    
+            ctx.surface
+                .swap_buffers(&ctx.context)
+                .expect("buffer swapping is successful");
+    
+            ctx.window.request_redraw();
+            gl::call! {
+                [panic]
+                unsafe {
+                    glb::Clear(glb::COLOR_BUFFER_BIT);
+                }
+            };
+        }
+    }
+
+    fn process_keyboard_input(&mut self, key: keyboard::KeyCode) {
+        self.camera.process_input(&key);
+    }
+
+    fn process_mouse_input(&mut self, (dx, dy): (f64, f64)) {
+        self.ctx
+            .as_mut()
+            .map(|ctx| {
+                let camera = &mut self.camera;
+                camera.process_mouse(dx, dy);
+                ctx.program.uniform(&VIEW_MATRIX_LOCATION, &camera.view_projection_matrix());
+            });
+    }
+}
+
+const VIEW_MATRIX_LOCATION: UniformVariable<glsl::Mat4, 0> = UniformVariable::new_phantom();
+
+
+impl ApplicationHandler for App {
+    fn suspended(&mut self, _: &ActiveEventLoop) {
+        // TODO: read about context yielding on different platforms.
+        println!("suspended");
+    }
+
+    fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
+        match event {
+            DeviceEvent::MouseMotion { delta } => { self.process_mouse_input(delta) }
+            DeviceEvent::Key(winit::event::RawKeyEvent {
+                physical_key: keyboard::PhysicalKey::Code(key),
+                state: ElementState::Pressed,
+            }) => {
+                self.process_keyboard_input(key)
+            },
+            _ => (),
+        }
+    }
+
+    fn window_event(&mut self, event_loop: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
+        match event {
+            WindowEvent::Resized(size) => {
+                if let Some(ref mut ctx) = self.ctx {
+                    println!("resizing...");
+                    if size.width != 0 && size.height != 0 {
+                        // Some platforms like EGL require resizing GL surface to update the size
+                        // Notable platforms here are Wayland and macOS, other don't require it
+                        // and the function is no-op, but it's wise to resize it for portability
+                        // reasons.
+                        ctx.surface.resize(
+                            &ctx.context,
+                            NonZeroU32::new(size.width).unwrap(),
+                            NonZeroU32::new(size.height).unwrap(),
+                        );
+                    }
+            }
+            },
+            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::RedrawRequested => self.render(),
+            _ => (),
+        }
+    }
+    
+    fn resumed(&mut self, event_loop: &event_loop::ActiveEventLoop) {
+        self.initialize(event_loop);
     }
 }
 
 
 fn main() -> anyhow::Result<()> {
-    let app = App::new();
-    Ok(event_loop.run_app(app)?)
+    let mut app = App::new();
+    let event_loop = EventLoop::new()?;
+    Ok(event_loop.run_app(&mut app)?)
 }

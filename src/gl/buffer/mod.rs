@@ -148,6 +148,7 @@ where
         U: Usage,
     {
         {
+            let binder = self.bind();
             gl::call! {
                 [panic]
                 unsafe {
