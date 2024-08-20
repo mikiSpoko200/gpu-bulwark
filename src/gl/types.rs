@@ -2,8 +2,6 @@
 
 // TODO: Implement different types using bitfields crate
 
-use num::Integer;
-
 #[derive(Debug, Clone, Copy, Hash, Default, PartialEq, Eq)]
 #[allow(non_camel_case_types)]
 pub(crate) struct u31(i32);
@@ -67,4 +65,4 @@ unsafe impl Type for float16 { const ID: u32 = glb::HALF_FLOAT; }
 unsafe impl Type for f32 { const ID: u32 = glb::FLOAT;          }
 unsafe impl Type for f64 { const ID: u32 = glb::DOUBLE;         }
 
-pub struct Normalized<I: Integer>(I);
+pub struct Normalized<I>(I);

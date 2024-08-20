@@ -1,9 +1,7 @@
 #![allow(unused_unsafe)]
 
-use std::cell::LazyCell;
 use std::num::NonZeroU32;
 
-mod builder;
 mod constraint;
 mod ext;
 pub mod glsl;
@@ -30,35 +28,14 @@ use nalgebra_glm as glm;
 
 use winit::application::ApplicationHandler;
 use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
-use winit::event_loop::{self, ActiveEventLoop, EventLoop};
+use winit::event_loop::{self, ActiveEventLoop};
 use winit::keyboard;
-use winit::window::{self, Window};
+use winit::window::{self};
 use raw_window_handle::{HasDisplayHandle, HasWindowHandle as _};
 
 use glutin::{context, display, surface};
 use glutin::prelude::*;
 
-
-thread_local! {
-    static CONTEXT: std::cell::OnceCell<Context> = std::cell::OnceCell::new();
-}
-
-/// FIXME: This is a temporary solution to the question of context handling.
-pub struct Context {
-    inner: glutin::context::PossiblyCurrentContext,
-}
-
-// impl Context {
-//     pub fn global(&self) {
-//         CONTEXT.with(|once_cell| {
-//             once_cell.get_or_init(|inner| );
-//         });
-//     }
-// }
-
-fn main() -> anyhow::Result<()> {
-    
-}
 
 mod camera {
     use glm::Vec3;
@@ -166,20 +143,14 @@ type Attributes = hlist::HList! {
     Attribute<[f32; 2], 2>,
 };
 
-struct App {
-    graphics_context: Option<GraphicsContext>,
-    window: Option<Window>,
-    surface: Option<surface::Surface<surface::WindowSurface>>,
-    scale: f32,
-    camera: camera::Camera,
-    context: context::PossiblyCurrentContext,
-    program: gl::Program<Inputs, FsOutputs, Uniforms>,
-    vao: VertexArray<Attributes>,
-}
-
 pub mod config {
     pub const WIDTH: u32 = 960;
     pub const HEIGHT: u32 = 640;
+}
+
+pub struct GlState {
+    program: gl::Program<Inputs,FsOutputs, Uniforms>,
+    vao: gl::VertexArray<Attributes>,
 }
 
 pub struct GraphicsContext {
@@ -188,7 +159,23 @@ pub struct GraphicsContext {
     context: context::PossiblyCurrentContext,
 }
 
+struct App {
+    graphics_context: Option<GraphicsContext>,
+    gl: Option<GlState>,
+    scale: f32,
+    camera: camera::Camera,
+}
+
 impl App {
+    pub fn new() -> Self {
+        Self {
+            graphics_context: None,
+            gl: None,
+            camera: camera::Camera::new(glm::vec3(0.0, 0.0, 0.0), 0.0, 0.0, 1.33),
+            scale: 1.0,
+        }
+    }
+    
     pub fn initialize() -> anyhow::Result<Self> {
         // ========================[ gpu-bulwark ]========================
 
@@ -228,9 +215,7 @@ impl App {
             .output(&fs_output);
         let common = common.compile()?.into_shared();
     
-        let mut scale = 0f32;
-    
-        let mut program = Program::builder()
+        let program = Program::builder()
             .uniform_definitions(|definitions| definitions
                 .define(&view_matrix_location, &[[0f32; 4]; 4])
             )
@@ -284,43 +269,38 @@ impl App {
                 // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MIN_FILTER, glb::LINEAR_MIPMAP_LINEAR as _);
                 // glb::TexParameteri(glb::TEXTURE_2D, glb::TEXTURE_MAG_FILTER, glb::LINEAR as _);
 
-                glb::TexStorage2D(
+                // glb::TexStorage2D(
                     
-                );
-                glb::GenerateMipmap(glb::TEXTURE_2D);
+                // );
+                // glb::GenerateMipmap(glb::TEXTURE_2D);
             }
         }
 
         Ok(Self {
             graphics_context: None,
-            window: None,
-            surface: None,
             scale: 1.0,
             camera: camera::Camera::new(glm::Vec3::zeros(), 0.0, 0.0, config::WIDTH as f32 / config::HEIGHT as f32),
-            program,
-            context: todo!(),
-            vao: todo!(),
         })
     }
 
     fn render(&mut self) {
-        self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
+        if let Some(ref mut ctx) = self.graphics_context {
+            self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
 
-        gl::draw_arrays(&self.vao, &self.program);
-
-        self.surface
-            .as_mut()
-            .unwrap()
-            .swap_buffers(&self.context)
-            .expect("buffer swapping is successful");
-
-        self.window.as_ref().unwrap().request_redraw();
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::Clear(glb::COLOR_BUFFER_BIT);
-            }
-        };
+            gl::draw_arrays(&self.vao, &self.program);
+    
+            ctx.surface
+                .swap_buffers(&ctx.context)
+                .expect("buffer swapping is successful");
+    
+                ctx.window.request_redraw();
+            gl::call! {
+                [panic]
+                unsafe {
+                    glb::Clear(glb::COLOR_BUFFER_BIT);
+                }
+            };
+        }
     }
 
     fn process_keyboard_input(&mut self, key: keyboard::KeyCode) {
@@ -361,18 +341,20 @@ impl ApplicationHandler for App {
     fn window_event(&mut self, event_loop: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
         match event {
             WindowEvent::Resized(size) => {
-                println!("resizing...");
-                if size.width != 0 && size.height != 0 {
-                    // Some platforms like EGL require resizing GL surface to update the size
-                    // Notable platforms here are Wayland and macOS, other don't require it
-                    // and the function is no-op, but it's wise to resize it for portability
-                    // reasons.
-                    self.surface.as_mut().unwrap().resize(
-                        &self.context,
-                        NonZeroU32::new(size.width).unwrap(),
-                        NonZeroU32::new(size.height).unwrap(),
-                    );
-                }
+                if let Some(ref mut ctx) = self.graphics_context {
+                    println!("resizing...");
+                    if size.width != 0 && size.height != 0 {
+                        // Some platforms like EGL require resizing GL surface to update the size
+                        // Notable platforms here are Wayland and macOS, other don't require it
+                        // and the function is no-op, but it's wise to resize it for portability
+                        // reasons.
+                        ctx.surface.resize(
+                            &ctx.context,
+                            NonZeroU32::new(size.width).unwrap(),
+                            NonZeroU32::new(size.height).unwrap(),
+                        );
+                    }
+            }
             },
             WindowEvent::CloseRequested => event_loop.exit(),
             WindowEvent::RedrawRequested => self.render(),
@@ -381,91 +363,104 @@ impl ApplicationHandler for App {
     }
     
     fn resumed(&mut self, event_loop: &event_loop::ActiveEventLoop) {
-        let window = event_loop.create_window(
-            winit::window::WindowAttributes::default()
-                .with_inner_size(winit::dpi::PhysicalSize::new(config::WIDTH, config::HEIGHT))
-                .with_title("gpu-bulwark")
-                .with_resizable(false)
-        ).expect("window creation succeeded");
-
-        let version = context::Version::new(4, 6);
-        println!(
-            "initializing OpenGL {}.{} core",
-            version.major, version.minor
-        );
+        if self.graphics_context.is_none() {
+            let window = event_loop.create_window(
+                winit::window::WindowAttributes::default()
+                    .with_inner_size(winit::dpi::PhysicalSize::new(config::WIDTH, config::HEIGHT))
+                    .with_title("gpu-bulwark")
+                    .with_resizable(false)
+            ).expect("window creation succeeded");
     
-        let raw_window_handle = window.window_handle()
-            .expect("can obtain window handle")
-            .as_raw();
-        let raw_display_handle = window.display_handle()
-            .expect("can obtain display handle")
-            .as_raw();
-    
-        let template = glutin::config::ConfigTemplateBuilder::new().build();
-        let context_attributes = context::ContextAttributesBuilder::new()
-            .with_debug(true)
-            .with_context_api(context::ContextApi::OpenGl(Some(version)))
-            .with_profile(context::GlProfile::Core)
-            .build(Some(raw_window_handle));
-    
-        let (window_width, window_height) = {
-            (
-                NonZeroU32::new(config::WIDTH).unwrap(),
-                NonZeroU32::new(config::HEIGHT).unwrap(),
-            )
-        };
-    
-        let surface_attributes = surface::SurfaceAttributesBuilder::<surface::WindowSurface>::new().build(
-            raw_window_handle,
-            window_width,
-            window_height,
-        );
-    
-        let preference = display::DisplayApiPreference::WglThenEgl(Some(raw_window_handle));
-    
-        // SAFETY: we just checked if handle is valid? (maybe there are some more cavitates to this)
-        let display = unsafe { glutin::display::Display::new(raw_display_handle, preference).unwrap() };
-    
-        println!("checking available configurations...");
-        let config = unsafe { display.find_configs(template) }.expect("can find matching configurations")
-            .reduce(|accum, config| {
-                let transparency_check = config.supports_transparency().unwrap_or(false)
-                    & !accum.supports_transparency().unwrap_or(false);
-    
-                if transparency_check || config.num_samples() > accum.num_samples() {
-                    config
-                } else {
-                    accum
-                }
-            })
-            .expect("at least one configuration is compatible with given template");
-    
-        println!("using config:");
-        println!(
-            "  color attachment: {:?}",
-            config
-                .color_buffer_type()
-                .expect("selected config contains color attachment")
-        );
-        println!("  alpha bits: {}", config.alpha_size());
-        println!("  hardware acceleration: {}", config.hardware_accelerated());
-        println!("  sample count: {}", config.num_samples());
-    
-        println!("creating context...");
-        let gl_context = unsafe { display.create_context(&config, &context_attributes).expect("can create GL context") };
-    
-        println!("creating rendering surface...");
-        let surface = unsafe { display.create_window_surface(&config, &surface_attributes).expect("can create window surface") };
-    
-        println!("making context current");
-        let gl_context = gl_context.make_current(&surface).expect("can make surface current");
-    
-        println!("loading function pointers...");
-        glb::load_with(|symbol| {
-            let symbol = std::ffi::CString::new(symbol).unwrap();
-            display.get_proc_address(symbol.as_c_str()).cast()
-        });
-    
-        self.surface = None;
+            let version = context::Version::new(4, 6);
+            println!(
+                "initializing OpenGL {}.{} core",
+                version.major, version.minor
+            );
+        
+            let raw_window_handle = window.window_handle()
+                .expect("can obtain window handle")
+                .as_raw();
+            let raw_display_handle = window.display_handle()
+                .expect("can obtain display handle")
+                .as_raw();
+        
+            let template = glutin::config::ConfigTemplateBuilder::new().build();
+            let context_attributes = context::ContextAttributesBuilder::new()
+                .with_debug(true)
+                .with_context_api(context::ContextApi::OpenGl(Some(version)))
+                .with_profile(context::GlProfile::Core)
+                .build(Some(raw_window_handle));
+        
+            let (window_width, window_height) = {
+                (
+                    NonZeroU32::new(config::WIDTH).unwrap(),
+                    NonZeroU32::new(config::HEIGHT).unwrap(),
+                )
+            };
+        
+            let surface_attributes = surface::SurfaceAttributesBuilder::<surface::WindowSurface>::new().build(
+                raw_window_handle,
+                window_width,
+                window_height,
+            );
+        
+            let preference = display::DisplayApiPreference::WglThenEgl(Some(raw_window_handle));
+        
+            // SAFETY: we just checked if handle is valid? (maybe there are some more cavitates to this)
+            let display = unsafe { glutin::display::Display::new(raw_display_handle, preference).unwrap() };
+        
+            println!("checking available configurations...");
+            let config = unsafe { display.find_configs(template) }.expect("can find matching configurations")
+                .reduce(|accum, config| {
+                    let transparency_check = config.supports_transparency().unwrap_or(false)
+                        & !accum.supports_transparency().unwrap_or(false);
+        
+                    if transparency_check || config.num_samples() > accum.num_samples() {
+                        config
+                    } else {
+                        accum
+                    }
+                })
+                .expect("at least one configuration is compatible with given template");
+        
+            println!("using config:");
+            println!(
+                "  color attachment: {:?}",
+                config
+                    .color_buffer_type()
+                    .expect("selected config contains color attachment")
+            );
+            println!("  alpha bits: {}", config.alpha_size());
+            println!("  hardware acceleration: {}", config.hardware_accelerated());
+            println!("  sample count: {}", config.num_samples());
+        
+            println!("creating context...");
+            let gl_context = unsafe { display.create_context(&config, &context_attributes).expect("can create GL context") };
+        
+            println!("creating rendering surface...");
+            let surface = unsafe { display.create_window_surface(&config, &surface_attributes).expect("can create window surface") };
+        
+            println!("making context current");
+            let gl_context = gl_context.make_current(&surface).expect("can make surface current");
+        
+            println!("loading function pointers...");
+            glb::load_with(|symbol| {
+                let symbol = std::ffi::CString::new(symbol).unwrap();
+                display.get_proc_address(symbol.as_c_str()).cast()
+            });
+        
+            let ctx = GraphicsContext {
+                window,
+                surface,
+                context: gl_context,
+            };
+            self.graphics_context = Some(ctx);
+        }
     }
+}
+
+
+fn main() -> anyhow::Result<()> {
+    let app = App::new();
+    Ok(event_loop.run_app(app)?)
 }

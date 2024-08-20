@@ -1,16 +1,7 @@
+//! Abstractions for type level validation.
 
-pub mod constraint;
 
-#[hi::marker]
-pub trait Fulfilled { }
-
-#[hi::marker]
-pub trait Constraint<T> { }
-
-/// Constraint for trait bound level validation.
-// #[hi::marker]
-// pub trait Valid<M> where M: mode::Validation { }
-
+/// Abstraction of compile-time validation using `const fn`.
 pub trait ConstFnValid {
     const VALID: ();
 }

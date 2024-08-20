@@ -2,12 +2,12 @@ pub mod target;
 pub mod storage;
 pub mod valid;
 pub mod pixel;
+pub mod image;
 
 use crate::gl;
 use crate::hlist::indexed;
 use gl::texture;
 use gl::target::Target as _;
-use gl::image;
 use gl::object;
 use gl::buffer;
 

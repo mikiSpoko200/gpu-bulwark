@@ -1,0 +1,11 @@
+[package]
+name = "himark-test"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+himark = { path = "../" }
+
+[lib]
+name = "himark_test"
+path = "lib.rs"

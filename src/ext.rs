@@ -1,3 +1,4 @@
+//! Auxillary extension traits.
 
 pub trait Array: Sized {
     const SIZE: usize;

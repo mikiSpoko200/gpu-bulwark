@@ -4,6 +4,25 @@ use crate::gl;
 
 use gl::error;
 
+
+mod private {
+    pub trait Binder: Sized {
+        fn bind(name: u32);
+        fn unbind() {
+            Self::bind(0);
+        }
+    }
+    pub unsafe trait Allocator: Sized {
+        fn allocate(names: &mut [u32]);
+    
+        fn free(names: &[u32]);
+    }
+    pub trait PartialObject: Allocator { }
+    
+    pub trait Object: PartialObject + Binder { }
+}
+pub(in crate::gl) use private::*;
+
 pub struct Bind<B: Binder>(PhantomData<B>);
 
 impl<B: Binder> Bind<B> {
@@ -18,23 +37,6 @@ impl<B: Binder> Drop for Bind<B> {
         B::unbind();
     }
 }
-
-pub(in crate::gl) trait Binder: Sized {
-    fn bind(name: u32);
-    fn unbind() {
-        Self::bind(0);
-    }
-}
-
-pub(in crate::gl) unsafe trait Allocator: Sized {
-    fn allocate(names: &mut [u32]);
-
-    fn free(names: &[u32]);
-}
-
-pub(crate) trait PartialObject: Allocator { }
-
-pub(crate) trait Object: PartialObject + Binder { }
 
 #[repr(transparent)]
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]

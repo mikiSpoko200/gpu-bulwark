@@ -12,5 +12,5 @@ pub(crate) mod internal {
 
     /// Wrapper for integer values that moves them into type system.
     /// Same trick is used in std here `https://doc.rust-lang.org/std/simd/prelude/struct.Simd.html`
-    pub(crate) enum Const<const NUMBER: usize> { }
+    pub enum Const<const NUMBER: usize> { }
 }

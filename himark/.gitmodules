@@ -1,0 +1,3 @@
+[submodule "himark-proc"]
+	path = himark-proc
+	url = ./himark-proc

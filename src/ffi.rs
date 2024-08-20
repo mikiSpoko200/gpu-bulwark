@@ -1,3 +1,5 @@
+//! Abstraction of types that can express their own memory layout in types. 
+
 use crate::{ext, glsl};
 
 /// Array storage that type can be transmuted into

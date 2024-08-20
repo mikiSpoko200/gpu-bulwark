@@ -63,7 +63,7 @@ macro_rules! call {
         if cfg!(debug_assertions) {
             let errors = $crate::gl::error::Error::poll_queue();
             if errors.len() > 0 {
-                let message = errors.into_iter().map(ToString::to_string).collect::<::std::vec::Vec<_>>().join("\n");
+                let message = errors.iter().map(ToString::to_string).collect::<::std::vec::Vec<_>>().join("\n");
                 panic!("gl error: {message}");
             }
         }
@@ -76,3 +76,13 @@ macro_rules! call {
 }
 
 pub(crate) use call;
+
+macro_rules! impl_token {
+    ($ty:ty as $token_trait:path => $gl_token_name:ident) => {
+        impl $token_trait for $ty {
+            const ID: u32 = ::glb::$gl_token_name;
+        }
+    };
+}
+
+pub(crate) use impl_token;

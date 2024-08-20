@@ -71,7 +71,7 @@ unsafe impl<T: Target> gl::object::Allocator for ShaderObject<T> {
     }
 }
 
-struct ShaderPhantom<T, C>(PhantomData<(T, C)>)
+pub(in crate::gl) struct ShaderPhantom<T, C>(PhantomData<(T, C)>)
 where
     T: Target,
     C: ts::Compilation,

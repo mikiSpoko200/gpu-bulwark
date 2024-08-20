@@ -1,9 +1,14 @@
 /// Definitions of opengl bind targets
 
-/// Common behavior amongst all object specific targets
-pub trait Target {
-    const ID: u32;
+mod private {
+    /// Common behavior amongst all object specific targets
+    pub trait Target {
+        const ID: u32;
+    }
 }
+
+pub(crate) use private::Target;
+
 
 #[macro_export]
 #[allow(unused)]

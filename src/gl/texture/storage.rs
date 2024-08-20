@@ -20,11 +20,20 @@ pub struct Mutable<T>(PhantomData<T>) where T: texture::Target + marker::Interna
 pub mod marker {
     use super::*;
 
-    pub(in crate::gl::texture) trait Internal: texture::Target  { }
+    mod private {
+        use super::texture;
+
+        pub trait Internal: texture::Target  { }
+    }
+    pub(in crate::gl::texture) use private::*;
+
+    
+
+    pub trait Storage: Kind + AllocatorDispatch { }
 
     /// Type which represent different types of storage that texture can use.
     /// NOTE: They do **not** represent actual storage yet only its origin / mutability.
-    pub trait Kind: AllocatorDispatch {
+    pub trait Kind {
         type Target: texture::Target;
     }
 
@@ -74,7 +83,7 @@ impl<Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool, const DIM: usiz
 where
     Const<DIM>: texture::valid::TextureDim,
     Target: texture::Target + Dimensionality<Dimensions = [usize; DIM]>,
-    Kind: marker::Kind<Target=Target>,  
+    Kind: marker::Storage<Target=Target>,  
 {
     fn range(len: usize, span: impl std::ops::RangeBounds<usize>) -> (usize, usize) {
         let start = match span.start_bound() {
@@ -94,7 +103,7 @@ where
 impl<D1Target, Kind, InternalFormat> Storage<D1Target, Kind, InternalFormat, false>
 where
     D1Target: texture::Target<Dimensions = [usize; 1]>,
-    Kind: marker::Kind<Target=D1Target>,
+    Kind: marker::Storage<Target=D1Target>,
 {
     pub fn sub_image_1d<P: Pixel>(&mut self, x_range: impl std::ops::RangeBounds<usize>, pixels: &[P]) {
         let [width] = self.layout.dimensions;
@@ -123,7 +132,7 @@ where
 impl<D2Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool> Storage<D2Target, Kind, InternalFormat, CONTAINS_MIPMAPS>
 where
     D2Target: texture::Target<Dimensions = [usize; 2]>,
-    Kind: marker::Kind<Target=D2Target>,
+    Kind: marker::Storage<Target=D2Target>,
 {
     pub fn sub_image_2d<P: Pixel>(
         &mut self,
@@ -168,7 +177,7 @@ where
 impl<D3Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool> Storage<D3Target, Kind, InternalFormat, CONTAINS_MIPMAPS>
 where
     D3Target: texture::Target<Dimensions = [usize; 3]>,
-    Kind: marker::Kind<Target=D3Target>,
+    Kind: marker::Storage<Target=D3Target>,
 {
     pub fn sub_image_3d<P: Pixel>(
         &mut self, 
@@ -220,7 +229,7 @@ where
 impl<D1Target, Kind, InternalFormat> Storage<D1Target, Kind, InternalFormat, false>
 where
     D1Target: texture::Target<Dimensions = [usize; 1]>,
-    Kind: marker::Kind<Target=D1Target, Signature = signature::Storage1D>,
+    Kind: marker::Storage<Target=D1Target, Signature = signature::Storage1D>,
     InternalFormat: pixel::InternalFormat,
 {
     pub fn storage_1d(_: &gl::object::Bind<TextureObject<D1Target>>, width: usize) -> Self {
@@ -244,7 +253,7 @@ where
 impl<D2Target, Kind, InternalFormat> Storage<D2Target, Kind, InternalFormat, false>
 where
     D2Target: texture::Target<Dimensions = [usize; 2]>,
-    Kind: marker::Kind<Target=D2Target, Signature = signature::Storage2D>,
+    Kind: marker::Storage<Target=D2Target, Signature = signature::Storage2D>,
     InternalFormat: pixel::InternalFormat,
 {
     pub fn storage_2d(_: &object::Bind<TextureObject<D2Target>>, width: usize, height: usize) -> Self {
@@ -268,7 +277,7 @@ where
 impl<D3Target, Kind, InternalFormat> Storage<D3Target, Kind, InternalFormat, false>
 where
     D3Target: texture::Target<Dimensions = [usize; 3]>,
-    Kind: marker::Kind<Target=D3Target, Signature = signature::Storage3D>,
+    Kind: marker::Storage<Target=D3Target, Signature = signature::Storage3D>,
     InternalFormat: pixel::InternalFormat,
 {
     pub fn storage_3d(_: &object::Bind<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {

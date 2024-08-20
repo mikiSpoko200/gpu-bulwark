@@ -13,21 +13,6 @@ pub mod marker {
     }
 }
 
-#[hi::marker]
-pub trait Components { }
-
-#[hi::mark(Components)]
-pub enum RED { }
-
-#[hi::mark(Components)]
-pub enum RG { }
-
-#[hi::mark(Components)]
-pub enum RGB { }
-
-#[hi::mark(Components)]
-pub enum RGBA { }
-
 
 pub mod valid {
     use super::*;

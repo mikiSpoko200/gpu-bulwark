@@ -784,30 +784,6 @@ mod private {
     //     // TODO: Implement HList interface using HListHelper
     // }
 
-    trait HListHelper<Type> {
-        type Prepended;
-        type Appended;
-
-        type Last;
-        type First;
-
-        type Inverted;
-        type Reversed;
-
-        type Selected<N, I>;
-
-        fn prepend<E>(self, value: E) -> Self::Prepended;
-        fn append<E>(self, value: E) -> Self::Appended;
-
-        fn first(&self) -> Self::First;
-        fn last(&self) -> Self::Last;
-
-        fn invert(&self) -> Self::Inverted;
-        fn reverse(self) -> Self::Reversed;
-
-        fn select<N, I>(&self) -> Self::Selected<N, I>;
-    }
-
     // // blanket impl 1
     // impl<T, N, I> HListHelper<super::Left> for T
     // where

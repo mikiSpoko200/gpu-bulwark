@@ -48,7 +48,7 @@ pub mod bounds {
 
 /// Typing information for uniform declaration.
 #[derive(Clone, Copy)]
-pub(super) struct Declaration<U, const LOCATION: usize>(PhantomData<U>)
+pub struct Declaration<U, const LOCATION: usize>(PhantomData<U>)
 where
     U: glsl::Uniform;
 
@@ -63,7 +63,7 @@ where
 
 /// Facade that provides operations on `Declarations` HLists.
 #[derive(Copy)]
-pub(crate) struct Declarations<M, Decls>(pub PhantomData<(M, Decls)>)
+pub struct Declarations<M, Decls>(pub PhantomData<(M, Decls)>)
 where
     M: ts::Mutability,
     Decls: bounds::Declarations;
@@ -78,11 +78,11 @@ where
     }
 }
 
-impl<Decls> Default for Declarations<ts::Mutable, Decls>
+impl<Decls> Declarations<ts::Mutable, Decls>
 where
     Decls: bounds::Declarations,
 {
-    fn default() -> Self {
+    pub(crate) fn default() -> Self {
         Self(Default::default())
     }
 }
@@ -120,7 +120,7 @@ where
     where
         U: glsl::Uniform,
     {
-        Default::default()
+        Declarations::default()
     }
 
     pub(super) fn into_immutable(self) -> Declarations<ts::Immutable, Decls> {
@@ -150,12 +150,12 @@ where
 }
 
 /// Facade that provides operations on `Definitions` HLists.
-pub(crate) struct Definitions<Unis>(pub Unis)
+pub struct Definitions<Unis>(pub Unis)
 where
     Unis: bounds::Definitions;
 
-impl Default for Definitions<()> {
-    fn default() -> Self {
+impl Definitions<()> {
+    pub fn default() -> Self {
         Self(())
     }
 }

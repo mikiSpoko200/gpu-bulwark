@@ -1,0 +1,23 @@
+[package]
+name = "himark-proc"
+description = "For those who crave more ergonomic marker traits"
+version = "0.2.0"
+edition = "2021"
+authors = ["Mikołaj Depta <mikolajdepta.work@gmail.com>"]
+license = "MIT"
+keywords = ["trait", "marker", "derive", "type", "macro"]
+repository = "https://github.com/mikiSpoko200/himark"
+readme = "README.md"
+categories = ["development-tools::procedural-macro-helpers", "rust-patterns"]
+include = [
+    "**/*.rs",
+    "Cargo.toml",
+]
+
+[lib]
+proc-macro = true
+name = "himark_proc"
+
+[dependencies]
+quote = "1.0.36"
+syn = { version = "2.0.66", features = ["full"] }

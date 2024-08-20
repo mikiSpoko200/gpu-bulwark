@@ -7,7 +7,7 @@ use gl::texture;
 
 /// Buffer object target types.
 #[hi::marker]
-pub(crate) trait Target: gl::target::Target { }
+pub trait Target: gl::target::Target { }
 
 #[hi::mark(Target)]
 pub enum Array { }
