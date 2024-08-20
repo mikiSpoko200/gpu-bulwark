@@ -1,4 +1,37 @@
+\chapter{OpenGL wrapper library}
 
+In this chapter, we demonstrate how Rust's type system can be harnessed to create a safe wrapper library for modern OpenGL, specifically targeting version 4.6. Our goal is to cover the most essential components of the OpenGL specification and staying as close to the original spec as possible. 
+In many cases, we implement a minimal subset of functionality to demonstrate that, once a specific feature is in place, it can be readily extended to encompass a broader scope of the API.
 
+Besides the wrapper library the purpose of this study was to identify common patterns that arise during type driven design.
 
+\section*{Overview}
 
+The resulting library was named \textit{GPU bulwark} since it provides strong foundations for safer programming on the GPU, and could easily be extended to other GPU programming APIs.
+
+Library at it's root is logically divided into two halves. Main OpenGL wrapper and general purpose auxiliary modules that contain implementations of different patterns we recognized.
+
+\section{External dependencies}
+
+Our library utilizes several publicly available crates from crates.io, here we briefly discuss their purposes.
+
+\begin{itemize}
+    \item \texttt{gl} - provides raw OpenGL bindings for Rust. It provides one actual function which that allows to inject function pointer loading procedure. All raw bindings use c types and need to be called in unsafe context.
+    \item \texttt{derive\_move} - procedural macro crates that expands capabilities of derive macros for more built-in traits which helps to reduce boilerplate.
+    \item \texttt{concat\_idents} - provides singular procedural macro that allows to concatenate identifiers akin to c's \texttt{\#\#} operator, its used for generation of certain OpenGL identifiers that follow procedural naming convection which to reduces bolder plate and makes library code less prone to typos.
+    \item \texttt{nalgebra} and \texttt{nalgebra-glm} provide algorithms and type definitions for linear algebra computations. They are not used directly in our library for their functionality but rather can be optionally imported in order to integrate their types with \texttt{gpu-bulwark} for clients to use.
+\end{itemize}
+
+Remaining packages are not part of core library but rather are used by examples.
+
+\begin{itemize}
+    \item \texttt{thiserror} and \texttt{anyhow} - very popular crates that make error handling more ergonomic by allowing to simplify error types using dynamic dispatch on \texttt{std::error::Error} trait and generate new types that implement \texttt{std::error::Error} using procedural macro.
+    \item \texttt{raw-window-handle}, \texttt{glutin} and \texttt{winit} allow for cross platform window creation and OpenGL context initialization.
+\end{itemize}
+
+\section{Auxiliary modules and crates}
+
+All general purpose design patterns we encountered during development are implemented in these modules.
+% FIXME: relate our patterns to classical Gang of Four patterns
+
+\section{OpenGL wrapper}
