@@ -2,6 +2,8 @@
 pub mod config {
     pub const WIDTH: u32 = 960;
     pub const HEIGHT: u32 = 640;
+    pub const MOUSE_SENSITIVITY: f32 = 0.005;
+    pub const MOVEMENT_SPEED: f32 = 0.1;
 }
 
 
@@ -16,6 +18,12 @@ pub mod camera {
         pub yaw: f32,
         pub pitch: f32,
         aspect_ratio: f32,
+    }
+
+    impl Default for Camera {
+        fn default() -> Self {
+            Self { position: Default::default(), yaw: Default::default(), pitch: Default::default(), aspect_ratio: 1.33 }
+        }
     }
 
     impl Camera {

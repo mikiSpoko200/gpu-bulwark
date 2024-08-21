@@ -5,17 +5,17 @@ use crate::utils::Disjoint;
 
 #[macro_export]
 macro_rules! HList {
-    ($ty:ty $(,)?) => {
+    ($ty:ty $(,)?) => { 
         ((), $ty)
     };
     ($ty:ty, $($tail:ty),+ $(,)?) => {
-        crate::HList!(@ ((), $ty) => $($tail),+)
+        $crate::HList!(@ ((), $ty) => $($tail),+)
     };
     (@ $acc:ty => $ty:ty) => {
         ($acc, $ty)
     };
     (@ $acc:ty => $ty:ty, $($tail:ty),+) => {
-        crate::HList!(@ ($acc, $ty) => $($tail),+)
+        $crate::HList!(@ ($acc, $ty) => $($tail),+)
     };
 }
 

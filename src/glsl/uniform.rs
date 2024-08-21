@@ -89,7 +89,12 @@ where
     S: valid::Subtype,
 { }
 
-impl<T> UniformDH<valid::Scalar> for T where T: bounds::ScalarUniform { }
+hi::denmark! { f32 as UniformDH<valid::Scalar> }
+hi::denmark! { f64 as UniformDH<valid::Scalar> }
+hi::denmark! { i32 as UniformDH<valid::Scalar> }
+hi::denmark! { u32 as UniformDH<valid::Scalar> }
+
+// impl<T> UniformDH<valid::Scalar> for T where T: bounds::ScalarUniform { }
 
 impl<U, const DIM: usize> UniformDH<valid::Vector<DIM>> for glsl::GVec<U, DIM>
 where
@@ -183,6 +188,8 @@ pub mod ops {
 
     use crate::ffi;
     use crate::gl;
+    use crate::gl::object::Bind;
+    use crate::gl::program::ProgramObject;
     use glsl::variable::UniformVariable;
     use ffi::FFIExt;
 
@@ -190,7 +197,7 @@ pub mod ops {
     where
         Subtype: valid::Subtype,
     {
-        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
     }
 
     impl<U> Set<valid::Scalar> for U
@@ -198,7 +205,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -214,7 +221,7 @@ pub mod ops {
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
         Const<DIM>: valid::VecDim,
     {
-        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -229,7 +236,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {

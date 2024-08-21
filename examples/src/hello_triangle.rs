@@ -1,9 +1,11 @@
+#![allow(unused)]
 
+use crate::Ctx;
 
 pub struct Sample { }
 
 impl crate::Sample for Sample {
-    fn initialize(window: winit::window::Window, surface: glutin::surface::Surface<glutin::surface::WindowSurface>, context: glutin::context::PossiblyCurrentContext) -> crate::Ctx<Self> {
+    fn initialize(window: winit::window::Window, surface: glutin::surface::Surface<glutin::surface::WindowSurface>, context: glutin::context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         todo!()
     }
 

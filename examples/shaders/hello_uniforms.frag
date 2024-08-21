@@ -6,11 +6,10 @@
 
 layout(location = 0) in vec4 vertexColor;
 layout(location = 1) in vec2 uv;
-layout(location = 8) uniform sampler2D fancyTexture;
 
 out vec4 FragColor;
 
 void main()
 {
-    FragColor = texture(fancyTexture, uv); //  * vertexColor
+    FragColor = vertexColor; //  * vertexColor
 }

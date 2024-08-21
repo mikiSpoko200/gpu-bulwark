@@ -10,3 +10,10 @@ glutin = "0.32"
 raw-window-handle = "0.6"
 winit = { version = "0.30.0", default-features = false, features = ["rwh_06"] }
 anyhow = "1.0.75"
+
+[features]
+default = [ "hello_uniforms" ]
+hello_triangle = []
+hello_vertices = []
+hello_uniforms = []
+hello_textures = []

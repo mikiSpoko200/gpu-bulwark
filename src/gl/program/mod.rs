@@ -300,6 +300,6 @@ where
         IDX: Index,
         DUS: Find<UniformVariable<GLSL, LOCATION>, IDX>,
     {
-        self.bound(|_| GLSL::set(var, uniform));
+        self.bound(|_binder| GLSL::set(_binder, var, uniform));
     }
 }

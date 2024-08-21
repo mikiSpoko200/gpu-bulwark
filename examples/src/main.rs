@@ -1,5 +1,17 @@
 //! Application that can load and execute samples. Sample to run is selected using features.
 
+// Check compilation features
+#[cfg(any(
+    all(feature = "hello_triangle", any(feature = "hello_uniforms", feature = "hello_vertices", feature = "hello_textures")),
+    all(feature = "hello_uniforms", any(feature = "hello_triangle", feature = "hello_vertices", feature = "hello_textures")),
+    all(feature = "hello_vertices", any(feature = "hello_triangle", feature = "hello_uniforms", feature = "hello_textures")),
+    all(feature = "hello_textures", any(feature = "hello_triangle", feature = "hello_uniforms", feature = "hello_vertices")),
+))]
+compile_error!("multiple sample features selected, only a single sample can be built at a time");
+
+#[cfg(not(any(feature = "hello_triangle", feature = "hello_vertices", feature = "hello_uniforms", feature = "hello_textures")))]
+compile_error!("no sample selected, add `--feature <sample-name>` when building");
+
 mod common;
 mod hello_textures;
 mod hello_triangle;
@@ -19,8 +31,6 @@ use common::config;
 
 use glutin::{context, display, surface};
 use glutin::prelude::*;
-
-use gb::{gl, glsl};
 
 pub trait Sample: Sized {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>>;
@@ -51,35 +61,43 @@ impl<T> AsMut<T> for Ctx<T> {
     }
 }
 
-#[derive(Default)]
 struct App<T: Sample> {
     ctx: Option<Ctx<T>>,
 }
 
+impl<T: Sample> Default for App<T> {
+    fn default() -> Self {
+        Self { ctx: None }
+    }
+}
+
+
 impl App<hello_triangle::Sample> {
+    #[allow(unused)]
     fn hello_triangle() -> Self {
-        todo!()
+        Self::default()
     }
 }
 
 impl App<hello_vertices::Sample> {
+    #[allow(unused)]
     fn hello_vertices() -> Self {
-        todo!()
+        Self::default()
     }
 }
 impl App<hello_uniforms::Sample> {
+    #[allow(unused)]
     fn hello_uniforms() -> Self {
-        todo!()
+        Self::default()
     }
 }
 
 impl App<hello_textures::Sample> {
+    #[allow(unused)]
     fn hello_textures() -> App<hello_textures::Sample> {
-        todo!()
+        Self::default()
     }
 }
-
-
 
 impl<T: Sample> App<T> {
     fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
@@ -170,14 +188,17 @@ impl<T: Sample> App<T> {
                 let symbol = std::ffi::CString::new(symbol).unwrap();
                 display.get_proc_address(symbol.as_c_str()).cast()
             });
-            self.ctx = Some(T::initialize(window, surface, gl_context));
+            self.ctx = Some(match T::initialize(window, surface, gl_context) {
+                Ok(ctx) => ctx,
+                Err(err) => panic!("{err}"),
+            });
         }
     }
 
     fn render(&mut self) {
         self.ctx.as_mut().map(|ctx| {
             ctx.inner.render();
-            
+            println!("rendering");
             ctx.surface
                 .swap_buffers(&ctx.context)
                 .expect("buffer swapping is successful");
@@ -200,8 +221,6 @@ impl<T: Sample> App<T> {
             .map(|sample| sample.process_mouse(delta));
     }
 }
-
-const VIEW_MATRIX_LOCATION: glsl::UniformVariable<glsl::Mat4, 0> = glsl::UniformVariable::default();
 
 
 impl<T: Sample> ApplicationHandler for App<T> {
@@ -229,10 +248,6 @@ impl<T: Sample> ApplicationHandler for App<T> {
                 if let Some(ref mut ctx) = self.ctx {
                     println!("resizing...");
                     if size.width != 0 && size.height != 0 {
-                        // Some platforms like EGL require resizing GL surface to update the size
-                        // Notable platforms here are Wayland and macOS, other don't require it
-                        // and the function is no-op, but it's wise to resize it for portability
-                        // reasons.
                         ctx.surface.resize(
                             &ctx.context,
                             NonZeroU32::new(size.width).unwrap(),
@@ -255,7 +270,16 @@ impl<T: Sample> ApplicationHandler for App<T> {
 }
 
 fn main() -> anyhow::Result<()> {
+    
+    #[cfg(feature = "hello_triangle")]
     let mut app = App::hello_triangle();
+    #[cfg(feature = "hello_vertices")]
+    let mut app = App::hello_vertices();
+    #[cfg(feature = "hello_uniforms")]
+    let mut app = App::hello_uniforms();
+    #[cfg(feature = "hello_textures")]
+    let mut app = App::hello_textures();
+
     let event_loop = EventLoop::new()?;
     Ok(event_loop.run_app(&mut app)?)
 }
