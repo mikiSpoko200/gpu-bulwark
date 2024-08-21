@@ -35,7 +35,7 @@ where
     GLSL: glsl::bounds::TransparentType,
     GL: glsl::Compatible<GLSL>,
 {
-    let raw_pointer = unsafe { (value as *const GL).cast::<<GL::Layout as ext::Array>::Type>() };
+    let raw_pointer = (value as *const GL).cast::<<GL::Layout as ext::Array>::Type>();
     unsafe {
         std::slice::from_raw_parts(raw_pointer, <GL::Layout as ext::Array>::SIZE)
     }

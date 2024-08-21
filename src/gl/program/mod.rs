@@ -24,7 +24,6 @@ use glsl::variable;
 use variable::UniformVariable;
 
 use variable::{layout, storage};
-use glutin::error;
 
 use super::uniform::Declaration;
 use super::uniform::Declarations;

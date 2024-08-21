@@ -3,8 +3,6 @@ pub use crate::gl;
 
 /// Internal part of prelude;
 pub(crate) mod internal {
-    pub use crate::ext::Array as _;
-
     pub(crate) use crate::impl_target;
     pub(crate) use crate::utils::Disjoint;
 

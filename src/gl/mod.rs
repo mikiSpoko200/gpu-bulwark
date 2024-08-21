@@ -57,6 +57,7 @@ where
 /// In Debug mode it checks for errors and panics.
 /// In Release it does nothing.
 #[allow(unused)]
+#[macro_export]
 macro_rules! call {
     ([panic] $invocation:stmt) => {
         $invocation
@@ -75,7 +76,7 @@ macro_rules! call {
     };
 }
 
-pub(crate) use call;
+pub use call;
 
 macro_rules! impl_token {
     ($ty:ty as $token_trait:path => $gl_token_name:ident) => {
