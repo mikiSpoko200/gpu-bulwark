@@ -1,0 +1,12 @@
+[package]
+name = "samples"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+gb = { package = "gpu-bulwark", path = "../", features = ["nalgebra-glm"] }
+glm = { package = "nalgebra-glm", version = "0.18.0" }
+glutin = "0.32"
+raw-window-handle = "0.6"
+winit = { version = "0.30.0", default-features = false, features = ["rwh_06"] }
+anyhow = "1.0.75"
