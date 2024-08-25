@@ -29,12 +29,12 @@ type FsOutputs = glsl::Outputs! {
     layout(location = 0) vec4;
 };
 
-type Uniforms = glsl::Uniforms! {
-    layout(location = 0) mat4;
+type Uniforms = glsl::Glsl! {
+    layout(location = 0) uniform mat4;
 };
 
-type Resources = glsl::Uniforms! {
-    layout(binding = 0) sampler2D;
+type Resources = glsl::Glsl! {
+    layout(binding = 0) uniform sampler2D;
 };
 
 type Attributes = gb::HList! {
@@ -48,7 +48,7 @@ use texture::{target::D2, Immutable, image::{Format, format}};
 pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, Resources>,
     vao: VertexArray<Attributes>,
-    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGB, 8>, 0>
+    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGB, u8>, 0>
 }
 
 impl Sample {
