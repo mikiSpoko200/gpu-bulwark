@@ -28,29 +28,10 @@ use crate::glsl;
 use crate::gl;
 use glsl::storage::{In, Out};
 use object::Binder;
- 
+
+pub use glb as raw;
 
 pub type Result<T> = std::result::Result<T, Box<[error::Error]>>;
-
-
-pub fn draw_arrays<AS, PSI, PSO, US>(vao: &vertex_array::VertexArray<AS>, program: &Program<PSI, PSO, US>)
-where
-    AS: vertex_array::valid::Attributes,
-    PSI: glsl::Parameters<In>,
-    PSO: glsl::Parameters<Out>,
-    AS: glsl::compatible::hlist::Compatible<PSI>,
-    US: uniform::bounds::Declarations,
-{
-    let _vao_bind = vao.bind();
-    let _program_bind = program.bind();
-
-    gl::call! {
-        [panic]
-        unsafe {
-            glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
-        }
-    }
-}
 
 /// Wrapper for calling opengl functions.
 ///
@@ -70,9 +51,11 @@ macro_rules! call {
         }
     };
     ([propagate] $invocation:stmt) => {
-        $invocation
-        let errors = $crate::gl::error::Error::poll_queue();
-        if errors.len() > 0 { Err(errors) } else { Ok(()) }
+        {
+            $invocation
+            let errors = $crate::gl::error::Error::poll_queue();
+            if errors.len() > 0 { Err(errors) } else { Ok(()) }
+        }
     };
 }
 

@@ -2,6 +2,7 @@ use std::ops::{Range, RangeBounds};
 
 use crate::gl::object;
 use crate::gl::target::Target;
+use crate::glsl;
 use crate::prelude::internal::*;
 use crate::gl;
 use gl::texture;
@@ -9,6 +10,7 @@ use std::ops::RangeInclusive;
 use texture::target;
 use texture::storage;
 
+use super::image;
 use super::pixel;
 use super::target::Dimensionality;
 use super::TextureObject;
@@ -40,10 +42,12 @@ pub mod marker {
     impl<T: texture::Target> Kind for Immutable<T> where T: texture::Target + Internal {
         type Target = T;
     }
+    impl<T: texture::Target + Internal> Storage for Immutable<T> where Self: AllocatorDispatch { }
 
     impl<T: texture::Target> Kind for Mutable<T> where T: texture::Target + Internal {
         type Target = T;
     }
+    impl<T: texture::Target + Internal> Storage for Mutable<T> where Self: AllocatorDispatch { }
 
     impl<GL> Kind for gl::Buffer<texture::Buffer, GL> {
         type Target = texture::Buffer;
@@ -67,6 +71,7 @@ pub struct Storage<Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool>
 where
     Target: texture::Target,
     Kind: marker::Kind<Target=Target>,
+    InternalFormat: image::marker::Format,
 {
     /// Type-state parameter that controls what operations are available for the storage.
     kind: PhantomData<Kind>,
@@ -74,16 +79,12 @@ where
     layout: Layout<Target, InternalFormat, CONTAINS_MIPMAPS>
 }
 
-pub trait Pixel {
-    const FORMAT: u32;
-    const TYPE: u32;
-}
-
 impl<Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool, const DIM: usize> Storage<Target, Kind, InternalFormat, CONTAINS_MIPMAPS>
 where
     Const<DIM>: texture::valid::TextureDim,
     Target: texture::Target + Dimensionality<Dimensions = [usize; DIM]>,
     Kind: marker::Storage<Target=Target>,  
+    InternalFormat: image::marker::Format,
 {
     fn range(len: usize, span: impl std::ops::RangeBounds<usize>) -> (usize, usize) {
         let start = match span.start_bound() {
@@ -104,13 +105,30 @@ impl<D1Target, Kind, InternalFormat> Storage<D1Target, Kind, InternalFormat, fal
 where
     D1Target: texture::Target<Dimensions = [usize; 1]>,
     Kind: marker::Storage<Target=D1Target>,
+    InternalFormat: image::marker::Format,
 {
-    pub fn sub_image_1d<P: Pixel>(&mut self, x_range: impl std::ops::RangeBounds<usize>, pixels: &[P]) {
+    pub fn sub_image_1d<
+        Channels: pixel::channels::Channels,
+        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+    >(
+        &mut self,
+        _: &gl::object::Bind<texture::TextureObject<D1Target>>, 
+        x_range: impl std::ops::RangeBounds<usize>, 
+        pixels: &[Pixel]
+    )
+    where
+        Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
+        (Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind): pixel::FormatToken,
+    {
         let [width] = self.layout.dimensions;
         let (start, end) = Self::range(width, x_range);
         if end > width {
             panic!("range {start}..={end} extends outside of texture width");
         }
+        println!("{}, {}", 
+            <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
+            Pixel::type_token()
+        );
         let length = end - start;
         gl::call! {
             [panic]
@@ -120,8 +138,8 @@ where
                     0,
                     start as _,
                     length as _,
-                    P::FORMAT,
-                    P::TYPE,
+                    <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
+                    Pixel::type_token(),
                     pixels.as_ptr() as *const _,
                 );
             }
@@ -133,14 +151,22 @@ impl<D2Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool> Storage<D2Tar
 where
     D2Target: texture::Target<Dimensions = [usize; 2]>,
     Kind: marker::Storage<Target=D2Target>,
+    InternalFormat: image::marker::Format,
 {
-    pub fn sub_image_2d<P: Pixel>(
+    pub fn sub_image_2d<
+        Channels: pixel::channels::Channels,
+        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+    >(
         &mut self,
         _: &gl::object::Bind<texture::TextureObject<D2Target>>,
         x_range: impl std::ops::RangeBounds<usize>, 
         y_range: impl std::ops::RangeBounds<usize>,
-        pixels: &[P]
-    ) {
+        pixels: &mut [Pixel]
+    )
+    where
+        Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
+        (Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind): pixel::FormatToken,
+    {
         let [width, height] = self.layout.dimensions;
         let (x_start, x_end) = Self::range(width, x_range);
         let (y_start, y_end) = Self::range(height, y_range);
@@ -155,6 +181,20 @@ where
             panic!("sub image height range {y_start}..={y_end} extends out of bounds");
         }
 
+        println!("{}, {}, {}, {}", 
+        <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
+        glb::RGB,
+        Pixel::type_token(),
+        glb::UNSIGNED_BYTE,
+    );
+
+        gl::call! {
+            [panic]
+            {
+                println!("foo");
+            }
+        }
+
         gl::call! {
             [panic]
             unsafe {
@@ -165,8 +205,8 @@ where
                     y_start as _,
                     x_length as _,
                     y_length as _,
-                    P::FORMAT,
-                    P::TYPE,
+                    <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
+                    Pixel::type_token(),
                     pixels.as_ptr() as *const _,
                 );
             }
@@ -178,14 +218,23 @@ impl<D3Target, Kind, InternalFormat, const CONTAINS_MIPMAPS: bool> Storage<D3Tar
 where
     D3Target: texture::Target<Dimensions = [usize; 3]>,
     Kind: marker::Storage<Target=D3Target>,
+    InternalFormat: image::marker::Format,
 {
-    pub fn sub_image_3d<P: Pixel>(
-        &mut self, 
+    pub fn sub_image_3d<
+        Channels: pixel::channels::Channels,
+        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+    >(
+        &mut self,
+        _: &gl::object::Bind<texture::TextureObject<D3Target>>,
         x_range: impl std::ops::RangeBounds<usize>,
         y_range: impl std::ops::RangeBounds<usize>,
         z_range: impl std::ops::RangeBounds<usize>,
-        pixels: &[P]
-    ) {
+        pixels: &[Pixel]
+    )
+    where
+        Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
+        (Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind): pixel::FormatToken,
+    {
         let [width, height, depth] = self.layout.dimensions;
         let (x_start, x_end) = Self::range(width, x_range);
         let (y_start, y_end) = Self::range(height, y_range);
@@ -217,8 +266,8 @@ where
                     x_length as _,
                     y_length as _,
                     z_length as _,
-                    P::FORMAT,
-                    P::TYPE,
+                    <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
+                    Pixel::type_token(),
                     pixels.as_ptr() as *const _,
                 );
             }
@@ -230,13 +279,13 @@ impl<D1Target, Kind, InternalFormat> Storage<D1Target, Kind, InternalFormat, fal
 where
     D1Target: texture::Target<Dimensions = [usize; 1]>,
     Kind: marker::Storage<Target=D1Target, Signature = signature::Storage1D>,
-    InternalFormat: pixel::InternalFormat,
+    InternalFormat: image::marker::Format,
 {
     pub fn storage_1d(_: &gl::object::Bind<TextureObject<D1Target>>, width: usize) -> Self {
         gl::call! {
             [panic]
             unsafe {
-                Kind::ALLOCATOR(D1Target::ID, 0, InternalFormat::ID, width as _);
+                Kind::ALLOCATOR(D1Target::ID, 1, InternalFormat::ID, width as _);
             }
         }
         Self {
@@ -254,13 +303,13 @@ impl<D2Target, Kind, InternalFormat> Storage<D2Target, Kind, InternalFormat, fal
 where
     D2Target: texture::Target<Dimensions = [usize; 2]>,
     Kind: marker::Storage<Target=D2Target, Signature = signature::Storage2D>,
-    InternalFormat: pixel::InternalFormat,
+    InternalFormat: image::marker::Format,
 {
     pub fn storage_2d(_: &object::Bind<TextureObject<D2Target>>, width: usize, height: usize) -> Self {
         gl::call! {
             [panic]
             unsafe {
-                Kind::ALLOCATOR(D2Target::ID, 0, InternalFormat::ID, width as _, height as _);
+                Kind::ALLOCATOR(D2Target::ID, 1, InternalFormat::ID, width as _, height as _);
             }
         }
         Self {
@@ -278,13 +327,13 @@ impl<D3Target, Kind, InternalFormat> Storage<D3Target, Kind, InternalFormat, fal
 where
     D3Target: texture::Target<Dimensions = [usize; 3]>,
     Kind: marker::Storage<Target=D3Target, Signature = signature::Storage3D>,
-    InternalFormat: pixel::InternalFormat,
+    InternalFormat: image::marker::Format,
 {
     pub fn storage_3d(_: &object::Bind<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
         gl::call! {
             [panic]
             unsafe {
-                Kind::ALLOCATOR(D3Target::ID, 0, InternalFormat::ID, width as _, height as _, depth as _);
+                Kind::ALLOCATOR(D3Target::ID, 1, InternalFormat::ID, width as _, height as _, depth as _);
             }
         }
         Self {
@@ -394,7 +443,7 @@ pub mod signature {
 
     // GLenum target,
  	// GLint level,
- 	// GLint xoffset,
+ 	// GLint xoffset``,
  	// GLsizei width,
  	// GLenum format,
  	// GLenum type,

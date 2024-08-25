@@ -1,4 +1,5 @@
 
+use gb::gl::texture;
 use winit::window;
 use glutin::{context, surface};
 use gb::{gl, glsl};
@@ -31,11 +32,6 @@ type Uniforms = glsl::Uniforms! {
     layout(location = 1) float;
 };
 
-// const UNIFORM_VARIABLES: Uniforms = glsl::uniforms! {
-//     layout(location = 0) mat4;
-//     layout(location = 1) float;
-// };
-
 type Attributes = gb::HList! {
     Attribute<[f32; 3], 0>,
     Attribute<[f32; 4], 1>,
@@ -48,7 +44,7 @@ use crate::common::config;
 use crate::Ctx;
 
 pub struct Sample {
-    program: Program<Inputs, FsOutputs, Uniforms>,
+    program: Program<Inputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes>,
     scale: f32,
     camera: Camera,
@@ -97,10 +93,11 @@ impl crate::Sample for Sample {
         let scale = 1.0;
         
         let program = Program::builder()
-            .uniform_definitions(|definitions| definitions
+            .uniforms(|definitions| definitions
                 .define(&view_matrix_location, &[[0f32; 4]; 4])
                 .define(&scale_location, &scale)
             )
+            .skip()
             .vertex_main(&vs)
             .uniforms(|matcher| matcher.bind(&view_matrix_location))
             .vertex_shared(&common)
@@ -146,7 +143,7 @@ impl crate::Sample for Sample {
         self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
         self.program.uniform(&scale_location, &self.scale);
 
-        gl::draw_arrays(&self.vao, &self.program);
+        self.program.draw_arrays_ext(&self.vao, &texture::TextureUnits::default());
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {

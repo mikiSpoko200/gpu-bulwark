@@ -19,7 +19,7 @@ pub(super) use lib::Lib;
 pub(super) use main::Main;
 
 use gl::object::{ObjectBase, PartialObject};
-use glsl::UniformVariable;
+use glsl::TransparentUniformVariable;
 
 use super::uniform::Declarations;
 
@@ -127,7 +127,7 @@ where
     Decls: uniform::bounds::Declarations,
 { 
     /// Declare uniform variable used by this shader
-    pub fn uniform<U, const LOCATION: usize>(self, _: &UniformVariable<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, glsl::UniformVariable<U, LOCATION>)>
+    pub fn uniform<U, const LOCATION: usize>(self, _: &TransparentUniformVariable<U, LOCATION>) -> Shader<ts::Uncompiled, T, (Decls, glsl::TransparentUniformVariable<U, LOCATION>)>
     where
         U: glsl::Uniform,
     {
@@ -141,7 +141,7 @@ where
     /// Declare uniform variable used by this shader
     pub fn uniforms<Unis, NDecls>(self, _: &Unis) -> Shader<ts::Uncompiled, T, Decls::Concatenated>
     where
-        Unis: glsl::Uniforms + Into<NDecls>,
+        Unis: glsl::TransparentUniforms + Into<NDecls>,
         Decls: Concatenate<NDecls, Concatenated: uniform::bounds::Declarations>,
     {
         Shader {

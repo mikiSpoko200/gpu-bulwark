@@ -51,11 +51,14 @@ pub mod storage {
 pub mod layout {
     use super::{Layout, Qualifier};
 
-    pub enum Location<const N: usize> { }
-    impl<const N: usize> Qualifier<Layout> for Location<N> {}
+    pub enum Binding<const N: usize> { }
+    impl<const N: usize> Qualifier<Layout> for Binding<N> { }
 
-    pub enum Variable<const N: usize> { }
-    impl<const N: usize> Qualifier<Layout> for Variable<N> {}
+    pub enum Location<const N: usize> { }
+    impl<const N: usize> Qualifier<Layout> for Location<N> { }
+
+    // pub enum Variable<const N: usize> { }
+    // impl<const N: usize> Qualifier<Layout> for Variable<N> {}
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -99,12 +102,16 @@ where
     }
 }
 
-pub type UniformVariable<U, const LOCATION: usize, S = md::Phantom> = Variable<storage::Uniform, layout::Location<LOCATION>, U, S>;
-pub type UniformDefinition<U, const LOCATION: usize> = UniformVariable<U, LOCATION, md::Inline>;
+pub type TransparentUniformVariable<U, const LOCATION: usize, S = md::Phantom> = Variable<storage::Uniform, layout::Location<LOCATION>, U, S>;
+pub type OpaqueUniformVariable<U, const BINDING: usize> = Variable<storage::Uniform, layout::Binding<BINDING>, U, md::Phantom>;
+
+pub type UniformDefinition<U, const LOCATION: usize> = TransparentUniformVariable<U, LOCATION, md::Inline>;
 
 
 pub type InVariable<T, const LOCATION: usize, S = md::Phantom> = Variable<storage::In, layout::Location<LOCATION>, T, S>;
 pub type OutVariable<T, const LOCATION: usize, S = md::Phantom> = Variable<storage::Out, layout::Location<LOCATION>, T, S>;
+
+pub type SamplerVariable<Target, Output, const BINDING: usize> = OpaqueUniformVariable<glsl::GSampler<Target, Output>, BINDING>;
 
 impl<T, const LOCATION: usize> OutVariable<T, LOCATION>
 where
@@ -185,6 +192,9 @@ macro_rules! layout_qualifier {
     (location = $value:literal) => {
         $crate::glsl::variable::layout::Location<$value>
     };
+    (binding = $value:literal) => {
+        $crate::glsl::variable::layout::Binding<$value>
+    };
 }
 
 #[macro_export]
@@ -254,6 +264,38 @@ macro_rules! type_qualifier {
     (mat4x2 $([$sizes:literal])* [$size:literal]) => { $crate::glsl::Array<type_qualifier!(mat4x2 $([$sizes])*), $size>  };
     (mat4x3 $([$sizes:literal])* [$size:literal]) => { $crate::glsl::Array<type_qualifier!(mat4x3 $([$sizes])*), $size>  };
     (mat4x4 $([$sizes:literal])* [$size:literal]) => { $crate::glsl::Array<type_qualifier!(mat4x4 $([$sizes])*), $size>  };
+    (sampler1D)                 => { $crate::glsl::Sampler1D         };
+    (sampler1DArray)            => { $crate::glsl::Sampler1DArray         };
+    (sampler2D)                 => { $crate::glsl::Sampler2D         };
+    (sampler2DArray)            => { $crate::glsl::Sampler2DArray         };
+    (sampler2DMS)               => { $crate::glsl::Sampler2DMS         };
+    (sampler2DMSArray)          => { $crate::glsl::Sampler2DMSArray         };
+    (sampler2DRect)             => { $crate::glsl::Sampler2DRect         };
+    (sampler3D)                 => { $crate::glsl::Sampler3D         };
+    (samplerCube)               => { $crate::glsl::SamplerCube         };
+    (samplerBuffer)             => { $crate::glsl::SamplerBuffer         };
+    (isampler1D)                => { $crate::glsl::ISampler1D         };
+    (isampler1DArray)           => { $crate::glsl::ISampler1DArray         };
+    (isampler2D)                => { $crate::glsl::ISampler2D         };
+    (isampler2DArray)           => { $crate::glsl::ISampler2DArray         };
+    (isampler2DMS)              => { $crate::glsl::ISampler2DMS         };
+    (isampler2DMSArray)         => { $crate::glsl::ISampler2DMSArray         };
+    (isampler2DRect)            => { $crate::glsl::ISampler2DRect         };
+    (isampler3D)                => { $crate::glsl::ISampler3D         };
+    (isamplerCube)              => { $crate::glsl::ISamplerCube         };
+    (isamplerCubeArray)         => { $crate::glsl::ISamplerCubeArray         };
+    (isamplerBuffer)            => { $crate::glsl::iSamplerBuffer         };
+    (usampler1D)                => { $crate::glsl::USampler1D         };
+    (usampler1DArray)           => { $crate::glsl::USampler1DArray         };
+    (usampler2D)                => { $crate::glsl::USampler2D         };
+    (usampler2DArray)           => { $crate::glsl::USampler2DArray         };
+    (usampler2DMS)              => { $crate::glsl::USampler2DMS         };
+    (usampler2DMSArray)         => { $crate::glsl::USampler2DMSArray         };
+    (usampler2DRect)            => { $crate::glsl::USampler2DRect         };
+    (usampler3D)                => { $crate::glsl::USampler3D         };
+    (usamplerCube)              => { $crate::glsl::USamplerCube         };
+    (usamplerCubeArray)         => { $crate::glsl::USamplerCubeArray         };
+    (usamplerBuffer)            => { $crate::glsl::USamplerBuffer         };
 }
 
 #[macro_export]
@@ -461,3 +503,6 @@ pub use inputs;
 pub use Inputs;
 pub use outputs;
 pub use Outputs;
+
+
+

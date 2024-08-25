@@ -1,6 +1,9 @@
 pub mod builder;
 pub mod stage;
 
+use crate::glsl::bounds::OpaqueUniform;
+use crate::glsl::storage::Out;
+use crate::glsl::variable::SamplerVariable;
 use crate::prelude::internal::*;
 
 use crate::ts;
@@ -12,19 +15,22 @@ use crate::glsl;
 use crate::hlist;
 use crate::hlist::counters::Index;
 use crate::hlist::indexed;
-use crate::hlist::lhlist::Find;
+use hlist::lhlist::Find;
 use crate::valid;
 
 use gl::object::*;
 use gl::shader;
 use gl::shader::prelude::*;
 use gl::uniform;
+use gl::vertex_array;
 use glsl::variable;
 
-use variable::UniformVariable;
-
+use variable::TransparentUniformVariable;
 use variable::{layout, storage};
 
+use super::texture;
+use super::texture::TextureState;
+use super::texture::TextureUnit;
 use super::uniform::Declaration;
 use super::uniform::Declarations;
 use super::uniform::Definitions;
@@ -130,17 +136,17 @@ impl Binder for ProgramObject {
     }
 }
 
-struct ProgramState<Ins, Outs, Decls>
+struct ProgramState<Ins, Outs, Unis, Smpls>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
-    Decls: uniform::bounds::Declarations,
+    Unis: uniform::bounds::Declarations,
 {
-    pub _phantoms: PhantomData<(Ins, Outs)>,
-    pub uniform_declarations: uniform::Declarations<ts::Immutable, Decls>,
+    pub _phantoms: PhantomData<(Ins, Outs, Smpls)>,
+    pub uniform_declarations: uniform::Declarations<ts::Immutable, Unis>,
 }
 
-impl<Ins, Outs> Default for ProgramState<Ins, Outs, ()>
+impl<Ins, Outs, Smpls> Default for ProgramState<Ins, Outs, (), Smpls>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
@@ -153,13 +159,13 @@ where
     }
 }
 
-impl<Ins, Outs, Decls> ProgramState<Ins, Outs, Decls>
+impl<Ins, Outs, Unis, Smpls> ProgramState<Ins, Outs, Unis, Smpls>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
-    Decls: uniform::bounds::Declarations,
+    Unis: uniform::bounds::Declarations,
 {
-    pub fn new(decls: uniform::Declarations<ts::Mutable, Decls>) -> Self {
+    pub fn new(decls: uniform::Declarations<ts::Mutable, Unis>) -> Self {
         Self {
             _phantoms: PhantomData,
             uniform_declarations: decls.into_immutable(),
@@ -169,36 +175,29 @@ where
 
 #[derive(dm::Deref)]
 #[doc = include_str!("../../../docs/object/program/Program.md")]
-pub struct Program<Ins, Outs, Decls>
+pub struct Program<Ins, Outs, Unis, Res /* required external resources */>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
-    Decls: uniform::bounds::Declarations,
+    Unis: uniform::bounds::Declarations,
 {
     #[deref]
     object: ObjectBase<ProgramObject>,
-    state: ProgramState<Ins, Outs, Decls>,
+    state: ProgramState<Ins, Outs, Unis, Res>,
 }
 
-impl Program<(), (), ()> {
-    pub fn builder<'s>() -> Builder<'s, ts::None, (), (), (), ()> {
+impl Program<(), (), (), ()> {
+    pub fn builder<'s>() -> Builder<'s, ts::None, (), (), (), (), ()> {
         Builder::new()
     }
 }
 
-impl<Ins, Outs> Program<Ins, Outs, ()>
+impl<Ins, Outs> Program<Ins, Outs, (), ()>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
 {
-    pub fn create() -> Self {
-        Self {
-            object: Default::default(),
-            state: Default::default(),
-        }
-    }
-
-    pub fn create_with_uniforms<Defs>(definitions: &uniform::Definitions<Defs>) -> Program<Ins, Outs, Defs::AsDeclarations>
+    pub fn create_with_uniforms<Defs, Smpls>(definitions: &uniform::Definitions<Defs>) -> Program<Ins, Outs, Defs::AsDeclarations, Smpls>
     where
         Defs: uniform::bounds::Definitions,
     {
@@ -209,11 +208,11 @@ where
     }
 }
 
-impl<IS, OS, DUS> Program<IS, OS, DUS>
+impl<Ins, Outs, Unis, Res> Program<Ins, Outs, Unis, Res>
 where
-    IS: glsl::Parameters<storage::In>,
-    OS: glsl::Parameters<storage::Out>,
-    DUS: uniform::bounds::Declarations,
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Unis: uniform::bounds::Declarations,
 {
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl::call! {
@@ -278,7 +277,7 @@ where
         }
     }
 
-    pub(self) fn link(self) -> Result<Program<IS, OS, DUS>, LinkingError> {
+    pub(self) fn link(self) -> Result<Program<Ins, Outs, Unis, Res>, LinkingError> {
         unsafe {
             glb::LinkProgram(self.object.name());
         }
@@ -293,13 +292,97 @@ where
     /// Set new value for given uniform variable
     pub fn uniform<GLSL, const LOCATION: usize, IDX>(
         &mut self,
-        var: &UniformVariable<GLSL, LOCATION>,
+        var: &TransparentUniformVariable<GLSL, LOCATION>,
         uniform: &impl glsl::Compatible<GLSL>,
     ) where
         GLSL: glsl::bounds::TransparentUniform,
         IDX: Index,
-        DUS: Find<UniformVariable<GLSL, LOCATION>, IDX>,
+        Unis: Find<TransparentUniformVariable<GLSL, LOCATION>, IDX>,
     {
         self.bound(|_binder| GLSL::set(_binder, var, uniform));
+    }
+
+    pub fn draw_arrays_ext<Attrs, Handles>(&self, vao: &gl::VertexArray<Attrs>, _: &texture::TextureUnits<Handles>)
+    where
+        Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
+        Handles: ResourceProviders<Res>,
+    {
+        let _vao_bind = vao.bind();
+        let _program_bind = self.bind();
+
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
+            }
+        }
+    }
+}
+
+/// Resource external to the Program, which program can use like textures, images, atomic counters, buffers etc.
+pub trait Resource {
+    type UniformVariable: OpaqueUniform;
+
+    fn opaque_uniform_variable<const BINDING: usize>(&self) -> glsl::variable::OpaqueUniformVariable<Self::UniformVariable, BINDING>;
+}
+
+pub(crate) mod private {
+    use super::*;
+    pub trait Sealed { }
+    
+    impl Sealed for () { }
+    impl<'texture, TUH, Target, Kind, InternalFormat, const BINDING: usize> private::Sealed for (TUH, &'texture TextureUnit<Target, Kind, InternalFormat, BINDING>)
+    where 
+        Target: texture::Target,
+        Kind: texture::storage::marker::Kind<Target = Target>,
+        InternalFormat: texture::image::marker::Format,
+    { }
+}
+
+#[hi::marker]
+pub trait ResourceProviders<Res>: private::Sealed { }
+
+impl ResourceProviders<()> for () {}
+impl<'texture, Target, Kind, InternalFormat, const BINDING: usize> ResourceProviders<((), glsl::variable::SamplerVariable<Target, InternalFormat::Output, BINDING>)> for ((), &'texture TextureUnit<Target, Kind, InternalFormat, BINDING>)
+where
+    Target: texture::Target,
+    Kind: texture::storage::marker::Kind<Target = Target>,
+    InternalFormat: texture::image::marker::Format,
+{ }
+
+impl<'texture, RH, TUH, PrevTarget, PrevKind, PrevInternalFormat, const PREV_BINDING: usize, CurrTarget, CurrKind, CurrInternalFormat, const CURR_BINDING: usize> 
+ResourceProviders<((RH, glsl::variable::SamplerVariable<PrevTarget, PrevInternalFormat::Output, PREV_BINDING>), glsl::variable::SamplerVariable<CurrTarget, CurrInternalFormat::Output, CURR_BINDING>)> for
+                  ((TUH, &'texture TextureUnit<PrevTarget, PrevKind, PrevInternalFormat, PREV_BINDING>       ), &'texture TextureUnit<CurrTarget, CurrKind, CurrInternalFormat, CURR_BINDING>)
+where
+    RH: glsl::bounds::OpaqueUniform,
+    TUH: ResourceProviders<RH>,
+    PrevTarget: texture::Target,
+    PrevKind: texture::storage::marker::Kind<Target = PrevTarget>,
+    PrevInternalFormat: texture::image::marker::Format,
+    CurrTarget: texture::Target,
+    CurrKind: texture::storage::marker::Kind<Target = CurrTarget>,
+    CurrInternalFormat: texture::image::marker::Format,
+{ }
+
+/// Declarations of 'Resource's that program uses.
+pub struct Resources<Res>(PhantomData<Res>);
+
+impl Default for Resources<()> {
+    fn default() -> Self {
+        Self(PhantomData)
+    }
+}
+
+impl<Res> Resources<Res> {
+    /// Add declaration of usage of specified resource.
+    pub fn sampler<Target, Output, const BINDING: usize>(
+        self, 
+        _: &'_ glsl::variable::SamplerVariable<Target, Output, BINDING>
+    ) -> Resources<(Res, glsl::variable::SamplerVariable<Target, Output, BINDING>)>
+    where
+        Target: texture::Target,
+        Output: glsl::sampler::Output,
+    {
+        Resources(PhantomData)
     }
 }

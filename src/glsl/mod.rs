@@ -13,7 +13,7 @@ pub use location::Location;
 pub use glsl::Type;
 pub use glsl::*;
 pub use parameters::Parameters;
-pub use uniform::{Uniforms, Uniform};
+pub use uniform::{TransparentUniforms, Uniform};
 pub use compatible::Compatible;
 
 pub use variable::{
@@ -23,7 +23,7 @@ pub use variable::{
     Variable,
     InVariable,
     OutVariable,
-    UniformVariable,
+    TransparentUniformVariable,
     Qualifier,
     MatchingInputs,
     vars,

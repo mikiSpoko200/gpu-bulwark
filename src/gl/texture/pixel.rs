@@ -1,116 +1,206 @@
-use crate::gl::types::float16;
+use crate::gl::{self, impl_token};
+use crate::prelude::internal::*;
+use crate::{ext, gl::types::float16};
 
-macro_rules! impl_type {
-    ($ty:ty as $symbol:ident) => {
-        impl Type for $ty {
-            const ID: u32 = ::glb::$symbol;
-        }
-    };
+use super::image;
+
+pub trait Type: gl::Type {
+    type Usage: ty::Usage;
 }
 
+/// Implementations of `Type`.
+pub mod ty {
+    use super::*;
+    
+    pub trait Usage { }
 
-// Packed pixel formats Table 8.5
-pub mod types {
+    #[hi::mark(Usage)]
+    /// Usage associated type discriminant for types that contain all pixel channels.
+    pub enum Standalone { }
 
+    #[hi::mark(Usage)]
+    /// Usage associated type discriminant for types which represent single pixel channel.
+    pub enum Aggregate { }
+     
+    macro_rules! impl_type {
+        ($ty:ty => $usage:ty) => {
+            impl Type for $ty {
+                type Usage = $usage;
+            }
+        };
+    }
+
+    impl_type! { u8      => Aggregate }
+    impl_type! { i8      => Aggregate }
+    impl_type! { u16     => Aggregate }
+    impl_type! { i16     => Aggregate }
+    impl_type! { u32     => Aggregate }
+    impl_type! { i32     => Aggregate }
+    impl_type! { float16 => Aggregate }
+    impl_type! { f32     => Aggregate }
 }
-
-// TODO: Fixed type points to representation
-
-pub trait Type {
-    const ID: u32;
-}
- 
-impl_type! { u8      as UNSIGNED_BYTE                }
-impl_type! { i8      as BYTE                         }
-impl_type! { u16     as UNSIGNED_SHORT               }
-impl_type! { i16     as SHORT                        }
-impl_type! { u32     as UNSIGNED_INT                 }
-impl_type! { i32     as INT                          }
-impl_type! { float16 as HALF_FLOAT                   }
-impl_type! { f32     as FLOAT                        }
-// impl_type! { u8      as UNSIGNED_BYTE_3_3_2          }
-// impl_type! { u8      as UNSIGNED_BYTE_2_3_3_REV      }
-// impl_type! { u16     as UNSIGNED_SHORT_5_6_5         }
-// impl_type! { u16     as UNSIGNED_SHORT_5_6_5_REV     }
-// impl_type! { u16     as UNSIGNED_SHORT_4_4_4_4       }
-// impl_type! { u16     as UNSIGNED_SHORT_4_4_4_4_REV   }
-// impl_type! { u16     as UNSIGNED_SHORT_5_5_5_1       }
-// impl_type! { u16     as UNSIGNED_SHORT_1_5_5_5_REV   }
-// impl_type! { u32     as UNSIGNED_INT_8_8_8_8         }
-// impl_type! { u32     as UNSIGNED_INT_8_8_8_8_REV     }
-// impl_type! { u32     as UNSIGNED_INT_10_10_10_2      }
-// impl_type! { u32     as UNSIGNED_INT_2_10_10_10_REV  }
-// impl_type! { u32     as UNSIGNED_INT_24_8            }
-// impl_type! { u32     as UNSIGNED_INT_10F_11F_11F_REV }
-// impl_type! { u32     as UNSIGNED_INT_5_9_9_9_REV     }
-// impl_type! { n/a as FLOAT_32_UNSIGNED_INT_24_8_REV }
 
 pub trait Format {
+    type Components: image::format::Components;
+    type Kind;
+}
+
+/// Implementation of `Format`.
+pub mod format {
+    use super::*;
+    use crate::prelude::internal::Const;
+
+    use gl::{texture, Type as _};
+
+    impl<T, const N: usize> Format for [T; N]
+    where 
+        T: Type<Usage=ty::Aggregate>,
+        Const<N>: texture::image::format::Components,
+    {
+        type Components = Const<N>;
+        type Kind = T::Kind;
+    }
+}
+
+/// Implementations of 'Channels`.
+pub mod channels {
+    use super::*;
+    use crate::gl::impl_token;
+
+    macro_rules! impl_channels {
+        ($ty:ty [$components:literal]) => {
+            impl Channels for $ty {
+                type Components = Const<$components>;
+            }
+        };
+    }
+    
+    pub trait  Compatible<C: Channels> { }
+
+    pub trait Channels {
+        type Components;
+    }
+
+    pub enum Red { }
+    pub enum Green { }
+    pub enum Blue { }
+    pub enum RG { }
+    pub enum RGB { }
+    pub enum BGR { }
+    pub enum RGBA { }
+    pub enum BGRA { }
+    pub enum StencilIndex { }
+    pub enum DepthComponent { }
+    pub enum DepthStencil { }
+
+    impl_channels! { Red   [1] }
+    impl_channels! { Green [1] }
+    impl_channels! { Blue  [1] }
+    impl_channels! { RG    [2] }
+    impl_channels! { RGB   [3] }
+    impl_channels! { BGR   [3] }
+    impl_channels! { RGBA  [4] }
+    impl_channels! { BGRA  [4] }
+
+    // impl_token! { StencilIndex   as Channels => STENCIL_INDEX    }
+    // impl_token! { DepthComponent as Channels => DEPTH_COMPONENT  }
+    // impl_token! { DepthStencil   as Channels => DEPTH_STENCIL    }
+}
+
+pub mod valid {
+    use super::*;
+    
+    /// What target channels are valid for given base format (basically component count of image)
+    pub trait ForImageBaseFormat<F: image::marker::BaseFormat> { }
+
+    hi::denmark! { channels::Red as 
+        ForImageBaseFormat<image::format::RED>,
+        ForImageBaseFormat<image::format::RG>,
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::Green as
+        ForImageBaseFormat<image::format::RG>,
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::Blue as
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::RG as
+        ForImageBaseFormat<image::format::RG>,
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::RGB as
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::BGR as
+        ForImageBaseFormat<image::format::RGB>,
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::RGBA as
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    hi::denmark! { channels::BGRA as
+        ForImageBaseFormat<image::format::RGBA> 
+    }
+
+    /// Formats that are valid for pixel transfer for given configuration of target channels.
+    pub trait ForChannels<Channels: channels::Channels>: Pixel { }
+}
+
+pub trait FormatToken {
     const ID: u32;
 }
 
-/// Base internal formats specify if its depth, depth/stencil, RED, RG, RGB, RGBA or stencil index.
-/// These can be derived from other internal formats in short
-/// For each internal format has associated with it base internal format.
+impl_token! { (channels::Red  , gl::types::Float ) as FormatToken =>  RED   }
+impl_token! { (channels::Green, gl::types::Float ) as FormatToken =>  GREEN }
+impl_token! { (channels::Blue , gl::types::Float ) as FormatToken =>  BLUE  }
+impl_token! { (channels::RG   , gl::types::Float ) as FormatToken =>  RG    }
+impl_token! { (channels::RGB  , gl::types::Float ) as FormatToken =>  RGB   }
+impl_token! { (channels::BGR  , gl::types::Float ) as FormatToken =>  BGR   }
+impl_token! { (channels::RGBA , gl::types::Float ) as FormatToken =>  RGBA  }
+impl_token! { (channels::BGRA , gl::types::Float ) as FormatToken =>  BGRA  }
 
-/// Internal format maybe a 
-/// - 8.11 base internal format, 
-/// - 8.12 / 8.13 sized internal format, 
-/// - 8.14 generic compressed internal formats, or 
-/// - if listed in 8.14 specific compressed internal formats
-/// Target determinuje czy base internal format jest valid
-/// format określa jakie dane mają być przesłane.
-///  
-/// > Textures with a base internal format of DEPTH_COMPONENT or DEPTH_
-///   STENCIL require either depth component data or depth/stencil component data.
-///   Textures with other base internal formats require RGBA component data.
-/// 
-/// #  internal component resolution
-/// The internal component resolution is the number of bits allocated to each value
-///  in a texture image. 
-/// 
-///  NOTE: If internalformat is specified as a base internal format, the GL stores the resulting texture with internal component resolutions of its own chooeing, 
-///  NOTE: referred to as the effective internal format
-/// 
-/// TODO: quivalent to the mapping of the corresponding base internal format’s components,
- /// TODO: as specified in table 8.11; the type (unsigned int, float, etc.) is assigned the same
- /// TODO: type specified by internalformat; and the memory allocation per texture component
- /// TODO: is assigned by the GL to match the allocations listed in tables 8.12- 8.13 as closely
- /// TODO: as possible. (The definition of closely is left up to the implementation. However,
- /// TODO: a non-zero number of bits must be allocated for each component whose desired
- /// TODO: allocation in tables 8.12- 8.13 is non-zero, and zero bits must be allocated for all
- /// TODO: other components).
-/// 
-/// Table 8.14
-pub trait InternalFormat {
-    const ID: u32;
+impl_token! { (channels::Red  , gl::types::Integer ) as FormatToken =>  RED_INTEGER   }
+impl_token! { (channels::Green, gl::types::Integer ) as FormatToken =>  GREEN_INTEGER }
+impl_token! { (channels::Blue , gl::types::Integer ) as FormatToken =>  BLUE_INTEGER  }
+impl_token! { (channels::RG   , gl::types::Integer ) as FormatToken =>  RG_INTEGER    }
+impl_token! { (channels::RGB  , gl::types::Integer ) as FormatToken =>  RGB_INTEGER   }
+impl_token! { (channels::BGR  , gl::types::Integer ) as FormatToken =>  BGR_INTEGER   }
+impl_token! { (channels::RGBA , gl::types::Integer ) as FormatToken =>  RGBA_INTEGER  }
+impl_token! { (channels::BGRA , gl::types::Integer ) as FormatToken =>  BGRA_INTEGER  }
+
+pub trait Pixel: Format {
+    type Type: Type;
+
+    fn type_token() -> u32 {
+        <Self::Type as gl::Type>::ID
+    }
+
+    fn format_token() -> u32
+    where
+        (Self::Components, Self::Kind): FormatToken
+    {
+        <(Self::Components, Self::Kind) as FormatToken>::ID
+    }
 }
 
-// COMPRESSED_RED RED Generic unorm
-// COMPRESSED_RG RG Generic unorm
-// COMPRESSED_RGB RGB Generic unorm
-// COMPRESSED_RGBA RGBA Generic unorm
-// COMPRESSED_SRGB RGB Generic unorm
-// COMPRESSED_SRGB_ALPHA RGBA Generic unorm
-// COMPRESSED_RED_RGTC1 RED Specific unorm
-// COMPRESSED_SIGNED_RED_RGTC1 RED Specific snorm
-// COMPRESSED_RG_RGTC2 RG Specific unorm
-// COMPRESSED_SIGNED_RG_RGTC2 RG Specific snorm
-// COMPRESSED_RGBA_BPTC_UNORM RGBA Specific unorm
-// COMPRESSED_SRGB_ALPHA_BPTC_UNORM RGBA Specific unorm COMPRESSED_RGB_BPTC_SIGNED_
-// FLOAT RGB Specific float COMPRESSED_RGB_BPTC_UNSIGNED_
-// FLOAT RGB Specific float
-// COMPRESSED_RGB8_ETC2 RGB Specific unorm
-// COMPRESSED_SRGB8_ETC2 RGB Specific unorm
-// COMPRESSED_RGB8_PUNCHTHROUGH_
-// ALPHA1_ETC2 RGB Specific unorm
-// COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 RGB Specific unorm
-// COMPRESSED_RGBA8_ETC2_EAC RGBA Specific unorm
-// COMPRESSED_SRGB8_ALPHA8_ETC2_EAC RGBA Specific unorm
-// COMPRESSED_R11_EAC RED Specific unorm
-// COMPRESSED_SIGNED_R11_EAC RED Specific snorm
-// COMPRESSED_RG11_EAC RG Specific unorm
-// COMPRESSED_SIGNED_RG11_EAC RG Specific snorm
-
-
-
+impl<T, const N: usize> Pixel for [T; N]
+where
+    T: Type<Usage=ty::Aggregate>,
+    Const<N>: image::format::Components,
+    [T; N]: Format,
+{
+    type Type = T;
+}

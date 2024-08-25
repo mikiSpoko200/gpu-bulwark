@@ -14,6 +14,8 @@ use vertex_array::attribute::Attribute;
 
 use crate::hlist::lhlist::Base as HList;
 
+pub use glb as raw;
+
 #[hi::mark(Object, PartialObject)]
 pub enum VertexArrayObject { }
 

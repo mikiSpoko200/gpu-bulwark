@@ -39,18 +39,28 @@ pub struct fixed16(u16);
 #[allow(non_camel_case_types)]
 pub struct float16(u16);
 
+#[hi::marker]
+pub trait Kind { }
+
+#[hi::mark(Kind)]
+pub enum Integer { }
+
+#[hi::mark(Kind)]
+pub enum Float { }
+
 pub unsafe trait Type {
     const ID: u32;
+    type Kind;
 }
 
 pub trait Packed: Type { }
 
-unsafe impl Type for u8  { const ID: u32 = glb::UNSIGNED_BYTE;  }
-unsafe impl Type for u16 { const ID: u32 = glb::UNSIGNED_SHORT; }
-unsafe impl Type for u32 { const ID: u32 = glb::UNSIGNED_INT;   }
-unsafe impl Type for i8  { const ID: u32 = glb::BYTE;           }
-unsafe impl Type for i16 { const ID: u32 = glb::SHORT;          }
-unsafe impl Type for i32 { const ID: u32 = glb::INT;            }
+unsafe impl Type for u8  { const ID: u32 = glb::UNSIGNED_BYTE   ; type Kind = Integer; }
+unsafe impl Type for u16 { const ID: u32 = glb::UNSIGNED_SHORT  ; type Kind = Integer; }
+unsafe impl Type for u32 { const ID: u32 = glb::UNSIGNED_INT    ; type Kind = Integer; }
+unsafe impl Type for i8  { const ID: u32 = glb::BYTE            ; type Kind = Integer; }
+unsafe impl Type for i16 { const ID: u32 = glb::SHORT           ; type Kind = Integer; }
+unsafe impl Type for i32 { const ID: u32 = glb::INT             ; type Kind = Integer; }
 
 // unsafe impl Type for irgb10a2   { const ID: u32 = glb::INT_2_10_10_10_REV;           }
 // unsafe impl Type for urgb10a2   { const ID: u32 = glb::UNSIGNED_INT_2_10_10_10_REV;  }
@@ -60,9 +70,10 @@ unsafe impl Type for i32 { const ID: u32 = glb::INT;            }
 // hi::denmark! { urgb10a2   as Packed }
 // hi::denmark! { u10f10f11f as Packed }
 
-unsafe impl Type for fixed16 { const ID: u32 = glb::FIXED;      }
-unsafe impl Type for float16 { const ID: u32 = glb::HALF_FLOAT; }
-unsafe impl Type for f32 { const ID: u32 = glb::FLOAT;          }
-unsafe impl Type for f64 { const ID: u32 = glb::DOUBLE;         }
+unsafe impl Type for fixed16 { const ID: u32 = glb::FIXED       ; type Kind = Float; }
+unsafe impl Type for float16 { const ID: u32 = glb::HALF_FLOAT  ; type Kind = Float; }
+unsafe impl Type for f32     { const ID: u32 = glb::FLOAT       ; type Kind = Float; }
+unsafe impl Type for f64     { const ID: u32 = glb::DOUBLE      ; type Kind = Float; }
 
+#[repr(transparent)]
 pub struct Normalized<I>(I);

@@ -12,7 +12,7 @@ winit = { version = "0.30.0", default-features = false, features = ["rwh_06"] }
 anyhow = "1.0.75"
 
 [features]
-default = [ "hello_uniforms" ]
+default = [ "hello_textures" ]
 hello_triangle = []
 hello_vertices = []
 hello_uniforms = []

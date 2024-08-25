@@ -122,16 +122,29 @@ where
     S: valid::Subtype,
 { }
 
-/// Marker trait for types that represent program / shader uniforms.
-pub trait Uniforms: hlist::Base { }
+/// Marker trait for types that represent transparent uniforms.
+pub trait TransparentUniforms: hlist::Base { }
 
-impl Uniforms for () { }
+impl TransparentUniforms for () { }
 
-impl<H, T, const LOCATION: usize, S> Uniforms for (H, glsl::variable::UniformVariable<T, LOCATION, S>)
+impl<H, T, const LOCATION: usize, S> TransparentUniforms for (H, glsl::variable::TransparentUniformVariable<T, LOCATION, S>)
 where
-    H: Uniforms,
-    T: glsl::Uniform,
+    H: TransparentUniforms,
+    T: glsl::bounds::TransparentUniform,
     S: md::Storage,
+{ }
+
+
+/// Marker trait for types that opaque transparent uniforms.
+pub trait OpaqueUniforms: hlist::Base { }
+
+impl OpaqueUniforms for ()  { }
+
+
+impl<H, T, const BINDING: usize> TransparentUniforms for (H, glsl::variable::OpaqueUniformVariable<T, BINDING>)
+where
+    H: OpaqueUniforms,
+    T: glsl::bounds::OpaqueUniform,
 { }
 
 pub mod signature {
@@ -140,6 +153,10 @@ pub mod signature {
 }
 
 pub mod bounds {
+    use glsl::sampler;
+
+    use crate::gl::texture;
+
     use super::*;
 
     pub trait TransparentUniform: Uniform + glsl::bounds::TransparentType + ops::Set { }
@@ -176,6 +193,18 @@ pub mod bounds {
     impl<T> MatrixUniform for T where T: TransparentUniform + glsl::bounds::MatrixType
     + DispatchSetters<Signature = signature::UniformMatrixV<<Self::Layout as ext::Array>::Type>>
     { }
+
+    impl<T, O> Uniform for glsl::glsl::GSampler<T, O>
+    where
+        T: texture::Target,
+        O: sampler::Output,
+    { }
+
+    impl<T, O> OpaqueUniform for glsl::glsl::GSampler<T, O>
+    where
+        T: texture::Target,
+        O: sampler::Output,
+    { }
 }
 
 /// # Capabilities for uniform types
@@ -190,14 +219,14 @@ pub mod ops {
     use crate::gl;
     use crate::gl::object::Bind;
     use crate::gl::program::ProgramObject;
-    use glsl::variable::UniformVariable;
+    use glsl::variable::TransparentUniformVariable;
     use ffi::FFIExt;
 
     pub trait Set<Subtype = <Self as glsl::bounds::TransparentType>::Subtype>: glsl::bounds::TransparentType + DispatchSetters
     where
         Subtype: valid::Subtype,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
     }
 
     impl<U> Set<valid::Scalar> for U
@@ -205,7 +234,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -221,7 +250,7 @@ pub mod ops {
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
         Const<DIM>: valid::VecDim,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {
@@ -236,7 +265,7 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &UniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
                 [panic]
                 unsafe {

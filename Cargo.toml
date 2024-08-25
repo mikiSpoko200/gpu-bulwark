@@ -15,7 +15,6 @@ disjoint_impls = "0.7.1"
 dm = { version = "0.99.18", package = "derive_more" }
 concat-idents = "1.1.5"
 
-
 [features]
 default = ["nalgebra-glm"]
 nalgebra = ["dep:nalgebra"]

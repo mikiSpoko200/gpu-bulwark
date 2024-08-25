@@ -1,15 +1,23 @@
 use crate::prelude::internal::*;
 use crate::gl;
 
-
 pub mod marker {
+    use crate::{gl::{self, texture::pixel}, glsl};
+
+    use super::format::Components;
+
     pub trait BaseFormat {
         const ID: u32;
+        type Components: Components;
     }
 
     pub trait Format {
         const ID: u32;
         type BaseFormat: BaseFormat;
+        // Sampler return type for that internalformat 
+        type Output: glsl::sampler::Output;
+        // Image should know what kind of numbers it expects.
+        type Kind: gl::types::Kind;
     }
 }
 
@@ -23,63 +31,58 @@ pub mod format {
     use super::*;
 
     pub enum RED { }
-
-    gl::impl_token! { RED as marker::BaseFormat => RED }
+    impl marker::BaseFormat for RED { const ID: u32 = glb::RED   ; type Components = components::R; }
 
     pub struct Rev<T>(PhantomData<T>) where T: Type;
 
-    pub use components::*;
+    pub use components::{Components, RG, RGB, RGBA};
     pub use ty::*;
 
     pub mod components {
         use super::*;
 
-        pub trait Components {
-            type DerivedBaseFormat: marker::BaseFormat;
-        }
+        /// Count of color components given type provides -- used in `Format`.
+        #[hi::marker]
+        pub trait Components { }
 
-        pub enum R { }
-        impl Components for R {
-            type DerivedBaseFormat = RED;
-        }
+        hi::denmark! { Const<1> as Components }
+        hi::denmark! { Const<2> as Components }
+        hi::denmark! { Const<3> as Components }
+        hi::denmark! { Const<4> as Components }
 
-        pub enum RG { }
-        gl::impl_token! { RG as marker::BaseFormat => RG }
-        impl Components for RG {
-            type DerivedBaseFormat = Self;
-        }
-
-        pub enum RGB { }
-        gl::impl_token! { RGB as marker::BaseFormat => RGB }
-        impl Components for RGB {
-            type DerivedBaseFormat = Self;
-        }
-
-        pub enum RGBA { }
-        gl::impl_token! { RGBA as marker::BaseFormat => RGBA }
-        impl Components for RGBA {
-            type DerivedBaseFormat = Self;
-        }
+        pub type R = Const<1>;
+        pub type RG = Const<2>;
+        pub type RGB = Const<3>;
+        pub type RGBA = Const<4>;
+        
+        impl marker::BaseFormat for RG { const ID: u32 = glb::RG    ; type Components = Self; }
+        impl marker::BaseFormat for RGB { const ID: u32 = glb::RGB  ; type Components = Self; }
+        impl marker::BaseFormat for RGBA { const ID: u32 = glb::RGBA ; type Components = Self; }
     }
 
     pub mod ty {
+        use crate::glsl;
+
         use super::*;
 
-        pub trait Type { }
+        pub trait Type {
+            type Kind: gl::types::Kind;
+            type Output: glsl::sampler::Output;
+        }
 
-        hi::denmark! { () as Type }
+        impl Type for () { type Kind = gl::types::Integer; type Output = f32; }
 
-        #[hi::mark(Type)]
         pub enum UI { }
+        impl Type for UI { type Kind = gl::types::Integer; type Output = u32; }
 
-        #[hi::mark(Type)]
         pub enum SNORM { }
+        impl Type for SNORM { type Kind = gl::types::Integer; type Output = i32; }
 
-        #[hi::mark(Type)]
         pub enum I { }
+        impl Type for I { type Kind = gl::types::Integer; type Output = f32 ; }
 
-        #[hi::mark(Type)]
         pub enum F { }
+        impl Type for F { type Kind = gl::types::Float; type Output = f32; }
     }
 
     mod size {
@@ -108,6 +111,8 @@ pub mod format {
                 impl marker::Format for Format<components::$components, $size> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;
+                    type Output = <() as ty::Type>::Output;
+                    type Kind = gl::types::Integer;
                 }
             });
         };
@@ -116,6 +121,8 @@ pub mod format {
                 impl marker::Format for Format<components::$components, $size, ty::SNORM> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;
+                    type Output = i32;
+                    type Kind = gl::types::Integer;
                 }
             });
         };
@@ -124,6 +131,8 @@ pub mod format {
                 impl marker::Format for Format<components::$components, $size, ty::$ty> {
                     const ID: u32 = ::glb::token;
                     type BaseFormat = $base;
+                    type Output = <$ty as ty::Type>::Output;
+                    type Kind = gl::types::Integer;
                 }
             });
         };
@@ -185,60 +194,3 @@ pub mod format {
     impl_format! { RGBA, 32,      I,        RGBA    }
     impl_format! { RGBA, 32,      UI,       RGBA    }
 }
-
-
-//                
-//       
-//                
-//       
-//                 
-//        
-//             
-//        
-//            
-//            
-//            
-//       
-//            
-//            
-//            
-//       
-//           
-//           
-//           
-//     
-//           
-//           
-// 
-//            
-//             
-//            
-//           
-//            
-//             
-//            
-//         
-//                
-//            
-//            
-//           
-//            
-//           
-//             
-//           
-//             
-//           
-//             
-//           
-//            
-//          
-//            
-//          
-//            
-//          
-//           
-//         
-//           
-//     
-//           
-// ,    32,       UI
