@@ -97,7 +97,7 @@ impl crate::Sample for Sample {
                 .define(&view_matrix_location, &[[0f32; 4]; 4])
                 .define(&scale_location, &scale)
             )
-            .skip()
+            .no_resources()
             .vertex_main(&vs)
             .uniforms(|matcher| matcher.bind(&view_matrix_location))
             .vertex_shared(&common)
