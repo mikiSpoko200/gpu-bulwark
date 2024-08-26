@@ -36,61 +36,70 @@ All general purpose design patterns we encountered during development are implem
 
 \section{Identified design patterns}
 
-In our exploration we found that patterns which to emerge during programming with types can be broadly divided into two categories: (1) compensation for language limitations (2) validation of program structure at complete.
+In our exploration we found that patterns which tend to emerge during programming with types can be broadly divided into two categories: (1) compensation for language limitations (2) validation of program structure at compile-time (CT).
 
 \subsection{Compensation for language limitations}
 
-Rust is in continuous development. Some features have been work-in-progress for over years and are still nowhere near completion, and another have seen minimal-viable-product releases, and yet others are nothing more than subject of wishes and speculation. 
-Features which we found to be useful for type-driven design fall into all of these categories. Some of them can be emulated with varying levels of complexity and user experience consequences stemming from often contrive usage of type system and language facilities.
+Rust is in continuous development. 
+Some features have been work-in-progress for over years and are still nowhere near completion. 
+Others have seen minimal-viable-product releases, and some are merely the subject of wishful thinking and speculation. 
+Features we found useful in type-based design fall into all of these categories. 
+Most of them can be emulated with varying levels of complexity and user experience degradation.
+
+Stemming from often contrived usage of type system and different language features
+resulting error messages are very verbose and difficult to interpret.
 
 \subsubsection{Variadic Generics}
 
 \paragraph{Problem}
 
 It is common practice among programming language developers to support variadic function arguments - functions which can accept arbitrarily many arguments.
-This capability is great syntactic convenience, as well as, a tool for more complex abstractions.
+This capability is a major syntactic convenience and serves as a tool for more complex abstractions.
 
-It is substantially less common to support variadic type parameters in generic types, as a matter of fact Rust does not have such a language feature and discussion regarding it is very scares.
-We identified one very desirable use case for such variadic generics - non homogenous collections. 
+It is substantially less common to support variadic type parameters in generic types; in fact, Rust has no such language feature.
+One highly desirable use case for such variadic generics was identified: non homogenous collections. 
 
 \paragraph{Solution}
 
-Rust have an excellent support for recursive types and since lists can be defined recursively like for example in LISP we derived a variadic generics emulation scheme from that.
-We used type level recursion on binary tuples (recursive step) and unit type as \texttt{Nil}. We call such type list \textbf{HList}.
-HLists can be wound to the left: first tuple component contains n - 1 elements and second the n'th type or in the reverse.
-Both these schemes are equivalent in terms of functionality but differ in terms of potential user experience.
-In our use case appending new types to the end of a HList was by far the most common use case and as we use almost elusively such left wound HLists (LHLists).
+Rust has an excellent support for recursive types thanks to the \texttt{impl} syntax, and since lists can be defined recursively we derived a variadic generics emulation scheme from that.
+We used type level recursion on binary tuples (recursive step) and unit type as \texttt{Nil}. We call such recursive type list a \textbf{HList}.
+HLists can be wound to the left: first tuple component contains n - 1 elements and second the n'th type or to the right in reverse order.
+These two schemes are equivalent in terms of functionality, but differ in terms of potential user experience.
+In our use case appending new types to the end of a HList was by far the most common use case, and as such we almost exclusively use left wound HLists (LHLists).
 
-Implementation of functionality for hlists needs to mirror their abstract and recursive nature. This can be achieved using two recursive implementations, one for unit in base case and another for a two tuple for recursive step.
+Implementation of functionality for HLists needs to mirror their abstract and recursive nature. This can be achieved using two \texttt{impl}s, 
+one for unit in the base case and another recursive for a the binary tuple for recursive step.
 
 These homogenous collections have been implemented as an independent module called \texttt{hlist} which can be found in the root of our crate.
  
 \paragraph{Use case}
 
-In \texttt{gpu-bulwark} we utilize hlists every time user configuration is required, most notably to represent shader inputs, outputs, used uniforms or external resources like textures.
-Almost always we create a facade marker trait which join together predefined pieces of functionality from \texttt{hlist} module and adds specialized requirements for the types depending on the usage which prohibits creation of invalid types.
+In \texttt{gpu-bulwark} HLists are used every time variable-length user configuration is required, most notably to represent shader inputs, outputs, used uniforms or external resources like textures.
+Almost always we create a facade marker trait which joins together predefined pieces of functionality from \texttt{hlist} module
+and adds specialized requirements for HList member types in order to prohibit creation of invalid type list.
 
 \subsection{Const generics in const expressions}
 
 \paragraph{Problem}
 
-Const generics fall into the category of partially implemented features. Types can be dependant on values of limited subset of types, most notably for our purposes numeric types, bool, unit.
-Most crippling limitation is that these values must be expressions using only literals and in general two const parameters cannot be added or subtracted from each other. 
-This prohibits us from performing arbitrary compile-time (CT) computations of these parameters for purposes of validation.
+Const generics fall into the category of partially implemented features. Const generic types depend on a value of limited subset of types, most notably numeric types, bool and unit.
+This feature, being in its early stages, has a significant limitation: const parameters must be literals or expressions using only literals. 
+Const parameters cannot be used in any type level const expressions, they have to be used directly. 
+As a result, we cannot perform arbitrary compile-time (CT) computations on these parameters for purposes of verification.
 
 \paragraph{Solution}
 
-There is one exception to that limitation however - associated constants. Associated constants can have their values computed using CT \texttt{const fn}s and themselves be used in such computations as parameters.
-These functions can panic with static error message (no formatting) and may cause compilation a error based on fully programable computations.
+However, there is one exception to that limitation: associated constants. Associated constants can have their values computed using CT \texttt{const fn}s and themselves be used in such computations as parameters.
+These functions can panic with static error message (no formatting) and may cause compilation errors based on programable logic.
 As a consequence, different limitation was imposed: associated constants cannot be used as const parameters in types, they can only be used as values in code.
 
 \paragraph{Use case}
 
-Due to lack of negative reasoning, as of yet, in rust compiler we cannot express type inequality.
-The only viable solution would be to a blanket impl and stating that two types are different if they are not the same type, since such a blanket would apply to user defined types as well.
+Due to the lack of negative reasoning, as of yet, in Rust compiler we cannot express type inequality.
+The only viable solution would be to a blanket impl stating that two types are different if they are not the same type; since such a blanket would apply to user defined types as well.
 
-Such CT validation that types are all different is required to decide if glsl variable layout locations do not overlap.
-Such overlap technically is valid if layout components are used but that could be accounted for.
+CT validation that types are all different is required to assert that glsl variable layout locations do not overlap.
+In certain scenarios when layout components are used this overlap may be valid; we ignored it in this work because it can be easily taken into account in future releases.
 
 We use associated constants and conditionally panicking \texttt{const} function to check that location ranges do not overlap.
 
@@ -98,12 +107,13 @@ We use associated constants and conditionally panicking \texttt{const} function 
 
 \paragraph{Problem}
 
-First class effect system is yet another non-existent feature that would be of immense value in this specific case.
+First class effect system is a non-existent feature that would be of immense value in the context of an OpenGL wrapper implementation.
 Ability to type check function invocation context in OpenGL would be especially useful as we could encode presence of appropriate object binding using an effect.
 
 \paragraph{Solution}
 
-We instead were forced to opt for more error prone and verbose approach. Objects like textures or buffers can generate binder objects which in their constructor bind object to context and in destructor unbind it.
+We instead were forced to opt for more error prone and verbose approach. 
+Objects like textures or buffers can produce binder objects which in their constructor bind, and in their destructors unbind, object appropriate binding point.
 This lets us control binding using lexical scope but does not in any way prevent overriding of the binding.
 
 \paragraph{Usae Case}
@@ -154,9 +164,28 @@ containing generic associated types (GAT) to control behavior in more complex fa
 We use many modes in \texttt{Variable<S, L, T, Store>} to abstract over kind of storage used for variable's type member - \texttt{Phantom} or \texttt{Inline}.
 \texttt{Phantom} uses \texttt{PhantomData} as its associated type and effectively discards value and \texttt{Inline} keeps it as is.
 
+\subsection{Subtyping}
+
+\paragraph{Problem}
+
+Subtyping or inheritance is a very common concept in object oriented programming. 
+In these languages one can create a type, and inherit from it to produce more specialized subtype which can be used in all places the parent can.
+This is 
+
+
+
+\
+
+Using generic type and automatic dereferencing via \texttt{Deref} we can emulate the relation of subtyping
+
+
 \subsection{Type State}
 
-Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile-time. 
+Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile-time.
+For the duration of this subsection it is worth to think about generic types as of type constructors which can be partially applied to create another constructor or fully applied to produce a type.
+
+Recall from chapter 1 that Rust determines if \texttt{impl}s are coherent, what it means is that each associated item resolves uniquely.
+Generic type with one of it's parameters supplied can have an inherent \texttt{impl} for 
 
 \section{OpenGL wrapper}
   
