@@ -241,6 +241,7 @@ INPUT ./chapter-5/main.aux
 INPUT chapter-5/main.aux
 INPUT ./main.out
 INPUT ./main.out
+INPUT d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
 INPUT d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb
 INPUT d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb
 INPUT d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb

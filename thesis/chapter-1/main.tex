@@ -37,8 +37,6 @@ A tuple struct type is just like a struct type, except that the fields are anony
 
 A unit-like struct type is like a struct type, except that it has no fields. The one value constructed by the associated struct expression is the only value that inhabits such a type.
 
-1 struct types are analogous to struct types in C, the record types of the ML family, or the struct types of the Lisp family.
-
 \section{Implementations}
 
 %NOTE: nad tym rozdziałem trzeba będzie trochę posiedzieć bo to jak działają impl'e jest fundamentalne.
@@ -76,7 +74,7 @@ Such blocks can contain definition of a constants or functions.
 
 \section{Generic types}
 
-As of version 1.79 Rust provides 3 kinds of generic parameters types can use. 
+As of version 1.80 Rust provides 3 kinds of generic parameters types can use. 
 These are:
 - type parameters
 - constant parameters
@@ -85,56 +83,49 @@ Type which uses any generic parameters is said to be generic.
 
 \subsection{Type parameters}
 
-Type parameters represent an abstract type 
+Type parameters can be used in function or type definition; they represent an abstract type which must be specified (or inferred) during compilation.
+Type generics are most commonly used for collections since they can contain arbitrary object and don't need to know almost anything about the inner types.
+
+However, one can't do much with trully arbitrary type, even collections require ordering for tree structures, hashing for hash based collections and even the simplest collections
+like vectors and queues need to know that types they contain have finite size, or can be shared across thread boundaries. Most languages either provide these kinds of behaviour
+inductively by the structure of a type but that's not what Rust does. Rust requires that pretty much all capabilities of a type are specified.
+
+Capabilities of a type parameter are expressed using traits which we in the next section.
 
 \subsection{Constant parameters}
 
-%TODO: explain based on Vec<T, const N: usize>
+Similarity to how types can be generic over type, rust allows types to be generic by a constant value. These, so called, dependent types
+provide brand new level of expressive power, statically sized arrays especially become much more useful. This makes stack based allocations much more common,
+improving performance and reducing heap fragmentation, but for our purposes it allows type system verify and enforce certain quantities or reason about them in an abstract 
+way which, as we will show in this study, can be used to express very complex systems.
 
 \subsection{Lifetime parameters}
 
-%TODO: explain that these are used by the compiler for validation (from the book)
+Lifetime parameters are standout feature of Rust. They represent duration based on lexical scoping for how long reference remains valid, so being generic over lifetime means being generic
+to how long given reference can be held.
 
-\section{Type level abstraction}
+\section{Traits}
 
 Traits provide an ability to express shared behavior in abstract way \cite{rustbook}. We are mostly interested in their use in \textit{trait bounds} on types and type parameters.
 Trait bounds declare contracts that types must fulfil or else the program will be rejected. 
 We used it to enforce use of valid data formats and proper sequencing of operations.
 
-% \begin{lstlisting}[Language=Rust]
-%     // Empty traits are commonly referred to as marker traits or just marker
-%     trait VertexAttribute {
-%         const GL_TYPE_ENUMERATOR: usize;
-%         const N_COMPONENTS: usize;
-%     }
+As mentioned in the previous section, type parameters don't have any capabilities unless explicitly declared. Trait bounds serve that exact purpose.
+Types and generic parameters have their requirements states in such where clause and these requirements are checked at call site.
 
-%     impl VertexAttribute for f32 { 
-%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
-%         const N_COMPONENTS: usize = 1;
-%     }
-%     impl VertexAttribute for [f32; 2] { 
-%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
-%         const N_COMPONENTS: usize = 2;
-%     }
-%     impl VertexAttribute for [f32; 3] { 
-%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
-%         const N_COMPONENTS: usize = 3;
-%     }
-%     impl VertexAttribute for [f32; 4] { 
-%         const GL_TYPE_ENUMERATOR: usize = GL_FLOAT;
-%         const N_COMPONENTS: usize = 4;
-%     }
+What distinguishes Rust's traits from most other languages is its unique scheme of implementing functionality for types.
+Trait for a type is implemented in a very similar fashion to inherent impls using \texttt{impl Trait for Type \{ ... \}} syntax.
 
-%     fn send_vertex_attributes(attributes: &[T])
-%     where
-%         T: VertexAttribute,
-%     {
-%         unsafe {
-%             // call appropriate OpenGL routine
-%         }
-%     }
-% \end{lstlisting}
+Such impl block must contain definition for all items a trait provides.
+Traits can uniquely, be implemented generically for all types that salify bounds using an \textbf{blanket impl} \texttt{impl<T> Trait for T where T: ... \{ ... \}}.
+This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside - a blanket impl is the only impl for that trait that may exist.
+This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section
 
 \section{Implementation Coherence}
+
+Rust must be always able to uniquely determine which method corresponds to which impl block that is, impl blocks must be coherent with each other, they must not interfere or overlap.
+That's the reason why as of 2024 Rust enforces one blanket impl - it cannot guarantee that two blanket impls of the same trait don't target some type twice.
+However, if inherent or trait impl's target a specific generic type with at least one type parameter differing between the two impls coherence is preserved and program passes orphan rule.   
+
 
 \subsection{Orphan Rule}
