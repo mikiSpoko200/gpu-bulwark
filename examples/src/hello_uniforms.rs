@@ -175,4 +175,8 @@ impl crate::Sample for Sample {
     fn usage(&self) -> String {
         String::from("use W, A, S, D keys to move around and mouse to operate the camera")
     }
+    
+    fn name() -> String {
+        String::from("hello-uniforms")
+    }
 }

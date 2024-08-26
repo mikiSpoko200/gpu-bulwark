@@ -163,4 +163,8 @@ impl crate::Sample for Sample {
     fn usage(&self) -> String {
         String::from("use A, S, D keys to change values of color vertex attribute components")
     }
+    
+    fn name() -> String {
+        String::from("hello-vertices")
+    }
 }

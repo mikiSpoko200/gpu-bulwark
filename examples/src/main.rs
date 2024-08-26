@@ -43,6 +43,8 @@ pub trait Sample: Sized {
     
     fn process_mouse(&mut self, delta: (f64, f64));
 
+    fn name() -> String;
+
     fn usage(&self) -> String;
 
     fn config() -> config::Config {
@@ -112,10 +114,16 @@ impl<T: Sample> App<T> {
         if self.ctx.is_none() {
             let config = T::config();
 
+            // let icon = hello_textures::logo::uwr();
+            // let icon: &[u8] = unsafe { std::slice::from_raw_parts(icon.as_ptr() as *const _, icon.len() * 4) };
+
+            // let icon = winit::window::Icon::from_rgba(Vec::from_iter(icon.into_iter().map(Clone::clone)), 256, 256).unwrap();
+
             // Winit window creation
             let window_attributes = winit::window::WindowAttributes::default()
+                // .with_window_icon(Some(icon))
                 .with_inner_size(winit::dpi::PhysicalSize::new(config.width, config.height))
-                .with_title("gpu-bulwark")
+                .with_title(T::name())
                 .with_resizable(false);
     
             // Glutin gl context initialization

@@ -72,4 +72,8 @@ impl crate::Sample for Sample {
     fn usage(&self) -> String {
         String::from("this basic sample is non-interactive")
     }
+    
+    fn name() -> String {
+        String::from("hello-triangle")
+    }
 }

@@ -236,4 +236,8 @@ impl crate::Sample for Sample {
     fn usage(&self) -> String {
         String::from("use A, S, D keys to change displayed texture")
     }
+    
+    fn name() -> String {
+        String::from("hello-textures")
+    }
 }
