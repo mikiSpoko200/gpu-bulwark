@@ -1,4 +1,4 @@
-#version 330 core
+#version 420 core
 #extension GL_ARB_explicit_uniform_location: enable
 #extension GL_ARB_separate_shader_objects: enable
 

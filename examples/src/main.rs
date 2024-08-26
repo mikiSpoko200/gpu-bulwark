@@ -20,17 +20,19 @@ mod hello_vertices;
 
 use std::num::NonZeroU32;
 
+use glutin::{context, surface};
+use glutin::prelude::*;
+use glutin::display::GetGlDisplay;
+
+use glutin_winit::{DisplayBuilder, GlWindow};
 use winit::application::ApplicationHandler;
 use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
 use winit::event_loop::{self, ActiveEventLoop, EventLoop};
 use winit::keyboard;
 use winit::window::{self};
-use raw_window_handle::{HasDisplayHandle, HasWindowHandle as _};
+use raw_window_handle::HasWindowHandle as _;
 
 use common::config;
-
-use glutin::{context, display, surface};
-use glutin::prelude::*;
 
 pub trait Sample: Sized {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>>;
@@ -40,6 +42,10 @@ pub trait Sample: Sized {
     fn process_key(&mut self, code: winit::keyboard::KeyCode);
     
     fn process_mouse(&mut self, delta: (f64, f64));
+
+    fn config() -> config::Config {
+        config::Config::default()
+    }
 }
 
 pub struct Ctx<T> {
@@ -102,54 +108,25 @@ impl App<hello_textures::Sample> {
 impl<T: Sample> App<T> {
     fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if self.ctx.is_none() {
-            let window = event_loop.create_window(
-                winit::window::WindowAttributes::default()
-                    .with_inner_size(winit::dpi::PhysicalSize::new(config::WIDTH, config::HEIGHT))
-                    .with_title("gpu-bulwark")
-                    .with_resizable(false)
-            ).expect("window creation succeeded");
+            let config = T::config();
+
+            // Winit window creation
+            let window_attributes = winit::window::WindowAttributes::default()
+                .with_inner_size(winit::dpi::PhysicalSize::new(config.width, config.height))
+                .with_title("gpu-bulwark")
+                .with_resizable(false);
     
+            // Glutin gl context initialization
             let version = context::Version::new(4, 6);
             println!(
                 "initializing OpenGL {}.{} core",
                 version.major, version.minor
             );
-        
-            let raw_window_handle = window.window_handle()
-                .expect("can obtain window handle")
-                .as_raw();
-            let raw_display_handle = window.display_handle()
-                .expect("can obtain display handle")
-                .as_raw();
-        
-            let template = glutin::config::ConfigTemplateBuilder::new().build();
-            let context_attributes = context::ContextAttributesBuilder::new()
-                .with_debug(true)
-                .with_context_api(context::ContextApi::OpenGl(Some(version)))
-                .with_profile(context::GlProfile::Core)
-                .build(Some(raw_window_handle));
-        
-            let (window_width, window_height) = {
-                (
-                    NonZeroU32::new(config::WIDTH).unwrap(),
-                    NonZeroU32::new(config::HEIGHT).unwrap(),
-                )
-            };
-        
-            let surface_attributes = surface::SurfaceAttributesBuilder::<surface::WindowSurface>::new().build(
-                raw_window_handle,
-                window_width,
-                window_height,
-            );
-        
-            let preference = display::DisplayApiPreference::WglThenEgl(Some(raw_window_handle));
-        
-            // SAFETY: `raw_display_handle` will remain valid on PC
-            let display = unsafe { glutin::display::Display::new(raw_display_handle, preference).unwrap() };
-        
-            println!("checking available configurations...");
-            let config = unsafe { display.find_configs(template) }.expect("can find matching configurations")
-                .reduce(|accum, config| {
+            let template = glutin::config::ConfigTemplateBuilder::new();
+            let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
+
+            let config_selector = |configs: Box<dyn Iterator<Item = glutin::config::Config> + '_>| {
+                configs.reduce(|accum, config| {
                     let transparency_check = config.supports_transparency().unwrap_or(false)
                         & !accum.supports_transparency().unwrap_or(false);
         
@@ -159,8 +136,11 @@ impl<T: Sample> App<T> {
                         accum
                     }
                 })
-                .expect("at least one configuration is compatible with given template");
-        
+                .expect("at least one configuration is compatible with given template")
+            };
+
+            let (mut window, config) = display_builder.build(event_loop, template, config_selector).expect("can create display");
+
             println!("using config:");
             println!(
                 "  color attachment: {:?}",
@@ -172,16 +152,35 @@ impl<T: Sample> App<T> {
             println!("  hardware acceleration: {}", config.hardware_accelerated());
             println!("  sample count: {}", config.num_samples());
         
-            println!("creating context...");
-            // SAFETY: display handle is valid
-            let gl_context = unsafe { display.create_context(&config, &context_attributes).expect("can create GL context") };
+            let raw_window_handle = window
+                .as_ref()
+                .and_then(|window| window.window_handle().map(|handle| handle.as_raw()).ok());
         
-            println!("creating rendering surface...");
-            // SAFETY: display handle is valid
-            let surface = unsafe { display.create_window_surface(&config, &surface_attributes).expect("can create window surface") };
+            let window = window.take().unwrap();
+        
+            let display = config.display();
+        
+            let context_attributes = context::ContextAttributesBuilder::new().build(raw_window_handle);
+        
+            let not_current_gl_context = unsafe {
+                display
+                    .create_context(&config, &context_attributes)
+                    .expect("failed to create context")
+            };
+        
+            let attrs = window
+                .build_surface_attributes(<_>::default())
+                .expect("Failed to build surface attributes");
+            let surface = unsafe { config.display().create_window_surface(&config, &attrs).unwrap() };
+        
+            // let context_attributes = context::ContextAttributesBuilder::new()
+            //     .with_debug(true)
+            //     .with_context_api(context::ContextApi::OpenGl(Some(version)))
+            //     .with_profile(context::GlProfile::Core)
+            //     .build(Some(raw_window_handle));
         
             println!("making context current");
-            let gl_context = gl_context.make_current(&surface).expect("can make surface current");
+            let gl_context = not_current_gl_context.make_current(&surface).expect("can make surface current");
         
             println!("loading function pointers...");
             gb::load_with(|symbol| {
@@ -198,7 +197,6 @@ impl<T: Sample> App<T> {
     fn render(&mut self) {
         self.ctx.as_mut().map(|ctx| {
             ctx.inner.render();
-            println!("rendering");
             ctx.surface
                 .swap_buffers(&ctx.context)
                 .expect("buffer swapping is successful");
@@ -224,10 +222,7 @@ impl<T: Sample> App<T> {
 
 
 impl<T: Sample> ApplicationHandler for App<T> {
-    fn suspended(&mut self, _: &ActiveEventLoop) {
-        // TODO: read about context yielding on different platforms.
-        println!("suspended");
-    }
+    fn suspended(&mut self, _: &ActiveEventLoop) { }
 
     fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
         match event {
@@ -256,7 +251,10 @@ impl<T: Sample> ApplicationHandler for App<T> {
                     }
             }
             },
-            WindowEvent::CloseRequested => event_loop.exit(),
+            WindowEvent::CloseRequested => {
+                println!("exitting");
+                std::process::exit(0);
+            },
             WindowEvent::RedrawRequested => self.render(),
             _ => (),
         }

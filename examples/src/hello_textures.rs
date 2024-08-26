@@ -1,6 +1,8 @@
 #![allow(unused)]
 
-use crate::Ctx;
+use std::marker::PhantomData;
+
+use crate::{common, Ctx};
 
 
 use gb::gl::texture::{self, pixel, TextureUnit};
@@ -15,6 +17,34 @@ use gl::buffer::{Static, Draw};
 use gl::{Program, Buffer, VertexArray};
 use glsl::MatchingInputs as _;
 
+
+pub mod logo {
+    const BITMAP_OFFSET: usize = 54;
+    const RAW_BITMAP_SIZE: usize = 262198;
+
+    type Bitmap = [u8; RAW_BITMAP_SIZE];
+
+    static UWR: &'static Bitmap = include_bytes!("../resources/uwr.bmp");
+    static RUST: &'static Bitmap = include_bytes!("../resources/rust.bmp");
+    static OPENGL: &'static Bitmap = include_bytes!("../resources/opengl.bmp");
+
+    pub fn pixels(bmp: &'static Bitmap) -> &'static [[u8; 4]] {
+        /// SAFETY: data layout is correct
+        unsafe { std::mem::transmute(&bmp[BITMAP_OFFSET..]) }
+    }
+
+    pub fn uwr() -> &'static [[u8; 4]] {
+        pixels(&UWR)
+    }
+
+    pub fn rust() -> &'static [[u8; 4]] {
+        pixels(RUST)
+    }
+
+    pub fn opengl() -> &'static [[u8; 4]] {
+        pixels(OPENGL)
+    }
+}
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec2;
@@ -48,7 +78,7 @@ use texture::{target::D2, Immutable, image::{Format, format}};
 pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, Resources>,
     vao: VertexArray<Attributes>,
-    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGB, u8>, 0>
+    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGBA, u8>, 0>
 }
 
 impl Sample {
@@ -106,33 +136,41 @@ impl crate::Sample for Sample {
             .output(&fs_output);
 
         let program = Program::builder()
-            .uniforms(|definitions| definitions
-                .define(&view_matrix_location, &[[0f32; 4]; 4])
-            )
-            .resources(|resources| resources
-                .sampler(&sampler)
-            )
-            .vertex_main(&vs)
-            .uniforms(|matcher| matcher.bind(&view_matrix_location))
-            .fragment_main(&fs)
-            .build()?;
-    
+        .uniforms(|definitions| definitions
+            .define(&view_matrix_location, &[[0f32; 4]; 4])
+        )
+        .resources(|resources| resources
+            .sampler(&sampler)
+        )
+        .vertex_main(&vs)
+        .uniforms(|matcher| matcher.bind(&view_matrix_location))
+        .fragment_main(&fs)
+        .build()?;
+
+        // let mut positions = Buffer::create();
+        // positions.data::<(Static, Draw)>(
+        //     &[[0.5, -0.5], [ 0.5, 0.5], [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]
+        // );
+        
+        // let mut texture_coords = Buffer::create();
+        // texture_coords.data::<(Static, Draw)>(
+        //     &[[ 1.0, 0.0], [ 1.0, 1.0], [ 0.0, 0.0], [ 0.0, 1.0], [ 1.0, 1.0], [ 0.0, 0.0]]
+        // );  
         let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5], [0.5, -0.5], [0.0, 0.5f32]]);
-    
+        positions.data::<(Static, Draw)>(
+            &[[0.5, -0.5], [ 0.5, 0.5], [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]
+        );
+        
         let mut texture_coords = Buffer::create();
-        texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
-            
+        texture_coords.data::<(Static, Draw)>(
+            &[[ 1.0, 0.0], [ 1.0, 1.0], [ 0.0, 0.0], [ 0.0, 1.0], [ 1.0, 1.0], [ 0.0, 0.0]]
+        );  
+
         let mut texture = texture::Texture::create_with_storage_2d(256, 256);
 
-        let mut pixels = Self::generate_256x256_texture();
+        let pixels = logo::uwr();
         
-        println!("{:?}", &pixels[..10]);
-
-        texture.sub_image_2d::<pixel::channels::RGB, _>(0..256, 0..256, &mut pixels);
-
-
-        println!("{:?}", &pixels[..10]);
+        texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
 
 
         let vao = VertexArray::create()
@@ -169,10 +207,26 @@ impl crate::Sample for Sample {
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-        // TODO: Update texture
+        let texture = &mut self.texture;
+
+        let mut update_image = |pixels: &[[u8; 4]]| {
+            texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
+        };
+
+        match code {
+            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr()),
+            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl()),
+            winit::keyboard::KeyCode::KeyD => update_image(logo::rust()),
+            _ => (),
+        }
     }
     
-    fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
-        // TODO: Update texture
+    fn process_mouse(&mut self, _: (f64, f64)) { }
+    
+    fn config() -> common::config::Config {
+        common::config::Config {
+            width: 512,
+            height: 512,
+        }
     }
 }

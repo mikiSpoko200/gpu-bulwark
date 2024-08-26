@@ -1,5 +1,17 @@
+#![allow(unused)]
 
 pub mod config {
+    pub struct Config {
+        pub width: u32,
+        pub height: u32,
+    }
+
+    impl Default for Config {
+        fn default() -> Self {
+            Self { width: WIDTH, height: HEIGHT }
+        }
+    }
+
     pub const WIDTH: u32 = 960;
     pub const HEIGHT: u32 = 640;
     pub const MOUSE_SENSITIVITY: f32 = 0.005;
