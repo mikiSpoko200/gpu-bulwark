@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::io::Write;
 use std::marker::PhantomData;
 
 use crate::{common, Ctx};
@@ -210,14 +211,15 @@ impl crate::Sample for Sample {
         let texture = &mut self.texture;
 
         let mut update_image = |pixels: &[[u8; 4]], message: &str| {
-            println!("displaying {}", message);
+            print!("\rdisplaying logo {:>6}", message);
+            std::io::stdout().flush().unwrap();
             texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
         };
 
         match code {
-            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr(), "uwr logo"),
-            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl(), "opengl logo"),
-            winit::keyboard::KeyCode::KeyD => update_image(logo::rust(), "rust logo"),
+            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr(), "uwr"),
+            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl(), "opengl"),
+            winit::keyboard::KeyCode::KeyD => update_image(logo::rust(), "rust"),
             _ => (),
         }
     }
