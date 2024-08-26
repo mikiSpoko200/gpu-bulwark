@@ -112,6 +112,17 @@ INPUT d:/texlive/2024/texmf-dist/tex/latex/base/inputenc.sty
 INPUT d:/texlive/2024/texmf-dist/tex/latex/base/inputenc.sty
 INPUT d:/texlive/2024/texmf-dist/tex/latex/dirtytalk/dirtytalk.sty
 INPUT d:/texlive/2024/texmf-dist/tex/latex/dirtytalk/dirtytalk.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/listings.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/listings.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstpatch.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstpatch.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstpatch.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstmisc.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstmisc.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/lstmisc.sty
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/listings.cfg
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/listings.cfg
+INPUT d:/texlive/2024/texmf-dist/tex/latex/listings/listings.cfg
 INPUT d:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 INPUT d:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 INPUT ./main.aux

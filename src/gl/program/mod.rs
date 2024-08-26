@@ -213,15 +213,7 @@ where
     where
         Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
     {
-        let _vao_bind = vao.bind();
-        let _program_bind = self.bind();
-
-        gl::call! {
-            [panic]
-            unsafe {
-                glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
-            }
-        }
+        self.draw_arrays_ext(vao, &texture::TextureUnits::default());
     }
 }
 

@@ -9,7 +9,7 @@ Besides the wrapper library the purpose of this study was to identify common pat
 
 The resulting library was named \textit{GPU bulwark} since it provides strong foundations for safer programming on the GPU, and could easily be extended to other GPU programming APIs.
 
-Library at it's root is logically divided into two halves: (1) main OpenGL wrapper and (2) general-purpose auxiliary modules which contain implementations of various patterns we have recognized.
+Library at its root is logically divided into two halves: (1) main OpenGL wrapper and (2) general-purpose auxiliary modules which contain implementations of various patterns we have recognized.
 %
 \section{External dependencies}
 %
@@ -34,4 +34,129 @@ Remaining packages are imported for use in examples only.
 All general purpose design patterns we encountered during development are implemented in these modules.
 % FIXME: relate our patterns to classical Gang of Four patterns
 
+\section{Identified design patterns}
+
+In our exploration we found that patterns which to emerge during programming with types can be broadly divided into two categories: (1) compensation for language limitations (2) validation of program structure at complete.
+
+\subsection{Compensation for language limitations}
+
+Rust is in continuous development. Some features have been work-in-progress for over years and are still nowhere near completion, and another have seen minimal-viable-product releases, and yet others are nothing more than subject of wishes and speculation. 
+Features which we found to be useful for type-driven design fall into all of these categories. Some of them can be emulated with varying levels of complexity and user experience consequences stemming from often contrive usage of type system and language facilities.
+
+\subsubsection{Variadic Generics}
+
+\paragraph{Problem}
+
+It is common practice among programming language developers to support variadic function arguments - functions which can accept arbitrarily many arguments.
+This capability is great syntactic convenience, as well as, a tool for more complex abstractions.
+
+It is substantially less common to support variadic type parameters in generic types, as a matter of fact Rust does not have such a language feature and discussion regarding it is very scares.
+We identified one very desirable use case for such variadic generics - non homogenous collections. 
+
+\paragraph{Solution}
+
+Rust have an excellent support for recursive types and since lists can be defined recursively like for example in LISP we derived a variadic generics emulation scheme from that.
+We used type level recursion on binary tuples (recursive step) and unit type as \texttt{Nil}. We call such type list \textbf{HList}.
+HLists can be wound to the left: first tuple component contains n - 1 elements and second the n'th type or in the reverse.
+Both these schemes are equivalent in terms of functionality but differ in terms of potential user experience.
+In our use case appending new types to the end of a HList was by far the most common use case and as we use almost elusively such left wound HLists (LHLists).
+
+Implementation of functionality for hlists needs to mirror their abstract and recursive nature. This can be achieved using two recursive implementations, one for unit in base case and another for a two tuple for recursive step.
+
+These homogenous collections have been implemented as an independent module called \texttt{hlist} which can be found in the root of our crate.
+ 
+\paragraph{Use case}
+
+In \texttt{gpu-bulwark} we utilize hlists every time user configuration is required, most notably to represent shader inputs, outputs, used uniforms or external resources like textures.
+Almost always we create a facade marker trait which join together predefined pieces of functionality from \texttt{hlist} module and adds specialized requirements for the types depending on the usage which prohibits creation of invalid types.
+
+\subsection{Const generics in const expressions}
+
+\paragraph{Problem}
+
+Const generics fall into the category of partially implemented features. Types can be dependant on values of limited subset of types, most notably for our purposes numeric types, bool, unit.
+Most crippling limitation is that these values must be expressions using only literals and in general two const parameters cannot be added or subtracted from each other. 
+This prohibits us from performing arbitrary compile-time (CT) computations of these parameters for purposes of validation.
+
+\paragraph{Solution}
+
+There is one exception to that limitation however - associated constants. Associated constants can have their values computed using CT \texttt{const fn}s and themselves be used in such computations as parameters.
+These functions can panic with static error message (no formatting) and may cause compilation a error based on fully programable computations.
+As a consequence, different limitation was imposed: associated constants cannot be used as const parameters in types, they can only be used as values in code.
+
+\paragraph{Use case}
+
+Due to lack of negative reasoning, as of yet, in rust compiler we cannot express type inequality.
+The only viable solution would be to a blanket impl and stating that two types are different if they are not the same type, since such a blanket would apply to user defined types as well.
+
+Such CT validation that types are all different is required to decide if glsl variable layout locations do not overlap.
+Such overlap technically is valid if layout components are used but that could be accounted for.
+
+We use associated constants and conditionally panicking \texttt{const} function to check that location ranges do not overlap.
+
+\subsection{Effect system}
+
+\paragraph{Problem}
+
+First class effect system is yet another non-existent feature that would be of immense value in this specific case.
+Ability to type check function invocation context in OpenGL would be especially useful as we could encode presence of appropriate object binding using an effect.
+
+\paragraph{Solution}
+
+We instead were forced to opt for more error prone and verbose approach. Objects like textures or buffers can generate binder objects which in their constructor bind object to context and in destructor unbind it.
+This lets us control binding using lexical scope but does not in any way prevent overriding of the binding.
+
+\paragraph{Usae Case}
+
+As already mentioned effect system would greatly improve the handling of context bindings in terms of statically verifiable correctness, as well as, user and developer experience.
+
+\subsection{Application of existing features}
+
+\subsection{Markers}
+
+\paragraph{Problem}
+
+Enumeration types are a core component of almost all currently used programming languages. In recent years many languages even gained ability to store dynamic data in enum variants.
+Such enums provide simple mechanism for statically typed polymorphism with dynamic variants. 
+However sometimes this dynamic-ness of enums is a hurdle causing constant match or switch statements to crop you all over the code base, producing clutter and boilerplate.
+Sometime one simply wishes to encode static configuration based on a closed set of possible values.
+
+\paragraph{Solution}
+
+Markers are traits and types which don't provide any runtime behavior, but rather exist for purposes of conveying information and constrains on a type level.
+Marker traits provide no useful functionality but rather serve to impose relations and logical division on types.
+
+Marker types don't hold any data and as such don't exist at runtime (they occupy zero bytes and are formally called Zero Sized Types - ZST).
+It is even possible to marker types to have type, lifetime and const parameters by using special compiler intrinsic datatype - \texttt{PhantomData} - which binds parameters but does not hold any value.
+
+Marker traits along with marker types can be used as:
+\begin{itemize}
+    \item compile-time enums -- by limiting access to a marker using item visibility qualifiers we strictly control what types implement given functionality.
+    \item marker trait based relations -- we can express relations between types and make unsound parameter combinations a compile-time error.
+    \item typing external resources -- by using \texttt{PhantomData} we can attach type information to otherwise untyped parts of API.
+\end{itemize}
+
+\paragraph{Use Case}
+
+We make heavy use of markers to implement entirety of glsl module which consists almost elusively of ZSTs for purposes of modelling shader \texttt{in}, \texttt{out} and \texttt{uniform} variables.
+Types representing these variables aggregated into hlists are specified by the user with help of GLSL DSL implemented using lightweight declarative macros.
+
+Marker traits in miscellaneous \texttt{\_::valid} modules define relations between valid combinations of data types. Buffer in raw OpenGL, due to C's lack of generics, has its buffer populated using \texttt{*void} 
+and the documentation enumerates valid types. To make things worse validity of data types changes depending on what's the buffer's target.
+It is illegal for index buffer to contain anything other than unsigned integers, pixel buffers can contain almost everything and vertex buffers, yet again, can contain only specific combinations of data.
+By associating a phantom type with a Buffer and using marker trait based validation relations on uploaded data we solve both of these issues.
+
+This methodology can be extended to form \textbf{many modes} pattern, in which one uses marker types that implement trait 
+containing generic associated types (GAT) to control behavior in more complex fashion than using non-generic associated types.
+
+\paragraph{many modes}
+
+We use many modes in \texttt{Variable<S, L, T, Store>} to abstract over kind of storage used for variable's type member - \texttt{Phantom} or \texttt{Inline}.
+\texttt{Phantom} uses \texttt{PhantomData} as its associated type and effectively discards value and \texttt{Inline} keeps it as is.
+
+\subsection{Type State}
+
+Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile-time. 
+
 \section{OpenGL wrapper}
+  
