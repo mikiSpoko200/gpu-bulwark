@@ -12,7 +12,6 @@ pub mod uniform;
 pub mod types;
 pub mod valid;
 pub mod bounds;
-pub mod image;
 pub mod error;
 
 // Reexports

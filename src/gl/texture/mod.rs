@@ -92,7 +92,10 @@ impl texture::image::marker::Format for ts::None {
     const ID: u32 = panic!("not implemented");
     type BaseFormat = texture::image::format::RGBA;
     type Output = i32;
-    type Kind = gl::types::Float;
+    
+    type Composition = texture::image::marker::Aggregate;
+    type ComponentType = u8;
+    // type Kind = gl::types::Float;
 }
 
 impl<F> MaybeFormat for ts::Some<F> where F: texture::image::marker::Format { }
@@ -100,7 +103,10 @@ impl<F> texture::image::marker::Format for ts::Some<F> where F: texture::image::
     const ID: u32 = F::ID;
     type BaseFormat = F::BaseFormat;
     type Output = F::Output;
-    type Kind = F::Kind;
+    
+    type Composition = F::Composition;
+    type ComponentType = F::ComponentType;
+    // type Kind = F::Kind;
 }
 
 pub struct Builder<T, K, F>
@@ -166,7 +172,7 @@ where
     pub fn sub_image_1d<Channels: pixel::channels::Channels>(
         &mut self, 
         x_range: impl std::ops::RangeBounds<usize>, 
-        pixels: &[impl pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>]
+        pixels: &[impl pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>]
     )
     where
         Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
@@ -196,12 +202,12 @@ where
 
     pub fn sub_image_2d<
         Channels: pixel::channels::Channels,
-        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+        Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
         x_range: impl std::ops::RangeBounds<usize>, 
         y_range: impl std::ops::RangeBounds<usize>,
-        pixels: &mut [Pixel]
+        pixels: &[Pixel]
     )
     where
         Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
@@ -231,7 +237,7 @@ where
     }
     pub fn sub_image_3d<
         Channels: pixel::channels::Channels,
-        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+        Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self, 
         x_range: impl std::ops::RangeBounds<usize>,
@@ -248,7 +254,7 @@ where
     }
 }
 
-#[derive(dm::Deref)]
+#[derive(dm::Deref, dm::DerefMut)]
 pub struct TextureUnit<Target, Kind, InternalFormat, const INDEX: usize>(Texture<Target, Kind, InternalFormat>)
 where
     Target: target::Target, 

@@ -2,6 +2,8 @@ use crate::prelude::internal::*;
 use crate::gl;
 
 pub mod marker {
+    use super::*;
+
     use crate::{gl::{self, texture::pixel}, glsl};
 
     use super::format::Components;
@@ -11,29 +13,44 @@ pub mod marker {
         type Components: Components;
     }
 
+    pub trait FormatType { }
+
+    
+    #[hi::mark(FormatType)]
+    pub enum Aggregate { }
+    
+    #[hi::mark(FormatType)]
+    pub enum Special { }
+
     pub trait Format {
         const ID: u32;
-        type BaseFormat: BaseFormat;
-        // Sampler return type for that internalformat 
         type Output: glsl::sampler::Output;
-        // Image should know what kind of numbers it expects.
-        type Kind: gl::types::Kind;
+        type Composition: FormatType;
+        type BaseFormat: BaseFormat;
+        type ComponentType: gl::Type;
     }
+
+    pub trait AggregateFormat: Format<Composition = Aggregate> { }
 }
 
-pub struct Format<Components, const BIT_DEPTH: u8, Type = ()>(PhantomData<(Components, Type)>)
+pub struct Format<Components, ComponentType, Interpretation = format::UNorm>(PhantomData<(Components, ComponentType, Interpretation)>)
 where
     Components: format::Components,
-    Type: format::Type,
+    Interpretation: format::Interpretation,
 ;
 
 pub mod format {
     use super::*;
 
+    macro_rules! map_base_format {
+        (R) => { RED };
+        ($ty:ty) => { $ty };
+    }
+
     pub enum RED { }
     impl marker::BaseFormat for RED { const ID: u32 = glb::RED   ; type Components = components::R; }
 
-    pub struct Rev<T>(PhantomData<T>) where T: Type;
+    pub struct Rev<T>(PhantomData<T>) where T: Interpretation;
 
     pub use components::{Components, RG, RGB, RGBA};
     pub use ty::*;
@@ -61,35 +78,51 @@ pub mod format {
     }
 
     pub mod ty {
+        use gl::Integer;
+
         use crate::glsl;
 
         use super::*;
 
-        pub trait Type {
-            type Kind: gl::types::Kind;
+        pub trait Interpretation {
+            /// Kind of number produced by sampler in s shader.
             type Output: glsl::sampler::Output;
         }
 
-        impl Type for () { type Kind = gl::types::Integer; type Output = f32; }
-
-        pub enum UI { }
-        impl Type for UI { type Kind = gl::types::Integer; type Output = u32; }
-
-        pub enum SNORM { }
-        impl Type for SNORM { type Kind = gl::types::Integer; type Output = i32; }
-
-        pub enum I { }
-        impl Type for I { type Kind = gl::types::Integer; type Output = f32 ; }
-
+        // Floats
         pub enum F { }
-        impl Type for F { type Kind = gl::types::Float; type Output = f32; }
+        impl Interpretation for F { type Output = f32; }
+
+        // Integers 
+        pub enum UI { }
+        impl Interpretation for UI { type Output = u32; }
+        pub enum I { }
+        impl Interpretation for I { type Output = i32; }
+
+        // Integers to be normalized
+        pub struct Norm<I>(PhantomData<I>) where I: Interpretation, I::Output: glsl::sampler::Output<Kind=Integer>;
+        
+        impl<I> Interpretation for Norm<I> where I: Interpretation, I::Output: glsl::sampler::Output<Kind=Integer> {
+            type Output = f32;
+        }
+        
+        pub type SNorm = Norm<I>;
+        pub type UNorm = Norm<UI>;
+
+        // #[macro_export]
+        macro_rules! suffix_to_type {
+            () => { UNorm };
+            (_SNORM) => { SNorm };
+            ($ty:ty) => { $ty }
+        }
+        pub(super) use suffix_to_type;
     }
 
     mod size {
         use super::*;
 
         #[hi::marker]
-        pub trait ValidFor<C: Components, T: Type = ()> { }
+        pub trait ValidFor<C: Components, T: Interpretation = UNorm> { }
 
         // impls for unsigned normalized format
         hi::denmark! { Const<2> as ValidFor<RGBA> }
@@ -106,91 +139,85 @@ pub mod format {
     }
 
     macro_rules! impl_format {
-        ($components:ident, $size:literal, $base:path $(,)?) => {
+        ($components:ident, $component_type:ty, $size:literal) => {
             ::concat_idents::concat_idents!(token = $components, $size {
-                impl marker::Format for Format<components::$components, $size> {
+                impl marker::Format for Format<components::$components, $component_type, suffix_to_type!()> {
                     const ID: u32 = ::glb::token;
-                    type BaseFormat = $base;
-                    type Output = <() as ty::Type>::Output;
-                    type Kind = gl::types::Integer;
+                    type BaseFormat = map_base_format!($components);
+                    type ComponentType = $component_type;
+                    type Composition = marker::Aggregate;
+                    type Output = <ty::suffix_to_type!() as ty::Interpretation>::Output;
+                    // type Kind = gl::types::Integer;
                 }
             });
         };
-        ($components:ident, $size:literal, SNORM, $base:path) => {
-            ::concat_idents::concat_idents!(token = $components, $size, _, SNORM {
-                impl marker::Format for Format<components::$components, $size, ty::SNORM> {
+        ($components:ident, $component_type:ty, $size:literal, $ty_suffix:ident) => {
+            ::concat_idents::concat_idents!(token = $components, $size, $ty_suffix {
+                impl marker::Format for Format<components::$components, $component_type, suffix_to_type!($ty_suffix)> {
                     const ID: u32 = ::glb::token;
-                    type BaseFormat = $base;
-                    type Output = i32;
-                    type Kind = gl::types::Integer;
-                }
-            });
-        };
-        ($components:ident, $size:literal, $ty:ident, $base:path) => {
-            ::concat_idents::concat_idents!(token = $components, $size, $ty {
-                impl marker::Format for Format<components::$components, $size, ty::$ty> {
-                    const ID: u32 = ::glb::token;
-                    type BaseFormat = $base;
-                    type Output = <$ty as ty::Type>::Output;
-                    type Kind = gl::types::Integer;
+                    type BaseFormat = map_base_format!($components);
+                    type ComponentType = $component_type;
+                    type Composition = marker::Aggregate;
+                    type Output = <suffix_to_type!($ty_suffix) as ty::Interpretation>::Output;
+                    // type Kind = gl::types::Integer;
                 }
             });
         };
     }
 
-    impl_format! { R,    8              ,   RED     }
-    impl_format! { R,    8,       SNORM ,   RED     }
-    impl_format! { R,    16             ,   RED     }
-    impl_format! { R,    16,      SNORM ,   RED     }
-    impl_format! { RG,   8,                 RG      }
-    impl_format! { RG,   8,       SNORM ,   RG      }
-    impl_format! { RG,   16,                RG      }
-    impl_format! { RG,   16,      SNORM ,   RG      }
-    impl_format! { RGB,  4,                 RGB     }
-    impl_format! { RGB,  5,                 RGB     }
-    impl_format! { RGB,  8,                 RGB     }
-    impl_format! { RGB,  8,       SNORM ,   RGB     }
-    impl_format! { RGB,  10,                RGB     }
-    impl_format! { RGB,  12,                RGB     }
-    impl_format! { RGB,  16,                RGB     }
-    impl_format! { RGB,  16,      SNORM ,   RGB     }
-    impl_format! { RGBA, 2,                 RGBA    }
-    impl_format! { RGBA, 4,                 RGBA    }
-    impl_format! { RGBA, 8,                 RGBA    }
-    impl_format! { RGBA, 8,       SNORM ,   RGBA    }
-    impl_format! { RGBA, 12,                RGBA    }
-    impl_format! { RGBA, 16,                RGBA    }
-    impl_format! { RGBA, 16,      SNORM,    RGBA    }
-    impl_format! { R,    16,      F,        RED     }
-    impl_format! { RG,   16,      F,        RG      }
-    impl_format! { RGB,  16,      F,        RGB     }
-    impl_format! { RGBA, 16,      F,        RGBA    }
-    impl_format! { R,    32,      F,        RED     }
-    impl_format! { RG,   32,      F,        RG      }
-    impl_format! { RGB,  32,      F,        RGB     }
-    impl_format! { RGBA, 32,      F,        RGBA    }
-    impl_format! { R,    8,       I,        RED     }
-    impl_format! { R,    8,       UI,       RED     }
-    impl_format! { R,    16,      I,        RED     }
-    impl_format! { R,    16,      UI,       RED     }
-    impl_format! { R,    32,      I,        RED     }
-    impl_format! { R,    32,      UI,       RED     }
-    impl_format! { RG,   8,       I,        RG      }
-    impl_format! { RG,   8,       UI,       RG      }
-    impl_format! { RG,   16,      I,        RG      }
-    impl_format! { RG,   16,      UI,       RG      }
-    impl_format! { RG,   32,      I,        RG      }
-    impl_format! { RG,   32,      UI,       RG      }
-    impl_format! { RGB,  8,       I,        RGB     }
-    impl_format! { RGB,  8,       UI,       RGB     }
-    impl_format! { RGB,  16,      I,        RGB     }
-    impl_format! { RGB,  16,      UI,       RGB     }
-    impl_format! { RGB,  32,      I,        RGB     }
-    impl_format! { RGB,  32,      UI,       RGB     }
-    impl_format! { RGBA, 8,       I,        RGBA    }
-    impl_format! { RGBA, 8,       UI,       RGBA    }
-    impl_format! { RGBA, 16,      I,        RGBA    }
-    impl_format! { RGBA, 16,      UI,       RGBA    }
-    impl_format! { RGBA, 32,      I,        RGBA    }
-    impl_format! { RGBA, 32,      UI,       RGBA    }
+    impl_format! { R,    u8,    8            }
+    impl_format! { R,    i8,    8,    _SNORM }
+    impl_format! { R,    u16,   16           }
+    impl_format! { R,    i16,   16,   _SNORM }
+    impl_format! { RG,   u8,    8            }
+    impl_format! { RG,   i8,    8,    _SNORM }
+    impl_format! { RG,   u16,   16           }
+    impl_format! { RG,   i16,   16,   _SNORM }
+    // impl_format! { RGB,  4               }
+    // impl_format! { RGB,  5               }
+    impl_format! { RGB,  u8, 8              }
+    impl_format! { RGB,  i8,    8,    _SNORM }
+    // impl_format! { RGB,  10              }
+    // impl_format! { RGB,  12              }
+    impl_format! { RGB,  u16, 16             }
+    impl_format! { RGB,  i16, 16,     _SNORM }
+    // impl_format! { RGBA, 2               }
+    // impl_format! { RGBA, 4               }
+    impl_format! { RGBA, u8, 8              }
+    impl_format! { RGBA, i8, 8,      _SNORM }
+    // impl_format! { RGBA, 12              }
+    impl_format! { RGBA, u16, 16             }
+    impl_format! { RGBA, i16, 16,     _SNORM }
+    impl_format! { R,    gl::types::float16, 16,     F      }
+    impl_format! { RG,   gl::types::float16, 16,     F      }
+    impl_format! { RGB,  gl::types::float16, 16,     F      }
+    impl_format! { RGBA, gl::types::float16, 16,     F      }
+    impl_format! { R,    f32, 32,  F     }
+    impl_format! { RG,   f32, 32,  F     }
+    impl_format! { RGB,  f32, 32,  F     }
+    impl_format! { RGBA, f32, 32,  F     }
+    impl_format! { R,    u8, 8,    I      }
+    impl_format! { R,    i8, 8,    UI     }
+    impl_format! { R,    u16, 16,  I      }
+    impl_format! { R,    i16, 16,  UI     }
+    impl_format! { R,    u32, 32,  I      }
+    impl_format! { R,    i32, 32,  UI     }
+    impl_format! { RG,   u8, 8,       I      }
+    impl_format! { RG,   i8, 8,       UI     }
+    impl_format! { RG,   u16, 16,      I      }
+    impl_format! { RG,   i16, 16,      UI     }
+    impl_format! { RG,   u32, 32,      I      }
+    impl_format! { RG,   i32, 32,      UI     }
+    impl_format! { RGB,  u8,  8,     I      }
+    impl_format! { RGB,  i8,  8,     UI     }
+    impl_format! { RGB,  u16,  16,    I      }
+    impl_format! { RGB,  i16,  16,    UI     }
+    impl_format! { RGB,  u32,  32,    I      }
+    impl_format! { RGB,  i32,  32,    UI     }
+    impl_format! { RGBA, u8,  8,     I      }
+    impl_format! { RGBA, i8,  8,     UI     }
+    impl_format! { RGBA, u16,   16,   I      }
+    impl_format! { RGBA, i16,   16,   UI     }
+    impl_format! { RGBA, u32,   32,   I      }
+    impl_format! { RGBA, i32,   32,   UI     }
 }

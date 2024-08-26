@@ -105,16 +105,17 @@ pub enum ProgramObject { }
 
 unsafe impl Allocator for ProgramObject {
     fn allocate(names: &mut [u32]) {
-        for name in names {
-            *name = unsafe { glb::CreateProgram() };
-            // TODO: Check for errors
+        gl::call! {
+            [panic]
+            for name in names {
+                *name = unsafe { glb::CreateProgram() };
+            }
         }
     }
 
     fn free(names: &[u32]) {
         // UNSAFE: Check for 0 return type, otherwise Stage guarantees valid Enum value.
         for &name in names {
-            // TODO: Check for errors
             gl::call! {
                 [panic]
                 unsafe {
@@ -184,6 +185,44 @@ where
     #[deref]
     object: ObjectBase<ProgramObject>,
     state: ProgramState<Ins, Outs, Unis, Res>,
+}
+
+impl Program<(), (), (), ()> {
+    /// Draw an empty array 
+    pub fn run_program(&mut self, n_triangles: usize, vao: &gl::VertexArray<()>) {
+        let _vao_bind = vao.bind();
+        let _program_bind = self.bind();
+
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::DrawArrays(glb::TRIANGLES, 0, n_triangles as _);
+            }
+        }
+    }
+}
+
+impl<Ins, Outs, Unis> Program<Ins, Outs, Unis, ()>
+where
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+    Unis: uniform::bounds::Declarations,
+{
+    /// Draw arrays using program when it does not use any external resources.
+    pub fn draw_arrays<Attrs>(&mut self, vao: &gl::VertexArray<Attrs>)
+    where
+        Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
+    {
+        let _vao_bind = vao.bind();
+        let _program_bind = self.bind();
+
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
+            }
+        }
+    }
 }
 
 impl Program<(), (), (), ()> {
@@ -302,6 +341,7 @@ where
         self.bound(|_binder| GLSL::set(_binder, var, uniform));
     }
 
+    /// Draw arrays using program that uses external resources. Bindings for these resources need to be provided in order to draw. 
     pub fn draw_arrays_ext<Attrs, Handles>(&self, vao: &gl::VertexArray<Attrs>, _: &texture::TextureUnits<Handles>)
     where
         Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
@@ -348,20 +388,6 @@ where
     Target: texture::Target,
     Kind: texture::storage::marker::Kind<Target = Target>,
     InternalFormat: texture::image::marker::Format,
-{ }
-
-impl<'texture, RH, TUH, PrevTarget, PrevKind, PrevInternalFormat, const PREV_BINDING: usize, CurrTarget, CurrKind, CurrInternalFormat, const CURR_BINDING: usize> 
-ResourceProviders<((RH, glsl::variable::SamplerVariable<PrevTarget, PrevInternalFormat::Output, PREV_BINDING>), glsl::variable::SamplerVariable<CurrTarget, CurrInternalFormat::Output, CURR_BINDING>)> for
-                  ((TUH, &'texture TextureUnit<PrevTarget, PrevKind, PrevInternalFormat, PREV_BINDING>       ), &'texture TextureUnit<CurrTarget, CurrKind, CurrInternalFormat, CURR_BINDING>)
-where
-    RH: glsl::bounds::OpaqueUniform,
-    TUH: ResourceProviders<RH>,
-    PrevTarget: texture::Target,
-    PrevKind: texture::storage::marker::Kind<Target = PrevTarget>,
-    PrevInternalFormat: texture::image::marker::Format,
-    CurrTarget: texture::Target,
-    CurrKind: texture::storage::marker::Kind<Target = CurrTarget>,
-    CurrInternalFormat: texture::image::marker::Format,
 { }
 
 /// Declarations of 'Resource's that program uses.

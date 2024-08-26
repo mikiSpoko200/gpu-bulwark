@@ -11,8 +11,8 @@ use gl::buffer::{Buffer, target};
 // This means that Binding does not necessarily contains a buffer, but rather reference to single type of type list in buffer.
 // All of this is temporarily ignored and VertexBufferBinding contains a whole buffer to preserve structure.
 
-#[derive(dm::AsRef)]
-pub struct VertexBufferBinding<GL>(pub(in crate::gl::vertex_array) Buffer<target::Array, GL>);
+#[derive(dm::AsRef, dm::AsMut)]
+pub struct VertexBufferBinding<GL>(pub(in crate::gl) Buffer<target::Array, GL>);
 
 impl<GL> VertexBufferBinding<GL> {
     pub(in crate::gl) fn new(vbo: Buffer<target::Array, GL>) -> Self {

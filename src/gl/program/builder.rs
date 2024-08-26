@@ -106,6 +106,10 @@ impl<'s> Builder<'s, ts::None, (), (), (), (), ()> {
     pub fn new() -> Self {
         Self::default()
     }
+    
+    pub fn no_uniforms(self) -> Self {
+        self.uniforms(std::convert::identity)
+    }
 
     /// Define uniforms and resources that program uses.
     pub fn uniforms<Defs: uniform::bounds::Definitions>(self, provider: impl FnOnce(uniform::Definitions<()>) -> uniform::Definitions<Defs>) -> Builder<'s, ts::None, (), (), Defs, (), ()> {
@@ -122,19 +126,40 @@ impl<'s> Builder<'s, ts::None, (), (), (), (), ()> {
             compute: self.compute,
             resource_phantoms: self.resource_phantoms,
         }
-    } 
-}
+    }
 
-impl<'s, Defs> Builder<'s, ts::None, (), (), Defs, (), ()>
-where
-    Defs: uniform::bounds::Definitions
-{
-    pub fn skip(self) -> Builder<'s, ts::Some<Vertex>, (), (), Defs, (), ()> {
+    pub fn no_resources(self) -> Builder<'s, ts::Some<Vertex>, (), (), (), (), ()> {
         self.resources(std::convert::identity)
     }
 
     /// Define uniforms and resources that program uses.
-    pub fn resources<Res>(self, provider: impl FnOnce(Resources<()>) -> Resources<Res>) -> Builder<'s, ts::Some<Vertex>, (), (), Defs, (), Res> {
+    pub fn resources<Res>(self, provider: impl FnOnce(Resources<()>) -> Resources<Res>) -> Builder<'s, ts::Some<Vertex>, (), (), (), (), Res> {
+        let resource_phantoms = provider(gl::program::Resources::default());
+        Builder {
+            _target_phantom: PhantomData,
+            _parameters: self._parameters,
+            matcher: self.matcher,
+            vertex: self.vertex,
+            tess_control: self.tess_control,
+            tess_evaluation: self.tess_evaluation,
+            geometry: self.geometry,
+            fragment: self.fragment,
+            compute: self.compute,
+            resource_phantoms,
+        }
+    } 
+}
+
+impl<'s, DH, DT> Builder<'s, ts::None, (), (), (DH, DT), (), ()>
+where
+(DH, DT): uniform::bounds::Definitions
+{
+    pub fn no_resources(self) -> Builder<'s, ts::Some<Vertex>, (), (), (DH, DT), (), ()> {
+        self.resources(std::convert::identity)
+    }
+
+    /// Define uniforms and resources that program uses.
+    pub fn resources<Res>(self, provider: impl FnOnce(Resources<()>) -> Resources<Res>) -> Builder<'s, ts::Some<Vertex>, (), (), (DH, DT), (), Res> {
         let resource_phantoms = provider(gl::program::Resources::default());
         Builder {
             _target_phantom: PhantomData,

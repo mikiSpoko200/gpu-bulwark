@@ -41,8 +41,11 @@ pub mod ty {
 }
 
 pub trait Format {
+    // Marker for number of components type contains
     type Components: image::format::Components;
-    type Kind;
+    // Marker for sampler output that this type provides
+    // Now note how sample Format can provide multiple outputs -- 
+    // type Output; -- either geneirc over Output or valid trait?
 }
 
 /// Implementation of `Format`.
@@ -58,12 +61,14 @@ pub mod format {
         Const<N>: texture::image::format::Components,
     {
         type Components = Const<N>;
-        type Kind = T::Kind;
+        // type Output = T::Kind;
     }
 }
 
 /// Implementations of 'Channels`.
 pub mod channels {
+    use image::format::Components;
+
     use super::*;
     use crate::gl::impl_token;
 
@@ -78,7 +83,7 @@ pub mod channels {
     pub trait  Compatible<C: Channels> { }
 
     pub trait Channels {
-        type Components;
+        type Components: Components;
     }
 
     pub enum Red { }
@@ -109,7 +114,10 @@ pub mod channels {
 
 pub mod valid {
     use super::*;
-    
+    use crate::glsl;
+
+    pub trait ForSamplerOutput<O: glsl::sampler::Output> { }
+
     /// What target channels are valid for given base format (basically component count of image)
     pub trait ForImageBaseFormat<F: image::marker::BaseFormat> { }
 
@@ -186,13 +194,6 @@ pub trait Pixel: Format {
 
     fn type_token() -> u32 {
         <Self::Type as gl::Type>::ID
-    }
-
-    fn format_token() -> u32
-    where
-        (Self::Components, Self::Kind): FormatToken
-    {
-        <(Self::Components, Self::Kind) as FormatToken>::ID
     }
 }
 

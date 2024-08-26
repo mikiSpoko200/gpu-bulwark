@@ -1,6 +1,7 @@
 #![allow(unused)]
 
 use crate::glsl;
+use crate::hlist;
 use crate::prelude::internal::*;
 
 use crate::gl;
@@ -134,6 +135,26 @@ where
 
         let Self { object, phantoms } = self;
         VertexArray { object, phantoms: phantoms.vertex_attrib_pointer(buffer) }
+    }
+
+    pub fn buffer_mut<Attr, Param, const ATTRIBUTE_INDEX: usize, IDX>(&mut self, var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>) -> &mut Buffer<buffer::target::Array, Attr>
+    where
+        Attr: bounds::AttribFormat,
+        Param: glsl::bounds::Parameter<glsl::storage::In>,
+        IDX: hlist::counters::Index,
+        AS: hlist::lhlist::Find<Attribute<Attr, ATTRIBUTE_INDEX>, IDX>,
+    {
+        self.phantoms.attributes.get_mut().as_mut()
+    }
+
+    pub fn buffer_ref<Attr, Param, const ATTRIBUTE_INDEX: usize, IDX>(&mut self, var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>) -> &Buffer<buffer::target::Array, Attr>
+    where
+        Attr: bounds::AttribFormat,
+        Param: glsl::bounds::Parameter<glsl::storage::In>,
+        IDX: hlist::counters::Index,
+        AS: hlist::lhlist::Find<Attribute<Attr, ATTRIBUTE_INDEX>, IDX>,
+    {
+        self.phantoms.attributes.get().as_ref()
     }
 }
 

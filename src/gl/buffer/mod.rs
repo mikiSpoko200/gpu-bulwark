@@ -15,6 +15,8 @@ pub mod target;
 pub mod _valid;
 
 
+use std::os::raw::c_void;
+
 use super::object;
 use crate::gl;
 use crate::utils::Const;
@@ -148,6 +150,9 @@ where
         U: Usage,
     {
         {
+            if self.state.length > 0 && self.state.length != data.len() {
+                panic!("realocating buffers with mutable storage is not supported");
+            }
             let binder = self.bind();
             gl::call! {
                 [panic]
@@ -166,5 +171,98 @@ where
 
     pub fn len(&self) -> usize {
         self.state.length
+    }
+
+    pub fn map(&self) -> impl std::ops::Deref<Target=&[GL]> {
+        MappedRef::new(self)
+    }
+
+    pub fn map_mut(&mut self) -> impl std::ops::DerefMut<Target = &mut [GL]> {
+        MappedMut::new(self)
+    }
+}
+
+
+#[derive(dm::Deref)]
+pub struct MappedRef<'b, T, GL>(&'b Buffer<T, GL>, #[deref] &'b [GL])
+where
+    T: buffer::Target,
+;
+
+impl<'b, T, GL> MappedRef<'b, T, GL>
+where
+    T: buffer::Target,
+{
+    pub(super) fn new(buffer: &'b Buffer<T, GL>) -> Self {
+        let binding = buffer.bind();
+        let mut data;
+        gl::call! {
+            [panic]
+            unsafe {
+                data = glb::MapBuffer(T::ID, glb::READ_ONLY) as *const _;
+            }
+        }
+        // SAFETY: [spec] if no error was generated pointer is valid
+        let slice = unsafe { std::slice::from_raw_parts(data, buffer.len()) };
+        Self(buffer, slice)
+    }
+}
+
+impl<'b, T, GL> Drop for MappedRef<'b, T, GL>
+where
+    T: buffer::Target,
+{   
+    fn drop(&mut self) {
+        let binding = self.0.bind();
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::UnmapBuffer(T::ID);
+            }
+        }
+    }
+}
+
+
+
+#[derive(dm::Deref, dm::DerefMut)]
+pub struct MappedMut<'b, T, GL>(&'b mut Buffer<T, GL>, #[deref] #[deref_mut] &'b mut [GL])
+where
+    T: buffer::Target,
+;
+
+impl<'b, T, GL> MappedMut<'b, T, GL>
+where
+    T: buffer::Target,
+{
+    pub(super) fn new(buffer: &'b mut Buffer<T, GL>) -> Self {
+        let binding = buffer.bind();
+        let mut data;
+        gl::call! {
+            [panic]
+            unsafe {
+                data = glb::MapBuffer(T::ID, glb::READ_WRITE) as *mut _;
+            }
+        }
+        // SAFETY: [spec] if no error was generated pointer is valid
+        let slice = unsafe { 
+            std::slice::from_raw_parts_mut(data, buffer.len())
+        };
+        Self(buffer, slice)
+    }
+}
+
+impl<'b, T, GL> Drop for MappedMut<'b, T, GL>
+where
+    T: buffer::Target,
+{   
+    fn drop(&mut self) {
+        let binding = self.0.bind();
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::UnmapBuffer(T::ID);
+            }
+        }
     }
 }

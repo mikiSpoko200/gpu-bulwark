@@ -19,12 +19,13 @@ use gl::vertex_array::{Format, VertexBufferBinding};
 
 use super::bounds::AttribFormat;
 
-#[derive(dm::AsRef)]
+#[derive(dm::AsRef, dm::AsMut)]
 pub struct Attribute<GL, const ATTRIB_INDEX: usize>
 where
     GL: bounds::AttribFormat,
 {
     #[as_ref(forward)]
+    #[as_mut(forward)]
     var: VertexBufferBinding<GL>,
     format: Format<ATTRIB_INDEX, GL>
 }

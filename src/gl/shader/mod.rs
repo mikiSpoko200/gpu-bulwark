@@ -138,18 +138,18 @@ where
         }
     }
 
-    /// Declare uniform variable used by this shader
-    pub fn uniforms<Unis, NDecls>(self, _: &Unis) -> Shader<ts::Uncompiled, T, Decls::Concatenated>
-    where
-        Unis: glsl::TransparentUniforms + Into<NDecls>,
-        Decls: Concatenate<NDecls, Concatenated: uniform::bounds::Declarations>,
-    {
-        Shader {
-            uniform_declarations: uniform::Declarations::default(),
-            object: self.object,
-            state: self.state,
-        }
-    }
+    // /// Declare uniform variables used by this shader
+    // pub fn uniforms<Unis, NDecls>(self, _: &Unis) -> Shader<ts::Uncompiled, T, Decls::Concatenated>
+    // where
+    //     Unis: glsl::TransparentUniforms + Into<NDecls>,
+    //     Decls: Concatenate<NDecls, Concatenated: uniform::bounds::Declarations>,
+    // {
+    //     Shader {
+    //         uniform_declarations: uniform::Declarations::default(),
+    //         object: self.object,
+    //         state: self.state,
+    //     }
+    // }
 
 
     /// Add source for shader.

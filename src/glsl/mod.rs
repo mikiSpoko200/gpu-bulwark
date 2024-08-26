@@ -27,6 +27,7 @@ pub use variable::{
     Qualifier,
     MatchingInputs,
     vars,
+    Glsl,
     uniforms,
     Uniforms,
     inputs,

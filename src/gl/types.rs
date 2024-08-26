@@ -62,14 +62,6 @@ unsafe impl Type for i8  { const ID: u32 = glb::BYTE            ; type Kind = In
 unsafe impl Type for i16 { const ID: u32 = glb::SHORT           ; type Kind = Integer; }
 unsafe impl Type for i32 { const ID: u32 = glb::INT             ; type Kind = Integer; }
 
-// unsafe impl Type for irgb10a2   { const ID: u32 = glb::INT_2_10_10_10_REV;           }
-// unsafe impl Type for urgb10a2   { const ID: u32 = glb::UNSIGNED_INT_2_10_10_10_REV;  }
-// unsafe impl Type for u10f10f11f { const ID: u32 = glb::UNSIGNED_INT_10F_11F_11F_REV; }
-
-// hi::denmark! { irgb10a2   as Packed }
-// hi::denmark! { urgb10a2   as Packed }
-// hi::denmark! { u10f10f11f as Packed }
-
 unsafe impl Type for fixed16 { const ID: u32 = glb::FIXED       ; type Kind = Float; }
 unsafe impl Type for float16 { const ID: u32 = glb::HALF_FLOAT  ; type Kind = Float; }
 unsafe impl Type for f32     { const ID: u32 = glb::FLOAT       ; type Kind = Float; }

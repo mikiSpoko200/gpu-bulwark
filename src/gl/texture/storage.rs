@@ -109,7 +109,7 @@ where
 {
     pub fn sub_image_1d<
         Channels: pixel::channels::Channels,
-        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+        Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
         _: &gl::object::Bind<texture::TextureObject<D1Target>>, 
@@ -125,10 +125,6 @@ where
         if end > width {
             panic!("range {start}..={end} extends outside of texture width");
         }
-        println!("{}, {}", 
-            <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
-            Pixel::type_token()
-        );
         let length = end - start;
         gl::call! {
             [panic]
@@ -155,13 +151,13 @@ where
 {
     pub fn sub_image_2d<
         Channels: pixel::channels::Channels,
-        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+        Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
         _: &gl::object::Bind<texture::TextureObject<D2Target>>,
         x_range: impl std::ops::RangeBounds<usize>, 
         y_range: impl std::ops::RangeBounds<usize>,
-        pixels: &mut [Pixel]
+        pixels: &[Pixel]
     )
     where
         Channels: pixel::valid::ForImageBaseFormat<InternalFormat::BaseFormat>,
@@ -180,21 +176,6 @@ where
         if y_end > height {
             panic!("sub image height range {y_start}..={y_end} extends out of bounds");
         }
-
-        println!("{}, {}, {}, {}", 
-        <(Channels, <InternalFormat::Output as glsl::sampler::Output>::Kind) as pixel::FormatToken>::ID,
-        glb::RGB,
-        Pixel::type_token(),
-        glb::UNSIGNED_BYTE,
-    );
-
-        gl::call! {
-            [panic]
-            {
-                println!("foo");
-            }
-        }
-
         gl::call! {
             [panic]
             unsafe {
@@ -222,7 +203,7 @@ where
 {
     pub fn sub_image_3d<
         Channels: pixel::channels::Channels,
-        Pixel: pixel::Pixel<Components = Channels::Components, Kind = <InternalFormat::Output as glsl::sampler::Output>::Kind>,
+        Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
         _: &gl::object::Bind<texture::TextureObject<D3Target>>,
