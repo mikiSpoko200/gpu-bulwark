@@ -1,5 +1,4 @@
 
-use gb::gl::texture;
 use winit::window;
 use glutin::{context, surface};
 use gb::{gl, glsl};
@@ -15,12 +14,10 @@ use glsl::MatchingInputs as _;
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
     layout(location = 1) vec4;
-    layout(location = 2) vec2;
 };
 
 type VsOutputs = glsl::Outputs! {
     layout(location = 0) vec4;
-    layout(location = 1) vec2;
 };
 
 type FsOutputs = glsl::Outputs! {
@@ -35,7 +32,6 @@ type Uniforms = glsl::Uniforms! {
 type Attributes = gb::HList! {
     Attribute<[f32; 3], 0>,
     Attribute<[f32; 4], 1>,
-    Attribute<[f32; 2], 2>,
 };
 
 
@@ -60,7 +56,7 @@ impl crate::Sample for Sample {
 
 
         let vs_inputs = Inputs::default();
-        let glsl::vars![vin_position, vin_color, vin_tex] = &vs_inputs;
+        let glsl::vars![vin_position, vin_color] = &vs_inputs;
 
         let vs_outputs = VsOutputs::default();
 
@@ -79,6 +75,7 @@ impl crate::Sample for Sample {
     
         let vs = uncompiled_vs
             .uniform(&view_matrix_location)
+            .uniform(&scale_location)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -99,7 +96,10 @@ impl crate::Sample for Sample {
             )
             .no_resources()
             .vertex_main(&vs)
-            .uniforms(|matcher| matcher.bind(&view_matrix_location))
+            .uniforms(|matcher| matcher
+                .bind(&scale_location)
+                .bind(&view_matrix_location)
+            )
             .vertex_shared(&common)
             .fragment_main(&fs)
             .build()?;
@@ -114,13 +114,9 @@ impl crate::Sample for Sample {
             [0.0, 0.0, 1.0, 1.0],
         ]);
     
-        let mut texture_coords = Buffer::create();
-        texture_coords.data::<(Static, Draw)>(&[[0.0, 0.0], [1.0, 0.0], [0.5, 1.0f32]]);
-    
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)
-            .vertex_attrib_pointer(&vin_color, colors)
-            .vertex_attrib_pointer(&vin_tex, texture_coords);
+            .vertex_attrib_pointer(&vin_color, colors);
         
         let inner = Self {
             program,
@@ -143,7 +139,7 @@ impl crate::Sample for Sample {
         self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
         self.program.uniform(&scale_location, &self.scale);
 
-        self.program.draw_arrays_ext(&self.vao, &texture::TextureUnits::default());
+        self.program.draw_arrays(&self.vao);
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
@@ -161,6 +157,11 @@ impl crate::Sample for Sample {
                 * config::MOVEMENT_SPEED)
                 .xyz();
         });
+        self.render();
+    }
+
+    fn usage(&self) -> String {
+        String::from("use W, A, S, D keys to move around and mouse to operate the camera")
     }
     
     fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
@@ -173,5 +174,6 @@ impl crate::Sample for Sample {
         if self.camera.pitch < -1.5 {
             self.camera.pitch = -1.5;
         }
+        self.render();
     }
 }

@@ -1,3 +1,5 @@
+use std::io::Write;
+
 // Sample application imports
 use crate::Ctx;
 
@@ -41,7 +43,7 @@ pub struct Sample {
 
 impl Sample {
     // Color values will be shifted by this much with each key press
-    const ATTENUATION_FACTOR: f32 = 0.05;
+    const ATTENUATION_FACTOR: f32 = 0.005;
 }
 
 impl crate::Sample for Sample {
@@ -121,6 +123,14 @@ impl crate::Sample for Sample {
     }
     
     fn render(&mut self) {
+        gl::call! {
+            [panic]
+            unsafe {
+                gl::raw::ClearColor(0.4, 0.5, 0.6, 1.0);
+                gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
+            }
+        }
+
         self.program.draw_arrays(&self.vao);
     }
     
@@ -129,14 +139,15 @@ impl crate::Sample for Sample {
         let glsl::vars![color, _pos] = VsInputs::default();
         let mut data = self.vao.buffer_mut(&color).map_mut();
         let mut attenuate = |offset| {
-            println!("attenuating color: {}", data[0][offset]);
-
             for vertex_color in data.iter_mut() {
                 vertex_color[offset] += Self::ATTENUATION_FACTOR;
                 if vertex_color[offset] > 1.0 {
                     vertex_color[offset] = 0.0;
                 }
             }
+
+            print!("\rchaning {} channel", match offset { 0 => "R", 1 => "G", 2 => "B", _ => panic!("invalid offset {offset}") });
+            std::io::stdout().flush().unwrap();
         };
 
         match code {
@@ -148,4 +159,8 @@ impl crate::Sample for Sample {
     }
     
     fn process_mouse(&mut self, _: (f64, f64)) { }
+    
+    fn usage(&self) -> String {
+        String::from("use A, S, D keys to change values of color vertex attribute components")
+    }
 }

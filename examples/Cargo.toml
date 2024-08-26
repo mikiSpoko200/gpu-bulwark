@@ -6,14 +6,13 @@ edition = "2021"
 [dependencies]
 gb = { package = "gpu-bulwark", path = "../", features = ["nalgebra-glm"] }
 glm = { package = "nalgebra-glm", version = "0.18.0" }
-glutin-winit = { version = "0.5.0" }
+glutin-winit = "0.5" 
 glutin = "0.32.0"
 raw-window-handle = "0.6"
 winit = "0.30.0"
 anyhow = "1.0.75"
 
 [features]
-default = ["hello_textures"]
 hello_triangle = []
 hello_vertices = []
 hello_uniforms = []

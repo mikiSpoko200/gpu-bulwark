@@ -54,14 +54,22 @@ impl crate::Sample for Sample {
     }
 
     fn render(&mut self) {
-        todo!()
+        gl::call! {
+            [panic]
+            unsafe {
+                gl::raw::ClearColor(0.4, 0.5, 0.6, 1.0);
+                gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
+            }
+        }
+
+        self.program.run_program(3, &self.vao);
     }
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-        todo!()
-    }
+    fn process_key(&mut self, code: winit::keyboard::KeyCode) { }
 
-    fn process_mouse(&mut self, delta: (f64, f64)) {
-        todo!()
+    fn process_mouse(&mut self, delta: (f64, f64)) { }
+    
+    fn usage(&self) -> String {
+        String::from("this basic sample is non-interactive")
     }
 }

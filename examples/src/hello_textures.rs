@@ -209,14 +209,15 @@ impl crate::Sample for Sample {
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
         let texture = &mut self.texture;
 
-        let mut update_image = |pixels: &[[u8; 4]]| {
+        let mut update_image = |pixels: &[[u8; 4]], message: &str| {
+            println!("displaying {}", message);
             texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
         };
 
         match code {
-            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr()),
-            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl()),
-            winit::keyboard::KeyCode::KeyD => update_image(logo::rust()),
+            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr(), "uwr logo"),
+            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl(), "opengl logo"),
+            winit::keyboard::KeyCode::KeyD => update_image(logo::rust(), "rust logo"),
             _ => (),
         }
     }
@@ -228,5 +229,9 @@ impl crate::Sample for Sample {
             width: 512,
             height: 512,
         }
+    }
+    
+    fn usage(&self) -> String {
+        String::from("use A, S, D keys to change displayed texture")
     }
 }

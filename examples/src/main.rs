@@ -43,6 +43,8 @@ pub trait Sample: Sized {
     
     fn process_mouse(&mut self, delta: (f64, f64));
 
+    fn usage(&self) -> String;
+
     fn config() -> config::Config {
         config::Config::default()
     }
@@ -141,17 +143,6 @@ impl<T: Sample> App<T> {
 
             let (mut window, config) = display_builder.build(event_loop, template, config_selector).expect("can create display");
 
-            println!("using config:");
-            println!(
-                "  color attachment: {:?}",
-                config
-                    .color_buffer_type()
-                    .expect("selected config contains color attachment")
-            );
-            println!("  alpha bits: {}", config.alpha_size());
-            println!("  hardware acceleration: {}", config.hardware_accelerated());
-            println!("  sample count: {}", config.num_samples());
-        
             let raw_window_handle = window
                 .as_ref()
                 .and_then(|window| window.window_handle().map(|handle| handle.as_raw()).ok());
@@ -179,10 +170,8 @@ impl<T: Sample> App<T> {
             //     .with_profile(context::GlProfile::Core)
             //     .build(Some(raw_window_handle));
         
-            println!("making context current");
             let gl_context = not_current_gl_context.make_current(&surface).expect("can make surface current");
         
-            println!("loading function pointers...");
             gb::load_with(|symbol| {
                 let symbol = std::ffi::CString::new(symbol).unwrap();
                 display.get_proc_address(symbol.as_c_str()).cast()
@@ -191,6 +180,10 @@ impl<T: Sample> App<T> {
                 Ok(ctx) => ctx,
                 Err(err) => panic!("{err}"),
             });
+
+            println!("*-----------------------------------------------------------*\n");
+            println!("{}", self.ctx.as_ref().unwrap().inner.usage());
+            println!("\n*-----------------------------------------------------------*");
         }
     }
 
@@ -237,7 +230,7 @@ impl<T: Sample> ApplicationHandler for App<T> {
         }
     }
 
-    fn window_event(&mut self, event_loop: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
+    fn window_event(&mut self, _: &ActiveEventLoop, _: window::WindowId, event: WindowEvent) {
         match event {
             WindowEvent::Resized(size) => {
                 if let Some(ref mut ctx) = self.ctx {
