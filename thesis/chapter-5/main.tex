@@ -113,12 +113,12 @@ Ability to type check function invocation context in OpenGL would be especially 
 \paragraph{Solution}
 
 We instead were forced to opt for more error prone and verbose approach. 
-Objects like textures or buffers can produce binder objects which in their constructor bind, and in their destructors unbind, object appropriate binding point.
-This lets us control binding using lexical scope but does not in any way prevent overriding of the binding.
+Objects like textures or buffers can produce binder objects which in their constructor binds, and in their destructors unbinds, object from appropriate binding point.
+This lets us control context bindings using lexical scope, but does not in any way prevent distinct objects with the same target from overriding the global binding.
 
-\paragraph{Usae Case}
+\paragraph{Use Case}
 
-As already mentioned effect system would greatly improve the handling of context bindings in terms of statically verifiable correctness, as well as, user and developer experience.
+As already mentioned above, effect system would greatly improve the handling of context bindings in terms of statically verifiable correctness, as well as, user and developer experience.
 
 \subsection{Application of existing features}
 
@@ -126,29 +126,29 @@ As already mentioned effect system would greatly improve the handling of context
 
 \paragraph{Problem}
 
-Enumeration types are a core component of almost all currently used programming languages. In recent years many languages even gained ability to store dynamic data in enum variants.
+Enumeration types are a core component of almost all currently used programming languages. In recent years, many languages have even gained the ability to store variable-size data in their dynamic enum variants.
 Such enums provide simple mechanism for statically typed polymorphism with dynamic variants. 
-However sometimes this dynamic-ness of enums is a hurdle causing constant match or switch statements to crop you all over the code base, producing clutter and boilerplate.
+However, sometimes this dynamic-ness of enums is a hurdle causing constant match or switch statements to pollute the code base, producing clutter and boilerplate.
 Sometime one simply wishes to encode static configuration based on a closed set of possible values.
 
 \paragraph{Solution}
 
 Markers are traits and types which don't provide any runtime behavior, but rather exist for purposes of conveying information and constrains on a type level.
-Marker traits provide no useful functionality but rather serve to impose relations and logical division on types.
+Marker traits provide no useful functionality, but rather serve to impose relations and logical division on types.
 
 Marker types don't hold any data and as such don't exist at runtime (they occupy zero bytes and are formally called Zero Sized Types - ZST).
-It is even possible to marker types to have type, lifetime and const parameters by using special compiler intrinsic datatype - \texttt{PhantomData} - which binds parameters but does not hold any value.
+It is possible for marker types to have type parameters by using special compiler intrinsic datatype \texttt{PhantomData}; which binds parameters, but does not hold any value.
 
 Marker traits along with marker types can be used as:
 \begin{itemize}
-    \item compile-time enums -- by limiting access to a marker using item visibility qualifiers we strictly control what types implement given functionality.
+    \item compile-time enums -- by limiting access to a marker using item visibility qualifiers, we strictly control what types implement given functionality.
     \item marker trait based relations -- we can express relations between types and make unsound parameter combinations a compile-time error.
-    \item typing external resources -- by using \texttt{PhantomData} we can attach type information to otherwise untyped parts of API.
+    \item typing external resources -- by using \texttt{PhantomData} we can attach type information to otherwise untyped parts of an API.
 \end{itemize}
 
 \paragraph{Use Case}
 
-We make heavy use of markers to implement entirety of glsl module which consists almost elusively of ZSTs for purposes of modelling shader \texttt{in}, \texttt{out} and \texttt{uniform} variables.
+We make heavy use of markers to implement entirety of glsl module which consists almost exclusively of ZSTs for purposes of modelling shader \texttt{in}, \texttt{out} and \texttt{uniform} variables.
 Types representing these variables aggregated into hlists are specified by the user with help of GLSL DSL implemented using lightweight declarative macros.
 
 Marker traits in miscellaneous \texttt{\_::valid} modules define relations between valid combinations of data types. Buffer in raw OpenGL, due to C's lack of generics, has its buffer populated using \texttt{*void} 
@@ -168,16 +168,22 @@ We use many modes in \texttt{Variable<S, L, T, Store>} to abstract over kind of 
 
 \paragraph{Problem}
 
-Subtyping or inheritance is a very common concept in object oriented programming. 
-In these languages one can create a type, and inherit from it to produce more specialized subtype which can be used in all places the parent can.
-This is 
+Subtyping or inheritance is a very common concepts in object oriented programming. 
+In these languages, one can create a type and inherit from it to produce more specialized version of the original type - a subtype.
+Subtype extends functionality of base type and can seamlessly (without clients knowledge) delegate all base type's method calls to the base type, and can be used in all places the base type can.
 
+\paragraph{Solution}
 
+Using generic type and automatic dereferencing via \texttt{Deref} we can emulate the relation of subtyping.
+The base type has a generic parameter which corresponds to any potential subtype, and implements \texttt{Deref} and \texttt{DerefMut} targeting that subtype.
+Subtype is obtained by defining a type alias for the generic base type with concrete subtype state specified.
+Subtype-specific functionality can now be specified using an \texttt{impl} block on this alias. 
+Such an \texttt{impl} would be coherent since all other subtypes have different nominal types representing their states and have full access to both base type's and subtype's states.
 
-\
+\paragraph{Usae Case}
 
-Using generic type and automatic dereferencing via \texttt{Deref} we can emulate the relation of subtyping
-
+We applied this emulation of inheritance to model OpenGL objects. \texttt{ObjectBase<T>} contains base state and functionality and \texttt{T} provides implementation for subtype specific allocation, deallocation and context binding.
+A scheme very similar to template method pattern.
 
 \subsection{Type State}
 
@@ -189,3 +195,120 @@ Generic type with one of it's parameters supplied can have an inherent \texttt{i
 
 \section{OpenGL wrapper}
   
+\subsection*{Scope}
+
+Our goal with this study was foremost to explore how Rust's type system can be utilized to improve static validation of OpenGL programs.
+We by no means meant to cover the entirety of OpenGL functionality only the most essential aspects like shaders, programs, vertex arrays and buffers and textures.
+Nevertheless, a great deal of consideration was taken before every major design decision to ensure that one could simply duplicate existing solution from a single 
+API variant to all others and obtain the same level of functionality and protection.
+Additionally, we tried staying as true to original OpenGL API as possible. We preserves most of the semantics, function names and parameters that made sense.
+All objects don't retain any parameters, they simply forward them to appropriate GL procedure calls. 
+
+In the end we arrived at minimal working example of a type-driven OpenGL 4.6 core wrapper that provides ability to create all the aforementioned GL objects
+and program even moderately complex computer graphics in a safer fashion.
+
+\subsection{GLSL module}
+
+Programming in OpenGL consists of GL API and GLSL shaders. This division is at very core of our library as it's essential to correctly capture how glsl and opengl interact.
+
+We settled on a design were shaders and pipeline configuration are the original source of truth and that's were \texttt{gpu-bulwark}'s user must start development.
+Description of graphics pipeline and everything related to glsl is encompassed in the \texttt{glsl} module.
+The most important component of that module is the \texttt{Variable<S, L, T, Store = md::Phantom>} type.
+It represents an AST-like node for glsl variable at a type level.
+It contains type parameters for 3 qualifiers we discussed in chapter 2: Type, Storage and Layout. These qualifiers are most essential from the perspective of correctness verification.
+We use the \texttt{Variable}'s type parameters as follows:
+\begin{itemize}
+    \item type qualifier - it is used most notably in matching vertex array's attribute definitions and shader matching during program construction.
+    \item storage qualifier - since variables with different storage qualifiers can share the same locations its imperative to distinguish between storage qualifiers during location overlap checking.
+    \item layout qualifier - both location and binding values are used along with previous qualifiers to determine if shader inputs, outputs or uniforms are defined in a valid way.
+\end{itemize}
+
+Additionally \texttt{glsl} defines compatibility between glsl \texttt{in} types and gl attribute types.
+
+\subsection{Shaders}
+
+\texttt{gpu-bulwark} provides type state builders for complex objects like shaders or programs. Type state builder has a state for each type parameter we determined that object requires.
+In case of shader it has one state parameter that corresponds to compilation status. The \texttt{create} method creates a shader in \texttt{Uncompiled} state.
+
+In this state the only operation one can perform is provide shader source code. In order to attach a shader to a program, shader needs to be compiled. 
+Compilation can either succeed and return shader object now in \texttt{Compiled} state or a compilation error back to the user.
+Once shader has been compiled successfully one can specify what uniform variable this shader requires or precede forward by converting shader 
+to either shader containing a pipeline stage entry point \texttt{main}, or to \texttt{Lib} shader for use for linking.
+\texttt{Main} shader require specification of inputs or outputs using appropriate \texttt{glsl::Variable}s defined in global scope using declarative macros.
+
+Such shaders are ready for attachment to program Objects.
+
+\subsection{Program}
+
+In this study we implement non-separable program objects, which means that at least vertex and fragment shaders need to be specified, as well as, that all stages have to match during linking.
+
+\subsubsection{Builder}
+
+Programs build using the most complex type state builder. It contains six type parameters corresponding to
+\begin{itemize}
+    \item target shader of most recently attached shader with entrypoint
+    \item vertex input
+    \item outputs of most recently configured stage
+    \item program uniform definitions
+    \item uniform declarations from most recently configured stage
+    \item declarations of external resources used by the program
+\end{itemize}
+
+Program building is divided into two parts: (1) uniform specification and (2) pipeline configuration.
+
+
+\subsubsection{Uniform Specification}
+
+During uniform specification one can define uniforms that program contains by defining their type and providing their initial values, along with declarations of external resources that program uses.
+Although both are represented by uniforms in GLSL transparent uniforms differ in their meaning from opaque types which all represent handles to resources external to the program
+instead of plain old data like matrices or vectors.
+
+\subsubsection{Pipeline Configuration}
+
+Once uniforms and resources builder transitions to vertex shader stage where obligatory main entrypoint for vertex stage needs to be provided.
+From here type state will force the user to follow valid configuration paths for the pipeline as defined in the specification, 
+validating that outputs from most recently attached entrypoint shader match inputs to the newly provided one using location layout qualifiers 
+on shader provided inputs and outputs, resulting in compilation error in case of a mismatch. 
+This traversal always concludes with specification of the fragment stage entrypoint shader where linking can be performed and actual Program object obtained.
+
+If program is obtained it means that pipeline is configured correctly, program is linked and ready for use. Otherwise either compilation or runtime program link error was generated.
+In the current version we do not validate that representation of shader interfaces actually matches shader status, but it can be easily achieved 
+by either parsing shader source code or querying shaders interfaces using OpenGL introspection API.
+
+\subsection{Buffer}
+
+Buffer objects heavily leverage phantom types and markers to provide type information and content type validation to otherwise untyped integers.
+
+Buffers are created, as for all objects, with \texttt{create} function.
+Once buffer is created its data store can be allocated and populated with \texttt{data} function which expects one type parameter for usage hint.
+
+\subsection{Memory Mapping}
+
+Buffers have an interesting feature that they can be mapped into memory and used with Direct Memory Access.
+We provide this functionality using auxiliary \texttt{Mapped\_} types which borrow a buffer and are smart pointers that provide \texttt{Deref} and \texttt{DerefMut} to slices,
+allowing for idiomatic store access. 
+A noteworthy implementation detail is that \texttt{Mapped\_} smart pointers leverage the borrow checked to safeguard against an error condition during rendering
+where draw call was issues using vertex array that sources vertex data from memory mapped buffer. 
+Smart pointers hold references to buffers borrowed in turn from VAO, and since \texttt{draw\_arrays} method also requires mutable reference to VAO borrow checker will reject
+a program if any buffer used as vertex source is mapped during drawing.
+
+\subsection{Vertex Array}
+
+Vertex Array can be created with \texttt{create}. It exposes a single method \texttt{vertex\_attrib\_pointer} which takes owenship of a Buffer bound to \texttt{BUFFER\_ARRAY}
+and stores it in VAOs internal HList of \texttt{Attribute}s.
+Attributes encompass buffer, vertex format and attribute index. This is a complete set of information needed to match vertex shader input variables.
+
+\subsubsection{Draw Calls}
+
+There are three variants of regular \texttt{draw\_arrays}. First is designed for programs with no inputs, outputs, uniforms and resources -- ones which essentially have the entire scene
+encoded in shader sources code. 
+Second expects vertex array object which it binds and draws as many triangles as vao specifies. Types of attributes are checked for compatibility against program inputs defined using glsl variables.
+Finally the third version, the most general, expects VAO and handles to texture bindings which are matched against external resources program uses. 
+
+\subsection{Textures}
+
+\subsubsection{Storage}
+
+\subsubsection{Image}
+
+\subsubsection{Pixel}
