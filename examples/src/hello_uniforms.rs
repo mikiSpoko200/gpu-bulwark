@@ -10,6 +10,7 @@ use gl::buffer::{Static, Draw};
 use gl::{Program, Buffer, VertexArray};
 use glsl::MatchingInputs as _;
 
+use crate::common::camera::{Camera, CameraProvider as _, FixedMovable, Rotatable};
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
@@ -35,15 +36,14 @@ type Attributes = gb::HList! {
 };
 
 
-use crate::common::camera::Camera;
-use crate::common::config;
+use crate::common::camera::FreeRoamingCamera;
 use crate::Ctx;
 
 pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes>,
     scale: f32,
-    camera: Camera,
+    camera: FreeRoamingCamera,
 }
 
 impl crate::Sample for Sample {
@@ -53,7 +53,6 @@ impl crate::Sample for Sample {
         let vs_source = std::fs::read_to_string("shaders/hello_uniforms.vert")?;
         let common_source = std::fs::read_to_string("shaders/hello_uniforms_shared.vert")?;
         let fs_source = std::fs::read_to_string("shaders/hello_uniforms.frag")?;
-
 
         let vs_inputs = Inputs::default();
         let glsl::vars![vin_position, vin_color] = &vs_inputs;
@@ -72,6 +71,8 @@ impl crate::Sample for Sample {
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
         common.source(&[&common_source]);
+
+        let camera = FreeRoamingCamera::from(Camera::default());
     
         let vs = uncompiled_vs
             .uniform(&view_matrix_location)
@@ -89,9 +90,11 @@ impl crate::Sample for Sample {
 
         let scale = 1.0;
         
+        let matrix = camera.view_projection_matrix();
+
         let program = Program::builder()
             .uniforms(|definitions| definitions
-                .define(&view_matrix_location, &[[0f32; 4]; 4])
+                .define(&view_matrix_location, &matrix)
                 .define(&scale_location, &scale)
             )
             .no_resources()
@@ -105,7 +108,7 @@ impl crate::Sample for Sample {
             .build()?;
     
         let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
+        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
     
         let mut colors = Buffer::create();
         colors.data::<(Static, Draw)>(&[
@@ -122,7 +125,7 @@ impl crate::Sample for Sample {
             program,
             vao,
             scale,
-            camera: Camera::default(),
+            camera,
         };
 
         Ok(Ctx {
@@ -134,46 +137,42 @@ impl crate::Sample for Sample {
     }
     
     fn render(&mut self) {
+        gl::call! {
+            [panic]
+            unsafe {
+                gl::raw::ClearColor(0.4, 0.5, 0.6, 1.0);
+                gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
+            }
+        }
+
         let glsl::vars![ _matrix, scale_location ] = Uniforms::default();
 
         self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
         self.program.uniform(&scale_location, &self.scale);
-
+        // println!("Rendering");
         self.program.draw_arrays(&self.vao);
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
+        let glsl::vars![matrix, _scale] = Uniforms::default();
         match code {
-            winit::keyboard::KeyCode::KeyW => Some(glm::Vec3::new( 0.0,  0.0, -1.0)),
-            winit::keyboard::KeyCode::KeyS => Some(glm::Vec3::new( 0.0,  0.0,  1.0)),
-            winit::keyboard::KeyCode::KeyA => Some(glm::Vec3::new(-1.0,  0.0,  0.0)),
-            winit::keyboard::KeyCode::KeyD => Some(glm::Vec3::new( 1.0,  0.0,  0.0)),
-            _ => None,
-        }
-        .inspect(|movement| {
-            let rotation_matrix = glm::rotation(self.camera.yaw, &glm::Vec3::y());
-            self.camera.position += (rotation_matrix
-                * glm::vec4(movement.x, movement.y, movement.z, 1.0)
-                * config::MOVEMENT_SPEED)
-                .xyz();
-        });
-        self.render();
+            winit::keyboard::KeyCode::KeyW => self.camera.fixed_move(&crate::common::camera::Direction::Front),
+            winit::keyboard::KeyCode::KeyS => self.camera.fixed_move(&crate::common::camera::Direction::Back),
+            winit::keyboard::KeyCode::KeyA => self.camera.fixed_move(&crate::common::camera::Direction::Left),
+            winit::keyboard::KeyCode::KeyD => self.camera.fixed_move(&crate::common::camera::Direction::Right),
+            _ => (),
+        };
+        self.program.uniform(&matrix, &self.camera.view_projection_matrix());
+    }
+    
+    fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
+        let glsl::vars![matrix, _scale] = Uniforms::default();
+
+        self.camera.rotate((dy as f32).to_radians(), (-dx as f32).to_radians());
+        self.program.uniform(&matrix, &self.camera.view_projection_matrix());
     }
 
     fn usage(&self) -> String {
         String::from("use W, A, S, D keys to move around and mouse to operate the camera")
-    }
-    
-    fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
-        self.camera.yaw += dx as f32 * config::MOUSE_SENSITIVITY;
-        self.camera.pitch += dy as f32 * config::MOUSE_SENSITIVITY;
-
-        if self.camera.pitch > 1.5 {
-            self.camera.pitch = 1.5;
-        }
-        if self.camera.pitch < -1.5 {
-            self.camera.pitch = -1.5;
-        }
-        self.render();
     }
 }

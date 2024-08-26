@@ -1,6 +1,4 @@
-#version 420 core
-#extension GL_ARB_explicit_uniform_location: enable
-#extension GL_ARB_separate_shader_objects: enable
+#version 460 core
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec4 color;

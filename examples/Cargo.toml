@@ -13,6 +13,7 @@ winit = "0.30.0"
 anyhow = "1.0.75"
 
 [features]
+default = ["hello_uniforms"]
 hello_triangle = []
 hello_vertices = []
 hello_uniforms = []
