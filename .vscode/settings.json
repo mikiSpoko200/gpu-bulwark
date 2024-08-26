@@ -5,6 +5,7 @@
         "cfind",
         "concat",
         "dmat",
+        "downsampling",
         "gctx",
         "glsl",
         "GLSLU",

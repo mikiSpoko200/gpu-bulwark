@@ -307,8 +307,34 @@ Finally the third version, the most general, expects VAO and handles to texture 
 
 \subsection{Textures}
 
+Textures have the broadest API of all the OpenGL objects.
+Textures consist of three components: (1) sampling parameters, (2) texture parameters and (3) texture images, but only the storage benefits 
+from strong typing due somewhat complex allocation and wide range of rules regarding valid parameter combinations which all can be easily expressed and checked at compile-time.
+
+Textures support mipmaps in order better antialias textures during sampling. Mipmaps are a sequence of images generated from original image by halving its dimensions until they all reach 1px.
+
 \subsubsection{Storage}
 
+When texture is created its storage kind (immutable, mutable, buffer) and textures dimensionality (1D, 2D or 3D) are defined by the function name.
+
+Textures can have 3 types of their storage
+\begin{itemize}
+    \item mutable texture owned - allocated using \texttt{TexImage*} family of functions. 
+        These are the earliest form of textures. Storage can be later reallocated, hence mutability. 
+        Mipmaps need to be manually allocated and uploaded which is quite error prone.
+    \item immutable texture owned - allocated using \texttt{TexStorage*} family of functions. 
+        This is the most recently added kind of texture backing storage. 
+        One texture with such storage is allocated it cannot be reallocated. 
+        Major benefit of using immutable textures is that mipmaps are allocated automatically. 
+        Storage immutability allows to create views into the texture providing an opportunity to better conserve memory and  
+
+
+    \item 
+\end{itemize}
+
 \subsubsection{Image}
+
+Image format are implemented in \texttt{texture::image} module. They are represented by a \texttt{Format<Components, ComponentType, Type>} type
+
 
 \subsubsection{Pixel}
