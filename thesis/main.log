@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.8)  27 AUG 2024 19:13
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  27 AUG 2024 19:36
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -93,7 +93,7 @@ Package: iftex 2022/02/03 v1.0f TeX engine tests
 \Gm@layoutvoffset=\dimen150
 \Gm@dimlist=\toks18
 ) (d:/texlive/2024/texmf-dist/tex/latex/hyperref/hyperref.sty
-Package: hyperref 2024-05-23 v7.01i Hypertext links for LaTeX
+Package: hyperref 2024-07-10 v7.01j Hypertext links for LaTeX
  (d:/texlive/2024/texmf-dist/tex/latex/kvsetkeys/kvsetkeys.sty
 Package: kvsetkeys 2022-10-05 v1.19 Key value parser (HO)
 ) (d:/texlive/2024/texmf-dist/tex/generic/kvdefinekeys/kvdefinekeys.sty
@@ -132,7 +132,7 @@ Package: stringenc 2019/11/29 v1.12 Convert strings between diff. encodings (HO)
 \Hy@linkcounter=\count276
 \Hy@pagecounter=\count277
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/pd1enc.def
-File: pd1enc.def 2024-05-23 v7.01i Hyperref: PDFDocEncoding definition (HO)
+File: pd1enc.def 2024-07-10 v7.01j Hyperref: PDFDocEncoding definition (HO)
 Now handling font encoding PD1 ...
 ... no UTF-8 mapping file for font encoding PD1
 ) (d:/texlive/2024/texmf-dist/tex/generic/intcalc/intcalc.sty
@@ -140,7 +140,7 @@ Package: intcalc 2019/12/15 v1.3 Expandable calculations with integers (HO)
 )
 \Hy@SavedSpaceFactor=\count278
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/puenc.def
-File: puenc.def 2024-05-23 v7.01i Hyperref: PDF Unicode definition (HO)
+File: puenc.def 2024-07-10 v7.01j Hyperref: PDF Unicode definition (HO)
 Now handling font encoding PU ...
 ... no UTF-8 mapping file for font encoding PU
 )
@@ -184,7 +184,7 @@ package with kernel methods
 )
 Package hyperref Info: Driver: hpdftex.
  (d:/texlive/2024/texmf-dist/tex/latex/hyperref/hpdftex.def
-File: hpdftex.def 2024-05-23 v7.01i Hyperref driver for pdfTeX
+File: hpdftex.def 2024-07-10 v7.01j Hyperref driver for pdfTeX
  (d:/texlive/2024/texmf-dist/tex/latex/base/atveryend-ltx.sty
 Package: atveryend-ltx 2020/08/19 v1.0a Emulation of the original atveryend package
 with kernel methods
@@ -374,15 +374,6 @@ LaTeX Font Warning: Font shape `OT4/cmtt/bx/n' in size <10.95> not available
 [13{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/pltt.enc}]
 
 [14{d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/plit.enc}]
-LaTeX Font Info:    Trying to load font information for OMS+cmtt on input line 113.
-LaTeX Font Info:    No file OMScmtt.fd. on input line 113.
-
-
-LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
-(Font)              using `OMS/cmsy/m/n' instead
-(Font)              for symbol `textbraceleft' on input line 113.
-
-
 
 [15])
 
@@ -411,6 +402,9 @@ Chapter 2.
 [22]
 
 [23]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
 
 [24])
 
@@ -484,26 +478,22 @@ Overfull \hbox (70.80154pt too wide) in paragraph at lines 297--301
 LaTeX2e <2024-06-01> patch level 2
 L3 programming layer <2024-05-27>
  ***********
-
-
-LaTeX Font Warning: Some font shapes were not available, defaults substituted.
-
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 21A60AB7E1979F3DF2AD4B00BCA08024;8543.
+(rerunfilecheck)             Checksum: D53BCD9A5D275F38528764C5B44AE6DC;8423.
  ) 
 Here is how much of TeX's memory you used:
- 11627 strings out of 473583
- 182791 string characters out of 5732343
+ 11616 strings out of 473583
+ 182620 string characters out of 5732342
  1937908 words of memory out of 5000000
- 34221 multiletter control sequences out of 15000+600000
+ 34211 multiletter control sequences out of 15000+600000
  569443 words of font info for 64 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,6n,93p,794b,638s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (43 pages, 184278 bytes).
+<d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
+Output written on main.pdf (43 pages, 176147 bytes).
 PDF statistics:
- 604 PDF objects out of 1000 (max. 8388607)
- 535 compressed objects within 6 object streams
- 135 named destinations out of 1000 (max. 500000)
- 473 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 594 PDF objects out of 1000 (max. 8388607)
+ 527 compressed objects within 6 object streams
+ 134 named destinations out of 1000 (max. 500000)
+ 465 words of extra memory for PDF output out of 10000 (max. 10000000)
 

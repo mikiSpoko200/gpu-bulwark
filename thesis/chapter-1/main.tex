@@ -58,13 +58,10 @@ Such functions are called methods and the \texttt{self} parameter denotes the re
 
 \texttt{Self} is a type alias that refers to implementing type.
 
-%TODO: add an example for each 
-
 \subsection{Inherent implementations}
 
 We will shorthand implementation to impl which is common in Rust terminology.
 
-%FIXME: is nominal the right word here? Maybe just use named instead?
 Inherent impls associate contents of an \texttt{impl} block with specified nominal type.
 Such blocks can contain definition of a constants or functions. 
 
@@ -110,10 +107,10 @@ As mentioned in the previous section, type parameters don't have any capabilitie
 Types and generic parameters have their requirements states in such where clause and these requirements are checked at call site.
 
 What distinguishes Rust's traits from most other languages is its unique scheme of implementing functionality for types.
-Trait for a type is implemented in a very similar fashion to inherent impls using \texttt{impl Trait for Type \{ ... \}} syntax.
+Trait for a type is implemented in a very similar fashion to inherent impls using \texttt{impl Trait for Type \string{ ... \string}} syntax.
 
 Such impl block must contain definition for all items a trait provides.
-Traits can uniquely, be implemented generically for all types that salify bounds using an \textbf{blanket impl} \texttt{impl<T> Trait for T where T: ... \{ ... \}}.
+Traits can uniquely, be implemented generically for all types that salify bounds using an \textbf{blanket impl} \texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.
 This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside - a blanket impl is the only impl for that trait that may exist.
 This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section
 
@@ -121,7 +118,4 @@ This requirement is overly conservative and stems from necessity to guarantee im
 
 Rust must be always able to uniquely determine which method corresponds to which impl block that is, impl blocks must be coherent with each other, they must not interfere or overlap.
 That's the reason why as of 2024 Rust enforces one blanket impl - it cannot guarantee that two blanket impls of the same trait don't target some type twice.
-However, if inherent or trait impl's target a specific generic type with at least one type parameter differing between the two impls coherence is preserved and program passes orphan rule.   
-
-
-\subsection{Orphan Rule}
+However, if inherent or trait impl's target a specific generic type with at least one type parameter differing between the two impls coherence is preserved and program is not rejected.

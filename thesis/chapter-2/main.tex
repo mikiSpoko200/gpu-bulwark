@@ -91,7 +91,7 @@ to scene's coordinate system.
 
 \textbf{world space} --- world space refers to coordinate system of a scene that uses multiple models by translating, scaling or rotating them.
 
-\textbf{view space} --- its common for 3D rendering applications to provide means of interacting with the scene. Wether its a 3D computer game, CAD program or medical data visualization we would like to be able to 
+\textbf{view space} --- its common for 3D rendering applications to provide means of interacting with the scene. Whether its a 3D computer game, CAD program or medical data visualization we would like to be able to 
 control how scene is displayed by moving a virtual camera. This can be expressed as yet another transformation of the coordinate system --- we would like to transform coordinate system to align with the position of our camera.
 This transformation is commonly called view transform.
 
@@ -114,7 +114,8 @@ To drive the tesselation stage two new shaders were introduced:
 \subsection{Geometry shading}
 
 Geometry shader was introduced prior to tesselation stage. They operate on assembled geometric primitives and may even access primitives neighbors.
-Given primitive input geometry shaders output one or more primitive of the same type.
+Given primitive input geometry shaders output one or more geometric primitives. Output primitives all must be of the same type which can be different then the input primitive type.
+may be of different type different from original input, for example given single points shader can emit 2 triangles.
 
 \subsection{Fixed function vertex post--processing}
 
@@ -177,7 +178,6 @@ GLSL code is still relevant as it can be compiled into SPIR--V and used with Vul
 
 Independent compilation units written in this language are called shaders. A program is a set of
 shaders that are compiled and linked together, completely creating one or more of the
-programmable stages of the API pipeline %TODO: quote from spec.
 
 In OpenGL 4.6 and GLSL 4.60 there exist 6 types of shaders: vertex, tesselation control and evaluation, geometry, fragment and compute.
 All shaders except compute shader control appropriate parts of OpenGL pipeline as described in subsections above. 
@@ -204,7 +204,7 @@ We determined that keeping track of these three variable qualifiers is essential
 Expressing GLSL variable type in Rust types was the obvious first step. GLSL defines a set of built--in types along with ability to create aggregate data types with C--like array and struct definitions.
 
 For this work we focused on builtin types and arrays and omitted structures due to Rust's inability to encode layout guarantees for arbitrary types.
-Rust's buil--in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
+Rust's built--in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
 
 GLSL's built--in types are divided into two groups: transparent and opaque types.
 Transparent types represent numeric data (plain old data) whereas opaque types represent handles to different resources like texture image samplers.
