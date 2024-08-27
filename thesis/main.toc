@@ -42,49 +42,53 @@
 \contentsline {subsection}{\numberline {2.5.2}Variable types}{21}{subsection.2.5.2}%
 \contentsline {subsection}{\numberline {2.5.3}Variable storage qualifiers}{22}{subsection.2.5.3}%
 \contentsline {subsection}{\numberline {2.5.4}Variable layout qualifiers}{23}{subsection.2.5.4}%
-\contentsline {chapter}{\numberline {3}OpenGL wrapper library}{27}{chapter.3}%
-\contentsline {section}{\numberline {3.1}External dependencies}{27}{section.3.1}%
-\contentsline {section}{\numberline {3.2}Auxiliary modules and crates}{28}{section.3.2}%
-\contentsline {section}{\numberline {3.3}Identified design patterns}{28}{section.3.3}%
-\contentsline {subsection}{\numberline {3.3.1}Compensation for language limitations}{28}{subsection.3.3.1}%
+\contentsline {chapter}{\numberline {3}Existing solutions}{25}{chapter.3}%
+\contentsline {section}{\numberline {3.1}Native C / C++ bindings}{25}{section.3.1}%
+\contentsline {section}{\numberline {3.2}Rust with unsafe bindings}{26}{section.3.2}%
+\contentsline {section}{\numberline {3.3}Rust graphics libraries}{26}{section.3.3}%
+\contentsline {chapter}{\numberline {4}OpenGL wrapper library}{27}{chapter.4}%
+\contentsline {section}{\numberline {4.1}External dependencies}{27}{section.4.1}%
+\contentsline {section}{\numberline {4.2}Auxiliary modules and crates}{28}{section.4.2}%
+\contentsline {section}{\numberline {4.3}Identified design patterns}{28}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Compensation for language limitations}{28}{subsection.4.3.1}%
 \contentsline {subsubsection}{Variadic Generics}{29}{section*.6}%
 \contentsline {paragraph}{Problem}{29}{section*.7}%
 \contentsline {paragraph}{Solution}{29}{section*.8}%
 \contentsline {paragraph}{Use case}{29}{section*.9}%
-\contentsline {subsection}{\numberline {3.3.2}Const generics in const expressions}{29}{subsection.3.3.2}%
+\contentsline {subsection}{\numberline {4.3.2}Const generics in const expressions}{29}{subsection.4.3.2}%
 \contentsline {paragraph}{Problem}{29}{section*.10}%
 \contentsline {paragraph}{Solution}{30}{section*.11}%
 \contentsline {paragraph}{Use case}{30}{section*.12}%
-\contentsline {subsection}{\numberline {3.3.3}Effect system}{30}{subsection.3.3.3}%
+\contentsline {subsection}{\numberline {4.3.3}Effect system}{30}{subsection.4.3.3}%
 \contentsline {paragraph}{Problem}{30}{section*.13}%
 \contentsline {paragraph}{Solution}{30}{section*.14}%
 \contentsline {paragraph}{Use Case}{30}{section*.15}%
-\contentsline {subsection}{\numberline {3.3.4}Application of existing features}{31}{subsection.3.3.4}%
-\contentsline {subsection}{\numberline {3.3.5}Markers}{31}{subsection.3.3.5}%
+\contentsline {subsection}{\numberline {4.3.4}Application of existing features}{31}{subsection.4.3.4}%
+\contentsline {subsection}{\numberline {4.3.5}Markers}{31}{subsection.4.3.5}%
 \contentsline {paragraph}{Problem}{31}{section*.16}%
 \contentsline {paragraph}{Solution}{31}{section*.17}%
 \contentsline {paragraph}{Use Case}{31}{section*.18}%
 \contentsline {paragraph}{many modes}{32}{section*.19}%
-\contentsline {subsection}{\numberline {3.3.6}Subtyping}{32}{subsection.3.3.6}%
+\contentsline {subsection}{\numberline {4.3.6}Subtyping}{32}{subsection.4.3.6}%
 \contentsline {paragraph}{Problem}{32}{section*.20}%
 \contentsline {paragraph}{Solution}{32}{section*.21}%
 \contentsline {paragraph}{Usae Case}{32}{section*.22}%
-\contentsline {subsection}{\numberline {3.3.7}Type State}{32}{subsection.3.3.7}%
-\contentsline {section}{\numberline {3.4}OpenGL wrapper}{33}{section.3.4}%
-\contentsline {subsection}{\numberline {3.4.1}GLSL module}{33}{subsection.3.4.1}%
-\contentsline {subsection}{\numberline {3.4.2}Shaders}{34}{subsection.3.4.2}%
-\contentsline {subsection}{\numberline {3.4.3}Program}{34}{subsection.3.4.3}%
+\contentsline {subsection}{\numberline {4.3.7}Type State}{32}{subsection.4.3.7}%
+\contentsline {section}{\numberline {4.4}OpenGL wrapper}{33}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}GLSL module}{33}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Shaders}{34}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Program}{34}{subsection.4.4.3}%
 \contentsline {subsubsection}{Builder}{34}{section*.24}%
 \contentsline {subsubsection}{Uniform Specification}{35}{section*.25}%
 \contentsline {subsubsection}{Pipeline Configuration}{35}{section*.26}%
-\contentsline {subsection}{\numberline {3.4.4}Buffer}{35}{subsection.3.4.4}%
-\contentsline {subsection}{\numberline {3.4.5}Memory Mapping}{36}{subsection.3.4.5}%
-\contentsline {subsection}{\numberline {3.4.6}Vertex Array}{36}{subsection.3.4.6}%
+\contentsline {subsection}{\numberline {4.4.4}Buffer}{35}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{36}{subsection.4.4.5}%
+\contentsline {subsection}{\numberline {4.4.6}Vertex Array}{36}{subsection.4.4.6}%
 \contentsline {subsubsection}{Draw Calls}{36}{section*.27}%
-\contentsline {subsection}{\numberline {3.4.7}Textures}{36}{subsection.3.4.7}%
+\contentsline {subsection}{\numberline {4.4.7}Textures}{36}{subsection.4.4.7}%
 \contentsline {subsubsection}{Storage}{37}{section*.28}%
 \contentsline {subsubsection}{Image Format}{37}{section*.29}%
 \contentsline {subsubsection}{Pixels}{37}{section*.30}%
-\contentsline {section}{\numberline {3.5}Examples}{38}{section.3.5}%
-\contentsline {section}{\numberline {3.6}Conclusions}{38}{section.3.6}%
+\contentsline {section}{\numberline {4.5}Examples}{38}{section.4.5}%
+\contentsline {section}{\numberline {4.6}Conclusions}{38}{section.4.6}%
 \contentsline {chapter}{Bibliography}{39}{chapter*.31}%
