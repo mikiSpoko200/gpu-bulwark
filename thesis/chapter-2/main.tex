@@ -9,7 +9,7 @@ Since it's inception  and up until 2016 with release of Vulkan it has been the o
 \section{History}
 
 IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) 
-during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) 
+during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett--Packard, IBM) 
 who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
 In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. 
 This task was passed on to Khronos Group in 2006 where it remained ever since.
@@ -167,7 +167,19 @@ After all fragments are processed fixed function processing takes over for the f
 Aforementioned ownership, scissor tests take place followed by stencil and depth test.
 Each of these test require additional buffer to be allocated, called appropriately stencil buffer and depth buffer.
 
-Stencil test compares fragment's stencil value against entry in stencil buffer with the same fragment cii
+Once enabled, the stencil test works by comparing a reference value against the value stored in the stencil buffer according to a specified comparison function. 
+Depending on the result of this comparison, the pixel may be drawn, modified, or discarded. 
+Functions \texttt{glStencilFunc} and \texttt{glStencilOp} customize when fragment should pass the test and whether to update current values in stencil buffer.
+
+The depth test is much more commonly used. 
+When fragments are rendered and depth test is enabled, based on their \texttt{xy} coordinates, their \texttt{z} coordinate is compared against current value in the depth buffer.
+Typically, if tested fragment's depth value is greater then the one stored in the buffer we can reject it since a fragment we processed earlier occludes current fragment.
+However, we can customize test outcome based on comparison result using \texttt{glDepthFunc}.
+
+Occlusion queries count how many fragments passed depth test. This information can be read and used to implement amongst others: post processing effects, occlusion culling, Level Of Detail.
+
+Finally alpha blending takes place. This process blends together values of current fragment with what's already stored in the framebuffer.
+Exactly what operation is performed can be configured to a limited degree similarly to functions determining outcome of depth and stencil test.
 
 \section{GLSL}
 
@@ -240,23 +252,13 @@ Remaining qualifiers are ignored as they are irrelevant for the scope of this st
 
 Statically asserting that the data passed though the pipeline is correct was the main goal of this study.
 Ability to statically assert that data flow though the pipeline is configured correctly depends on our ability to match neighboring stage inputs and outputs.
-In newer OpenGL versions one can use \texttt{location} layout qualifier to assign a variable a numeric index.
-This integer will be checked for uniqueness among all other variables that it shares storage qualifier with, and generate compilation error in case of overlap.
-When using locations based interface matching each \texttt{out} variable must have
+OpenGL specification calls this process \textit{shader interface matching}.
 
-It assigns an variable location and along with its storage qualifier it creates unique 
+Historically interface matching would match variables based on their names and types.
+Wiliest still valid, in newer OpenGL versions there exist a better way to match shader stages. 
+One can use \texttt{location} layout qualifier to assign a variable a integer index.
+This integer will be checked for uniqueness among all other variables that it shares storage qualifier with; program linking will fail in case of overlap.
+When using locations based interface matching each \texttt{out} variable in considered to match an input variable in the subsequent shader if
+the two variables are declared with the same location and component layout qualifiers and match in type and qualification.
 
-% TODO: tie this subsection together
-
-\say{
-    An output variable is considered to match an input variable in the subsequent shader if:
-    \itemize{
-        \item the two variables match in name, type, and qualification, and neither
-        has a location qualifier, or
-        \item the two variables are declared with the same location and component layout qualifiers and match in type and qualification.
-    }
-    
-    For the purposes of interface matching, variables declared with a location
-    layout qualifier but without a component layout qualifier are considered to
-    have declared a component layout qualifier of zero.
-}
+Together \texttt{location}, storage and type qualifiers uniquely define a variable for the purposes of interface matching.

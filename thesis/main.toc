@@ -36,10 +36,10 @@
 \contentsline {subsection}{\numberline {2.4.6}Rasterization}{21}{subsection.2.4.6}%
 \contentsline {subsection}{\numberline {2.4.7}Fragment processing}{22}{subsection.2.4.7}%
 \contentsline {subsection}{\numberline {2.4.8}Fragment post processing}{22}{subsection.2.4.8}%
-\contentsline {section}{\numberline {2.5}GLSL}{22}{section.2.5}%
+\contentsline {section}{\numberline {2.5}GLSL}{23}{section.2.5}%
 \contentsline {subsection}{\numberline {2.5.1}Variables}{23}{subsection.2.5.1}%
-\contentsline {subsection}{\numberline {2.5.2}Variable types}{23}{subsection.2.5.2}%
-\contentsline {subsection}{\numberline {2.5.3}Variable storage qualifiers}{24}{subsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.5.2}Variable types}{24}{subsection.2.5.2}%
+\contentsline {subsection}{\numberline {2.5.3}Variable storage qualifiers}{25}{subsection.2.5.3}%
 \contentsline {subsection}{\numberline {2.5.4}Variable layout qualifiers}{25}{subsection.2.5.4}%
 \contentsline {chapter}{\numberline {3}Existing solutions}{27}{chapter.3}%
 \contentsline {section}{\numberline {3.1}Native C / C++ bindings}{27}{section.3.1}%
@@ -88,7 +88,7 @@
 \contentsline {subsection}{\numberline {4.4.7}Textures}{40}{subsection.4.4.7}%
 \contentsline {subsubsection}{Storage}{41}{section*.29}%
 \contentsline {subsubsection}{Image Format}{41}{section*.30}%
-\contentsline {subsubsection}{Pixels}{41}{section*.31}%
+\contentsline {subsubsection}{Pixels}{42}{section*.31}%
 \contentsline {section}{\numberline {4.5}Examples}{42}{section.4.5}%
 \contentsline {section}{\numberline {4.6}Conclusions}{42}{section.4.6}%
 \contentsline {chapter}{Bibliography}{43}{chapter*.32}%
