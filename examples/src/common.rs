@@ -14,7 +14,7 @@ pub mod config {
 
     pub const WIDTH: u32 = 960;
     pub const HEIGHT: u32 = 640;
-    pub const MOUSE_SENSITIVITY: f32 = 0.005;
+    pub const MOUSE_SENSITIVITY: f32 = 0.0005;
     pub const MOVEMENT_SPEED: f32 = 0.1;
 }
 
@@ -130,7 +130,7 @@ pub mod camera {
     impl Default for CameraViewState {
         fn default() -> Self {
             let looking_direction = Directions::BACK;
-            let position = glm::vec3(0f32, 0f32, -1f32);
+            let position = glm::vec3(0.0, 0.0, -1f32);
             Self { looking_direction, position }
         }
     }
@@ -149,7 +149,7 @@ pub mod camera {
     }
 
     pub struct Camera {
-        view: CameraViewState,
+        pub view: CameraViewState,
         perspective: CameraPerspectiveState,
     }
 
@@ -240,7 +240,7 @@ pub mod camera {
     }
 
     pub struct FreeRoamingCamera {
-        camera: Camera,
+        pub camera: Camera,
     }
 
     impl FreeRoamingCamera {

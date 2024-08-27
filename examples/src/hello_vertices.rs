@@ -11,7 +11,7 @@ use glutin::{context, surface};
 use gb::{gl, glsl};
 use gl::vertex_array::Attribute;
 use gl::shader;
-use gl::buffer::{Static, Draw};
+use gl::buffer::{Dynamic, Draw};
 use gl::{Program, Buffer, VertexArray};
 
 type VsInputs = glsl::Glsl! {
@@ -90,10 +90,10 @@ impl crate::Sample for Sample {
             .build()?;
     
         let mut colors = Buffer::create();
-        colors.data::<(Static, Draw)>(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0f32]]);
+        colors.data::<(Dynamic, Draw)>(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0f32]]);
 
         let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
+        positions.data::<(Dynamic, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
     
     
     

@@ -83,6 +83,7 @@
 \contentsline {subsubsection}{Draw Calls}{36}{section*.27}%
 \contentsline {subsection}{\numberline {3.4.7}Textures}{36}{subsection.3.4.7}%
 \contentsline {subsubsection}{Storage}{37}{section*.28}%
-\contentsline {subsubsection}{Image}{37}{section*.29}%
-\contentsline {subsubsection}{Pixel}{37}{section*.30}%
+\contentsline {subsubsection}{Image Format}{37}{section*.29}%
+\contentsline {subsubsection}{Pixels}{37}{section*.30}%
+\contentsline {section}{\numberline {3.5}Examples}{38}{section.3.5}%
 \contentsline {chapter}{Bibliography}{39}{chapter*.31}%

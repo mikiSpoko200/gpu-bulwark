@@ -15,6 +15,7 @@ void main() {
     vec3 moved = add_one(position);
     moved = sub_one(moved);
 
-    gl_Position = vec4(moved, 1.0) * view_matrix * scale;
+    gl_Position = vec4(moved, 1.0) * view_matrix;
+    // gl_Position.x *= scale;
     vertexColor = color;
 }

@@ -37,10 +37,11 @@ pub mod bounds {
         type AsDeclarations = ();
     }
 
-    impl<H, U, const LOCATION: usize> Definitions for (H, Definition<'_, U, LOCATION>)
+    impl<H, U, T, const LOCATION: usize> Definitions for (H, Definition<'_, U, T, LOCATION>)
     where
         H: Definitions,
         U: glsl::uniform::bounds::TransparentUniform,
+        T: glsl::Compatible<U>,
     {
         type AsDeclarations = (H::AsDeclarations, TransparentUniformVariable<U, LOCATION>);
     }
@@ -138,14 +139,16 @@ where
     }
 }
 
-pub struct Definition<'a, U, const LOCATION: usize>(&'a [<U::Layout as ext::Array>::Type]) where U: glsl::uniform::bounds::TransparentUniform;
+#[repr(transparent)]
+pub struct Definition<'a, U, T, const LOCATION: usize>(pub(in crate::gl) &'a T, PhantomData<U>) where U: glsl::uniform::bounds::TransparentUniform, T: glsl::Compatible<U>;
 
-impl<'a, U, const LOCATION: usize> Definition<'a, U, LOCATION>
+impl<'a, U, T, const LOCATION: usize> Definition<'a, U, T, LOCATION>
 where 
-    U: glsl::uniform::bounds::TransparentUniform
+    U: glsl::uniform::bounds::TransparentUniform,
+    T: glsl::Compatible<U>,
 {
-    pub(in crate::gl) fn new(value: &'a impl glsl::Compatible<U>) -> Self {
-        Self(value.as_slice())
+    pub(in crate::gl) fn new(value: &'a T) -> Self {
+        Self(value, PhantomData)
     }
 }
 
@@ -165,9 +168,10 @@ where
     Unis: bounds::Definitions,
 {
     /// Add definition for a new transparent uniform.
-    pub fn define<'defs, U, const LOCATION: usize>(self, _: &'_ TransparentUniformVariable<U, LOCATION>, uniform: &'defs impl glsl::Compatible<U>) -> Definitions<(Unis, Definition<'defs, U, LOCATION>)>
+    pub fn define<'defs, U, T, const LOCATION: usize>(self, _: &'_ TransparentUniformVariable<U, LOCATION>, uniform: &'defs T) -> Definitions<(Unis, Definition<'defs, U, T, LOCATION>)>
     where
         U: glsl::bounds::TransparentUniform,
+        T: glsl::Compatible<U>,
     {
         Definitions((self.0, Definition::new(uniform)))
     }
@@ -226,9 +230,10 @@ where
     U: glsl::uniform::bounds::TransparentUniform,
 {
     /// Match current head of unmatched uniform list with uniform definition with given index.
-    pub fn bind<IDX>(self, var: &TransparentUniformVariable<U, LOCATION>) -> Matcher<Defs, H>
+    pub fn bind<IDX, T>(self, var: &TransparentUniformVariable<U, LOCATION>) -> Matcher<Defs, H>
     where
-        Defs: hlist::lhlist::Find<Definition<'defs, U, LOCATION>, IDX>,
+        T: glsl::Compatible<U> + 'defs,
+        Defs: hlist::lhlist::Find<Definition<'defs, U, T, LOCATION>, IDX>,
         IDX: hlist::counters::Index,
     {
         Matcher {

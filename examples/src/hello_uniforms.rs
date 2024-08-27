@@ -121,13 +121,14 @@ impl crate::Sample for Sample {
             .vertex_attrib_pointer(&vin_position, positions)
             .vertex_attrib_pointer(&vin_color, colors);
         
-        let inner = Self {
+        let mut inner = Self {
             program,
             vao,
             scale,
             camera,
         };
 
+        inner.render();
         Ok(Ctx {
             window,
             surface,
@@ -144,17 +145,11 @@ impl crate::Sample for Sample {
                 gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
             }
         }
-
-        let glsl::vars![ _matrix, scale_location ] = Uniforms::default();
-
-        self.scale += if self.scale > 1.0 { -1.0 } else { 0.01 };
-        self.program.uniform(&scale_location, &self.scale);
-        // println!("Rendering");
         self.program.draw_arrays(&self.vao);
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-        let glsl::vars![matrix, _scale] = Uniforms::default();
+        let glsl::vars![matrix, scale] = Uniforms::default();
         match code {
             winit::keyboard::KeyCode::KeyW => self.camera.fixed_move(&crate::common::camera::Direction::Front),
             winit::keyboard::KeyCode::KeyS => self.camera.fixed_move(&crate::common::camera::Direction::Back),
@@ -163,6 +158,13 @@ impl crate::Sample for Sample {
             _ => (),
         };
         self.program.uniform(&matrix, &self.camera.view_projection_matrix());
+        if code == winit::keyboard::KeyCode::KeyX {
+            self.scale -= 0.05;
+            if self.scale < 0.4 {
+                self.scale = 1.5;
+            }
+            self.program.uniform(&scale, &self.scale);
+        }
     }
     
     fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
@@ -173,7 +175,7 @@ impl crate::Sample for Sample {
     }
 
     fn usage(&self) -> String {
-        String::from("use W, A, S, D keys to move around and mouse to operate the camera")
+        String::from("use W, A, S, D keys to move around and mouse to operate the camera, use space bar tp modify triangle's size")
     }
     
     fn name() -> String {

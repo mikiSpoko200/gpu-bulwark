@@ -24,6 +24,7 @@ use gl::program::ShaderStage;
 use target::*;
 
 use super::Resources;
+use super::SetDefinitions;
 
 pub struct Params<Ins, Outs>
 where
@@ -440,7 +441,7 @@ impl<'s, Ins, Outs, Defs, Res> Builder<'s, ts::Some<Fragment>, Ins, Outs, Defs, 
 where
     Ins: glsl::Parameters<In>,
     Outs: glsl::Parameters<Out>,
-    Defs: uniform::bounds::Definitions,
+    Defs: uniform::bounds::Definitions + SetDefinitions,
 {
     pub fn fragment_shared<Decls>(mut self, fragment: &'s Lib<Fragment, Decls>) -> Builder<ts::Some<Fragment>, Ins, Outs, Defs, Decls, Res>
     where
@@ -456,7 +457,7 @@ where
 
     /// Build `Program` by linking all the provided attachments.
     pub fn build(&self) -> Result<super::Program<Ins, Outs, Defs::AsDeclarations, Res>, super::LinkingError> {
-        let program = super::Program::create_with_uniforms(&self.matcher.as_ref().expect("matcher is provided").definitions);
+        let program = super::Program::create();
 
         program.attach(self.vertex.as_ref().expect("vertex shader stage is set"));
 
@@ -477,5 +478,6 @@ where
                 .expect("fragment shader stage is set"),
         );
         program.link()
+            .map(|program| program.set_initial_uniforms(&self.matcher.as_ref().unwrap().definitions))
     }
 }

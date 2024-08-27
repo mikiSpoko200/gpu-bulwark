@@ -1,6 +1,10 @@
 pub mod builder;
 pub mod stage;
 
+use std::panic::Location;
+
+use crate::ext;
+use crate::ffi;
 use crate::glsl::bounds::OpaqueUniform;
 use crate::glsl::storage::Out;
 use crate::glsl::variable::SamplerVariable;
@@ -228,13 +232,56 @@ where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
 {
-    pub fn create_with_uniforms<Defs, Smpls>(definitions: &uniform::Definitions<Defs>) -> Program<Ins, Outs, Defs::AsDeclarations, Smpls>
-    where
-        Defs: uniform::bounds::Definitions,
-    {
+    pub(in crate::gl) fn create<Smpls>() -> Program<Ins, Outs, (), Smpls> {
         Program {
             object: Default::default(),
             state: ProgramState::new(Declarations(PhantomData)),
+        }
+    }
+}
+
+trait SetDefinitions: uniform::bounds::Definitions {
+    type Current;
+
+    fn set(&self, _: &Bind<ProgramObject>);
+}
+
+impl SetDefinitions for () {
+    type Current = ();
+
+    fn set(&self, _: &Bind<ProgramObject>) { }
+}
+
+impl<'a, H, U, T, const LOCATION: usize> SetDefinitions for (H, uniform::Definition<'a, U, T, LOCATION>)
+where
+    H: SetDefinitions,
+    U: glsl::uniform::bounds::TransparentUniform,
+    T: glsl::Compatible<U>,
+    // [<U::Layout as ext::Array>::Type]: glsl::Compatible<
+{
+    type Current = uniform::Definition<'a, U, T, LOCATION>;
+
+    fn set(&self, bind: &Bind<ProgramObject>) {
+        U::set(bind, &glsl::variable::TransparentUniformVariable::<U, LOCATION>::default(), self.1.0);
+        self.0.set(bind);
+    }
+}
+
+impl<Ins, Outs, Res> Program<Ins, Outs, (), Res>
+where
+    Ins: glsl::Parameters<storage::In>,
+    Outs: glsl::Parameters<storage::Out>,
+{
+    pub(in crate::gl) fn set_initial_uniforms<Defs>(self, definitions: &Definitions<Defs>) -> Program<Ins, Outs, Defs::AsDeclarations, Res> 
+    where
+        Defs: uniform::bounds::Definitions + SetDefinitions,
+    {
+        let bind = self.bind();
+        definitions.0.set(&bind);
+
+        Program {
+            object: self.object,
+            state: ProgramState::new(Declarations::default()),
         }
     }
 }

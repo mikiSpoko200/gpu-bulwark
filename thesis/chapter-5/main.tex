@@ -322,19 +322,63 @@ Textures can have 3 types of their storage
     \item mutable texture owned - allocated using \texttt{TexImage*} family of functions. 
         These are the earliest form of textures. Storage can be later reallocated, hence mutability. 
         Mipmaps need to be manually allocated and uploaded which is quite error prone.
+        Pixel data for mutable storage can be specified directly using 
+        \texttt{TexImage*} \texttt{data} parameter of a Buffer bound to \texttt{PIXEL\_UNPACK\_BUFFER}.
+        Data may also be modified using \texttt{TexSubImage*} functions.
     \item immutable texture owned - allocated using \texttt{TexStorage*} family of functions. 
         This is the most recently added kind of texture backing storage. 
-        One texture with such storage is allocated it cannot be reallocated. 
+        Once texture with this storage is allocated it cannot be reallocated. 
         Major benefit of using immutable textures is that mipmaps are allocated automatically. 
-        Storage immutability allows to create views into the texture providing an opportunity to better conserve memory and  
-
-
-    \item 
+        Storage immutability allows to create views into the texture providing 
+        an opportunity for better memory conservation, and substantially simplifies work for the driver.
+        Pixel data for these kinds of storage must be supplied using \texttt{TexSubImage*} functions.
+    \item buffer backed texture - memory and content of texture come from buffer bound to \texttt{BUFFER\_TEXTURE},
+        and similarly such a texture must be also bound to \texttt{BUFFER\_TEXTURE}.
 \end{itemize}
 
-\subsubsection{Image}
+In our work we focussed on immutable storage textures due to their automatic mipmap allocation which frees us from 
+implements compile time mipmap completeness validation.
 
-Image format are implemented in \texttt{texture::image} module. They are represented by a \texttt{Format<Components, ComponentType, Type>} type
+\subsubsection{Image Format}
 
+Image formats (texture's internal format) are implemented in \texttt{texture::image} module.
+They describe memory layout pixels in GPU's memory and their interpretation.
+We focused on implementing sized formats as they specify precisely component count and size 
+and such precision lends itself well to type level validation.
+They are represented by a \texttt{Format<Components, ComponentType, Interpretation>}.
+Besides component count and type, image formats have one additional parameter: \texttt{Interpretation},
+it symbolizes how shader should interpret these values: either integers or floats.
 
-\subsubsection{Pixel}
+\subsubsection{Pixels}
+
+Once texture is allocated it needs to be initialized with pixels, by means of a pixel transfer operation.
+The simplest way to transfer pixel data is by using \texttt{TexSubImage*} functions.
+Ranges along each texture dimension have to be specified where pixels will be substituted,
+along with pixel type and format parameters both of which we encoded in types and validate them 
+against internal image format of the targeted texture.
+Format parameter has dual meaning it describes: (1) what texture channels to target with current pixel transfer
+(which indirectly determines number of components in provided data) with formats like \texttt{RED}, \texttt{GREEN}, \texttt{BLUE},
+\texttt{BGRA} or \texttt{BGR}, and how pixels are to be interpreted during texture sampling - as integers or floats - which needs to match
+texture image's \texttt{Interpretation} parameter.
+
+Pixel transfer operations are implemented in such a way that type inference treats internal format's types
+as valid ones and will validate pixels that user is trying to transfer against that and report a compilation error
+if pixels are not compatible.
+
+\section{Examples}
+
+Examples demonstrating usage of \texttt{gpu-bulwark} are provided in \texttt{examples} directory, located in the root of the project.
+There are four samples which increase in complexity as follows:
+\begin{itemize}
+    \item \texttt{hello\_triangle} - the simplest example that shows the most basic rendering scenario where program is hard coded to produce a white
+        triangle on the screen
+    \item \texttt{hello\_vertices} - this sample demonstrates basic vertex attribute configuration using a vertex buffers, 
+        vertex array and program input and VAO attribute matching. 
+        Two vertex attributes are used: one for vertex positions and another for vertex color.
+        This sample is interactive, user can use A, S and D keys to modify color values stored in buffers 
+        which is implemented using buffer memory mapping and using buffers via normal rust slices.
+    \item \texttt{hello\_uniforms} - sample that shows how more complex programs which use uniforms may be constructed.
+        Program implements an interactive 3D camera which can be controlled with mouse and keyboard to navigate in 3D space and
+        view the scene: a single rainbow triangle. This interactivity is produced by using two uniform variables 
+
+\end{itemize}

@@ -250,6 +250,7 @@ impl<T: Sample> ApplicationHandler for App<T> {
                             NonZeroU32::new(size.height).unwrap(),
                         );
                     }
+                    ctx.window.request_redraw();
             }
             },
             WindowEvent::CloseRequested => {
