@@ -2,6 +2,7 @@
     "cSpell.words": [
         "Addiotnallty",
         "BGRA",
+        "bitwidth",
         "cfind",
         "concat",
         "dmat",
@@ -27,6 +28,7 @@
         "sizei",
         "Smpls",
         "SNORM",
+        "struct",
         "subimage",
         "Texs",
         "ubyte",

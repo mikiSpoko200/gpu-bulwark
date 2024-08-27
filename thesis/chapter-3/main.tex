@@ -1,6 +1,4 @@
-/chapter{Existing solutions}
-
-%NOTE: możliwe, że ten opis powinien być w następnym rozdziale (opis naszego rozwiązania)
+\chapter{Existing solutions}
 
 There are many qualities of any software library one could consider important.
 In this research we focused foremost on providing minimalistic wrapper and staying as faithful as possible to original specification of the API.
@@ -9,17 +7,14 @@ Major benefit of this approach is that we could simply follow the OpenGL specifi
 
 Starting from these minimalistic principles we focused on providing maximal level of type safety. The main goal was to enable rejection of as many ill-formed programs at compile time as possible.
 
-
-
 There are many levels of safety guarantees we can expect from any software package.
 In this analysis we devise 
-
 
 Here we consider alternative ways of programming computer graphics with use of OpenGL as rendering backend.
 
 We distinguish between a language of choice and any framework at use. 
 
-/section{Native C / C++ bindings}
+\section{Native C / C++ bindings}
 
 The simplest way one can program with OpenGL is using platform provided C bindings contained within an os provided dynamic link library (.dll for MS Windows, .so ) along with appropriate function pointer loader.
 The requirement for the latter stems from common practice among OS vendors to officially guarantee distribution of very dated version of the specification (1.1 for Windows).
@@ -34,10 +29,37 @@ Once these actions are accomplished one can use OpenGL in C or C++ provided appr
 
 Writing C application provides no auto
 
-/section{Rust with unsafe bindings}
+\section{Rust with unsafe bindings}
 
 Rust toolchain provides a utility for automatically generating Rust Foreign Function Interface bindings to C called \texttt{bindgen}.
 In this case all the setup needed for a Native C / C++ bindings application still applies. There exist appropriate counterparts to GLEW and GLFW.
 Once context is initialized and function pointers loaded one can call C functions but Rust will require one to use these functions inside unsafe context.
 
+\section{Rust graphics libraries}
 
+Among rust native graphics programming libraries most notable are 
+\href{https://github.com/glium/glium}{\texttt{glium}}, 
+\href{https://github.com/gfx-rs/wgpu}{\texttt{wgpu}}
+and \href{https://github.com/EmbarkStudios/rust-gpu}{rust-gpu}.
+
+Whilst both provide varying levels of safety non of them provide nearly the amount of static verification we do.
+\texttt{glium} is specifically an OpenGL adapter but it operates on much higher level of abstraction.
+Shaders are untyped containers for code, there is a limited number of predefined buffers that are implemented separately, 
+and drawing operates on very high level of abstraction. Underlying OpenGL is not very clearly visible which in our work was A
+crucial aspect.
+
+\texttt{wgpu} is a very large project with over 400 contributors. Its is a cross-platform, safe, pure-rust graphics API, that
+does not expose any specific hardware programming API but rather creates a unified abstraction over GPU and uses graphics APIs 
+as a backed.
+This again is not what we have strived for with \texttt{gpu-bulwark}, we tried to stay as true to OpenGL spec as possible
+and accentuate its design characteristics.
+
+\texttt{rust-gpu} is a very interesting crate. Currently in heavy development, it compiles rust code to SPIR-V which is a intermediate 
+assembly-like representation for graphics shader stages and compute kernels.
+Perhaps we could integrate it with \texttt{gpu-bulwark} to contain the entirety of graphics programming entirely inside rust 
+with perhaps build scripts using external tools, macros or \texttt{const fn}s when their capabilities are expanded.
+
+\section{Conclusion}
+
+Currently no other solution on the market provides the same level of static validation we're aiming for
+while staying as true to original API design as possible.

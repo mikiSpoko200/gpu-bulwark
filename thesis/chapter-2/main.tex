@@ -51,22 +51,15 @@ Buffer objects provide means to allocate data stores in GPU memory. They can con
 \subsection{Vertex Array object}
 
 Modern OpenGL is generic over vertex format and only poses limitation on the number of such 
-attributes and limits their values to glsl's scalar or vector types. 
-Each attribute is assigned a zero-based index. Vertex Array object (VAO) assigns each active 
+attributes and limits their values to s scalar or vector types.
+Each attribute is assigned a zero--index. Vertex Array object (VAO) assigns each active 
 attribute information on how and where from to source vertex data, as well as, what is the
 data type of provided attribute in glsl.
 
-This can be viewed as two aspects: (1) memory layout and access frequency, and (2) data interpretation/conversion.
-
-Originally all of that information was specified at one with
-\begin{center}
-    \texttt{void} \textbf{VertexAttrib*Pointer}(
-
-    )
-\end{center}
+This can be viewed as two aspects: (1) memory layout and access frequency, and (2) data interpretation / conversion.
 
 \section{Graphics pipeline}
-The modern OpenGL pipeline is a sequence of both programmable and fixed function stages that process geometric data to form discrete color values - pixels - that end up stored in a framebuffer. 
+The modern OpenGL pipeline is a sequence of both programmable and fixed function stages that process geometric data to form discrete color values --- pixels --- that end up stored in a framebuffer. 
 
 \subsection{Vertex Specification}
 
@@ -90,26 +83,22 @@ In case of basic triangle rendering (without using compressed representations li
 
 Vertex shader is the first programmable stage of OpenGL Pipeline and is one of two required shaders to execute a draw call, the other being the fragment shader.
 
-Most commonly vertex shader performs 3 translations. From initial model space, world space, view space to final clip space which we will now discuss briefly.
+Most commonly vertex shader performs 3 transformations. From initial model space, world space, view space to final clip space which we will now discuss briefly.
 
-\textbf{model space} - when a 3D model is created in 3D modelling software its vertex positions are specified to some local coordinate system (commonly center of an object).
-These positions would commonly be loaded into gpu memory. Such objects can be easily placed in broader scene by providing a so called world transform performs transformation from model's local coordinate system
+\textbf{model space} --- when a 3D model is created in 3D modelling software its vertex positions are specified to some local coordinate system (commonly center of an object).
+These positions would commonly be loaded into GPU memory. Such objects can be easily placed in broader scene by providing a so called world transform performs transformation from model's local coordinate system
 to scene's coordinate system.
 
-\textbf{world space} - world space refers to coordinate system of a scene that uses multiple models by translating, scaling or rotating them.
+\textbf{world space} --- world space refers to coordinate system of a scene that uses multiple models by translating, scaling or rotating them.
 
-\textbf{view space} - its common for 3D rendering applications to provide means of interacting with the scene. Wether its a 3D computer game, CAD program or medical data visualization we would like to be able to 
-control how scene is displayed by moving a virtual camera. This can be expressed as yet another transformation of the coordinate system - we would like to transform coordinate system to align with the position of our camera.
+\textbf{view space} --- its common for 3D rendering applications to provide means of interacting with the scene. Wether its a 3D computer game, CAD program or medical data visualization we would like to be able to 
+control how scene is displayed by moving a virtual camera. This can be expressed as yet another transformation of the coordinate system --- we would like to transform coordinate system to align with the position of our camera.
 This transformation is commonly called view transform.
 
-\textbf{clip space} - having accounted for model position in a scene and user interactivity all that remains is to provide vertex data in form that subsequent fixed function pipeline stage - the rasterizer - expects.
+\textbf{clip space} --- having accounted for model position in a scene and user interactivity all that remains is to provide vertex data in form that subsequent fixed function pipeline stage --- the rasterizer --- expects.
 Namely once vertex shader is finished fixed function processing will clip all geometry then perform perspective divide to obtain vertices in normalized device coordinates (NDC).
 Output of vertex shader is a 4 component vector which corresponds to a 3D position in homogenous coordinate system used in computer graphics due to its ability to represent non linear transformations using matrices.
 The output position of vertex is divided by the forth component in order to introduce perspective 
-
-% TODO: Correct section about perspective - remark that perspective divide itself does not handle near and far clipping plane.
-
-The main responsibility of vertex shader is to transform vertices to clip space, which will be discussed in future subsection. %TODO: Add link clip space% 
 
 \subsection{Tessellation}
 
@@ -127,14 +116,14 @@ To drive the tesselation stage two new shaders were introduced:
 Geometry shader was introduced prior to tesselation stage. They operate on assembled geometric primitives and may even access primitives neighbors.
 Given primitive input geometry shaders output one or more primitive of the same type.
 
-\subsection{Fixed function vertex post-processing}
+\subsection{Fixed function vertex post--processing}
 
-Once all programmable vertex progressing has concluded, a series of fixed-function operations are applied to the vertices of the resulting primitives before rasterization.
+Once all programmable vertex progressing has concluded, a series of fixed--function operations are applied to the vertices of the resulting primitives before rasterization.
 These operations include transform feedback, which captures processed vertex data, 
 primitive queries to gather information about the primitives being processed 
 and flat shading which applies a uniform attribute value to a whole primitive.
 
-Primitives then get clipped against clip volume and client-defined half-spaces.
+Primitives then get clipped against clip volume and client--defined half--spaces.
 The clip coordinates undergo perspective division, followed by viewport mapping to adjust for screen coordinates and depth range scaling.
 
 \subsection{Rasterization}
@@ -154,12 +143,12 @@ Most commonly its perspective corrected barycentric interpolation of vertex data
 Tough interpolation can be disabled from within vertex shader using \texttt{flat} qualifier on output variable declaration,
 as well as perspective correction with \texttt{noperspective} qualifier.
 
-Once fragments are computed early per-fragment tests take place.
+Once fragments are computed early per--fragment tests take place.
 
 \begin{itemize}
-    \item \textbf{Ownership test} - determines if pixel at location (x, y) falls into the portion of the screen that active OpenGL context owns.
-    \item \textbf{Scissor test} - checks if pixel at location (x, y) is contained within client provided list of axis aligned rectangles
-    \item \textbf{Early Fragment tests} - stencil test, depth test and occlusion query which are normally performed after fragment processing can optionally be performed early. We discuss them in subsection on fragment post processing.
+    \item \textbf{Ownership test} --- determines if pixel at location (x, y) falls into the portion of the screen that active OpenGL context owns.
+    \item \textbf{Scissor test} --- checks if pixel at location (x, y) is contained within client provided list of axis aligned rectangles
+    \item \textbf{Early Fragment tests} --- stencil test, depth test and occlusion query which are normally performed after fragment processing can optionally be performed early. We discuss them in subsection on fragment post processing.
 \end{itemize}
 
 If all tests passed fragment is submitted for programable fragment processing.
@@ -173,12 +162,16 @@ use signed distance functions and implicit surface equations to render otherwise
 
 \subsection{Fragment post processing}
 
-%TODO: Opisać depth test, stencil test i occlusion queries, alpha blending
+After all fragments are processed fixed function processing takes over for the final time.
+Aforementioned ownership, scissor tests take place followed by stencil and depth test.
+Each of these test require additional buffer to be allocated, called appropriately stencil buffer and depth buffer.
+
+Stencil test compares fragment's stencil value against entry in stencil buffer with the same fragment cii
 
 \section{GLSL}
 
 GLSL, which stands for OpenGL Shading Language, is a high level shading language with c like syntax developed by OpenGL Architecture Review Board to power programable processing stages in OpenGL pipeline. 
-GLSL code is still relevant as it can be compiled into SPIR-V and used with Vulkan API.
+GLSL code is still relevant as it can be compiled into SPIR--V and used with Vulkan API.
 
 \subsection*{Shaders}
 
@@ -200,21 +193,20 @@ During Program linking OpenGL matches outputs from previous stage with inputs of
 In case of vertex shader \texttt{in} variables should match with vertex attribute definitions specified in vertex array object.
 Tough in case of mismatch if attribute is disabled constant value can be provided, however thats rarely desired behavior.
 Similarly, \texttt{out} variables from fragment shader should match with framebuffer configuration.
-This process can be quite error prone and can lead to undefined behavior which can be difficult to diagnose and may have different consequences depending on actual hardware, os or driver versions.
+This process can be quite error prone and can lead to undefined behavior which can be difficult to diagnose, and may have different consequences depending on actual hardware, os or driver versions.
 
 Under no circumstances erroneous pipeline configuration should be allowed. Program containing such malformed configuration should be rejected by static analysis, and that was one of most important aspects of this study.
 To achieve that we attempted to express both GLSL variable declarations along with full OpenGL pipeline in Rust's type system in such a way to force type errors for invalid pipeline configurations.
-
-We determined that keeping track of three variable qualifiers is essential to achieve that.
+We determined that keeping track of these three variable qualifiers is essential to achieve that.
 
 \subsection{Variable types}
 
-Expressing GLSL variable type in Rust types was the obvious first step. GLSL defines a set of built-in types along with ability to create aggregate data types with C-like array and struct definitions.
+Expressing GLSL variable type in Rust types was the obvious first step. GLSL defines a set of built--in types along with ability to create aggregate data types with C--like array and struct definitions.
 
 For this work we focused on builtin types and arrays and omitted structures due to Rust's inability to encode layout guarantees for arbitrary types.
-Rust's built-in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
+Rust's buil--in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
 
-GLSL's built-in types are divided into two groups: transparent and opaque types.
+GLSL's built--in types are divided into two groups: transparent and opaque types.
 Transparent types represent numeric data (plain old data) whereas opaque types represent handles to different resources like texture image samplers.
 
 In case of transparent types there are 5 base numeric types: \texttt{float}, \texttt{double}, \texttt{int}, \texttt{uint} and \texttt{bool}.
@@ -228,7 +220,8 @@ Finally, there are matrix types of form \texttt{\textbf{T}mat\textbf{N}}. Matric
 The \textbf{N} depends on matrix dimensions it can be a single number 2, 3 or 4 for square matrices or can be arbitrarily combined pair of these numbers of form \texttt{\textbf{N}x\textbf{M}},
 i.e. \texttt{mat2x4}, \texttt{mat4x2} or \texttt{dmat3x3}.
 
-Data types used by GLSL have quite large memory footprint. Thats why OpenGL provides conversion mechanisms for data stored in buffers. Buffer data can be low bitwidth integer or float which will be normalized on access or even completely new OpenGL defined packed formats like \texttt{UNSIGNED\_INT\_2\_10\_10\_10\_REV} - a 32bit value which will be expanded to 4 \texttt{float}s. 
+Data types used by GLSL have quite large memory footprint. Thats why OpenGL provides conversion mechanisms for data stored in buffers. Buffer data can be low bitwidth integer or float which will be normalized on access or even completely 
+new OpenGL defined packed formats like \texttt{UNSIGNED\_INT\_2\_10\_10\_10\_REV} --- a 32bit value which will be expanded to 4 \texttt{float}s. 
 
 This indirect mapping of OpenGL data to GLSL types is also essential to be statically verified just like shader input / output matching.
 
@@ -237,7 +230,7 @@ This indirect mapping of OpenGL data to GLSL types is also essential to be stati
 The origin of data for a variable is encoded by a storage qualifier. We have already discussed that data within a shader can originate from previous stage / vertex buffers and that it can be saved as input to subsequent stage or framebuffer.
 These sources correspond to \texttt{in} and \texttt{out} qualifiers. 
 Shaders can also declare uniform variables which are data associated with program itself. Value of these variables remains the same across the
-entire primitive being processed. All uniform variables are read-only and are initialized externally either at link time or through the API.
+entire primitive being processed. All uniform variables are read--only and are initialized externally either at link time or through the API.
 
 For bidirectional communication between shaders and API there exists \texttt{buffer} qualifier. Variables with such qualification are stored in buffer objects and can be both written to and read from by shaders and API.
 
@@ -245,7 +238,7 @@ Remaining qualifiers are ignored as they are irrelevant for the scope of this st
 
 \subsection{Variable layout qualifiers}
 
-Statically asserting that the data passed though the pipeline is correct was the main goal of this study.  ....
+Statically asserting that the data passed though the pipeline is correct was the main goal of this study.
 Ability to statically assert that data flow though the pipeline is configured correctly depends on our ability to match neighboring stage inputs and outputs.
 In newer OpenGL versions one can use \texttt{location} layout qualifier to assign a variable a numeric index.
 This integer will be checked for uniqueness among all other variables that it shares storage qualifier with, and generate compilation error in case of overlap.
@@ -253,7 +246,7 @@ When using locations based interface matching each \texttt{out} variable must ha
 
 It assigns an variable location and along with its storage qualifier it creates unique 
 
-TODO: tie this subsection together
+% TODO: tie this subsection together
 
 \say{
     An output variable is considered to match an input variable in the subsequent shader if:
