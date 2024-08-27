@@ -45,7 +45,7 @@ pub trait Format {
     type Components: image::format::Components;
     // Marker for sampler output that this type provides
     // Now note how sample Format can provide multiple outputs -- 
-    // type Output; -- either geneirc over Output or valid trait?
+    // type Output; -- either generic over Output or valid trait?
 }
 
 /// Implementation of `Format`.

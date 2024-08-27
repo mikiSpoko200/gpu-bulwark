@@ -254,7 +254,6 @@ impl<T: Sample> ApplicationHandler for App<T> {
             }
             },
             WindowEvent::CloseRequested => {
-                println!("exitting");
                 std::process::exit(0);
             },
             WindowEvent::RedrawRequested => self.render(),

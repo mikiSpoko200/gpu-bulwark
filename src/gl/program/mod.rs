@@ -141,17 +141,17 @@ impl Binder for ProgramObject {
     }
 }
 
-struct ProgramState<Ins, Outs, Unis, Smpls>
+struct ProgramState<Ins, Outs, Unis, Res>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
     Unis: uniform::bounds::Declarations,
 {
-    pub _phantoms: PhantomData<(Ins, Outs, Smpls)>,
+    pub _phantoms: PhantomData<(Ins, Outs, Res)>,
     pub uniform_declarations: uniform::Declarations<ts::Immutable, Unis>,
 }
 
-impl<Ins, Outs, Smpls> Default for ProgramState<Ins, Outs, (), Smpls>
+impl<Ins, Outs, Res> Default for ProgramState<Ins, Outs, (), Res>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
@@ -164,7 +164,7 @@ where
     }
 }
 
-impl<Ins, Outs, Unis, Smpls> ProgramState<Ins, Outs, Unis, Smpls>
+impl<Ins, Outs, Unis, Res> ProgramState<Ins, Outs, Unis, Res>
 where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
@@ -232,7 +232,7 @@ where
     Ins: glsl::Parameters<storage::In>,
     Outs: glsl::Parameters<storage::Out>,
 {
-    pub(in crate::gl) fn create<Smpls>() -> Program<Ins, Outs, (), Smpls> {
+    pub(in crate::gl) fn create<Res>() -> Program<Ins, Outs, (), Res> {
         Program {
             object: Default::default(),
             state: ProgramState::new(Declarations(PhantomData)),
@@ -240,7 +240,7 @@ where
     }
 }
 
-trait SetDefinitions: uniform::bounds::Definitions {
+pub trait SetDefinitions: uniform::bounds::Definitions + private::Sealed {
     type Current;
 
     fn set(&self, _: &Bind<ProgramObject>);
@@ -415,6 +415,13 @@ pub(crate) mod private {
         Target: texture::Target,
         Kind: texture::storage::marker::Kind<Target = Target>,
         InternalFormat: texture::image::marker::Format,
+    { }
+
+    impl<'a, H, U, T, const LOCATION: usize> Sealed for (H, uniform::Definition<'a, U, T, LOCATION>)
+    where
+        H: SetDefinitions,
+        U: glsl::uniform::bounds::TransparentUniform,
+        T: glsl::Compatible<U>,
     { }
 }
 

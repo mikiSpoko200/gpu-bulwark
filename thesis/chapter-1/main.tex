@@ -39,8 +39,6 @@ A unit-like struct type is like a struct type, except that it has no fields. The
 
 \section{Implementations}
 
-%NOTE: nad tym rozdziałem trzeba będzie trochę posiedzieć bo to jak działają impl'e jest fundamentalne.
-
 Functionality of a type is not provided inline with it's definition like in most C like languages. 
 Instead it's associated with a type by so called \textit{implementations}.
 Implementations for a type are contained within a block introduced by the \texttt{impl} keyword.
@@ -49,8 +47,6 @@ There are two types of implementations:
 - inherent implementations
 - trait implementations
 
-%TODO: introduce shorthand for implementations as impl block
-%TODO: briefly define what item is.
 All items within impl block are called associated items
 
 Functions defined within impl blocks are called associated functions and can be accessed with qualification \texttt{<type-name>::<function-name>}.
@@ -86,8 +82,8 @@ Type which uses any generic parameters is said to be generic.
 Type parameters can be used in function or type definition; they represent an abstract type which must be specified (or inferred) during compilation.
 Type generics are most commonly used for collections since they can contain arbitrary object and don't need to know almost anything about the inner types.
 
-However, one can't do much with trully arbitrary type, even collections require ordering for tree structures, hashing for hash based collections and even the simplest collections
-like vectors and queues need to know that types they contain have finite size, or can be shared across thread boundaries. Most languages either provide these kinds of behaviour
+However, one can't do much with truly arbitrary type, even collections require ordering for tree structures, hashing for hash based collections and even the simplest collections
+like vectors and queues need to know that types they contain have finite size, or can be shared across thread boundaries. Most languages either provide these kinds of behavior
 inductively by the structure of a type but that's not what Rust does. Rust requires that pretty much all capabilities of a type are specified.
 
 Capabilities of a type parameter are expressed using traits which we in the next section.

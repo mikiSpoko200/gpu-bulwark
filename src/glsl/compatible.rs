@@ -1,4 +1,3 @@
-use crate::gl;
 use crate::prelude::internal::*;
 
 use crate::glsl;
@@ -23,11 +22,11 @@ pub mod hlist {
     { }
 }
 
-macro_rules! compatible {
-    ($gl:ty => $glsl:path) => {
-        hi::denmark! { $gl as Compatible<$glsl> }
-    };
-}
+// macro_rules! compatible {
+//     ($gl:ty => $glsl:path) => {
+//         hi::denmark! { $gl as Compatible<$glsl> }
+//     };
+// }
 
 // compatible! { f32 => f32 }
 // compatible! { f64 => f64 }

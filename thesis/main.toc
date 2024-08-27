@@ -86,4 +86,5 @@
 \contentsline {subsubsection}{Image Format}{37}{section*.29}%
 \contentsline {subsubsection}{Pixels}{37}{section*.30}%
 \contentsline {section}{\numberline {3.5}Examples}{38}{section.3.5}%
+\contentsline {section}{\numberline {3.6}Conclusions}{38}{section.3.6}%
 \contentsline {chapter}{Bibliography}{39}{chapter*.31}%

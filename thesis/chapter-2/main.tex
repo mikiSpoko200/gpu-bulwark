@@ -8,8 +8,11 @@ Since it's inception  and up until 2016 with release of Vulkan it has been the o
 
 \section{History}
 
-IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
-In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. This task was passed on to Khronos Group in 2006 where it remained ever since.
+IRIS GL, a proprietary graphics API, which later became OpenGL was initially developed by Silicon Graphics (SGI) 
+during 1980's. SGI open sourced subset of their API as OpenGL due to mounting market pressure from SGI competitors (Sun Microsystems, Hewlett-Packard, IBM) 
+who started providing their own APIs for hardware accelerated 3D graphics based on an existing open standard called PHIGS.
+In 1992 OpenGL Architectural Review Board (OpenGL ARB) was established and it was tasked with development and maintenance of the OpenGL specification. 
+This task was passed on to Khronos Group in 2006 where it remained ever since.
 
 \section{OpenGL objects}
 
@@ -101,7 +104,7 @@ This transformation is commonly called view transform.
 
 \textbf{clip space} - having accounted for model position in a scene and user interactivity all that remains is to provide vertex data in form that subsequent fixed function pipeline stage - the rasterizer - expects.
 Namely once vertex shader is finished fixed function processing will clip all geometry then perform perspective divide to obtain vertices in normalized device coordinates (NDC).
-Output of vertex shader is a 4 component vector which corresponds to a 3D position in homogenious coordinate system used in computer graphics due to its ability to represent non linear transformations using matrices.
+Output of vertex shader is a 4 component vector which corresponds to a 3D position in homogenous coordinate system used in computer graphics due to its ability to represent non linear transformations using matrices.
 The output position of vertex is divided by the forth component in order to introduce perspective 
 
 % TODO: Correct section about perspective - remark that perspective divide itself does not handle near and far clipping plane.
@@ -200,7 +203,7 @@ Similarly, \texttt{out} variables from fragment shader should match with framebu
 This process can be quite error prone and can lead to undefined behavior which can be difficult to diagnose and may have different consequences depending on actual hardware, os or driver versions.
 
 Under no circumstances erroneous pipeline configuration should be allowed. Program containing such malformed configuration should be rejected by static analysis, and that was one of most important aspects of this study.
-To achieve that we attempted to express both GLSL variable declarations along with full OpenGL pipeline in Rust's type system in sucha a way to force type errors for invalid pipeline configurations.
+To achieve that we attempted to express both GLSL variable declarations along with full OpenGL pipeline in Rust's type system in such a way to force type errors for invalid pipeline configurations.
 
 We determined that keeping track of three variable qualifiers is essential to achieve that.
 
@@ -208,7 +211,6 @@ We determined that keeping track of three variable qualifiers is essential to ac
 
 Expressing GLSL variable type in Rust types was the obvious first step. GLSL defines a set of built-in types along with ability to create aggregate data types with C-like array and struct definitions.
 
-% FIXME: czy to pasuje do tej sekcji? Może dać to już do rozdziału poświęconemu bibliotece.
 For this work we focused on builtin types and arrays and omitted structures due to Rust's inability to encode layout guarantees for arbitrary types.
 Rust's built-in numeric types and arrays have however have well defined memory layout and create a close set of possible types which allowed us to enumerate them express their memory layout in type system using traits.
 

@@ -294,7 +294,8 @@ a program if any buffer used as vertex source is mapped during drawing.
 
 \subsection{Vertex Array}
 
-Vertex Array can be created with \texttt{create}. It exposes a single method \texttt{vertex\_attrib\_pointer} which takes owenship of a Buffer bound to \texttt{BUFFER\_ARRAY}
+Vertex Array can be created with \texttt{create}.
+It exposes a single method \texttt{vertex\_attrib\_pointer} which takes ownership of a Buffer bound to \texttt{BUFFER\_ARRAY}
 and stores it in VAOs internal HList of \texttt{Attribute}s.
 Attributes encompass buffer, vertex format and attribute index. This is a complete set of information needed to match vertex shader input variables.
 
@@ -380,5 +381,8 @@ There are four samples which increase in complexity as follows:
     \item \texttt{hello\_uniforms} - sample that shows how more complex programs which use uniforms may be constructed.
         Program implements an interactive 3D camera which can be controlled with mouse and keyboard to navigate in 3D space and
         view the scene: a single rainbow triangle. This interactivity is produced by using two uniform variables 
-
 \end{itemize}
+
+\section{Conclusions}
+
+Resulting library 
