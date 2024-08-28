@@ -266,7 +266,8 @@ In the listing above \texttt{bar} must be a value of type \texttt{T} which imple
 
 Besides 
 
-Traits can uniquely, be implemented generically for all types that salify bounds using an \textbf{blanket impl} \texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.
+Traits can uniquely, be implemented generically for all types that salify given bounds using a generic implementation often referred to as a blanket impl:
+\texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.
 This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside --- a blanket impl is the only impl for that trait that may exist.
 This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section.
 
@@ -278,3 +279,11 @@ That's the reason why as of 2024 Rust enforces one blanket impl --- it cannot gu
 This is overly restrictive 
 
 However, if inherent or trait impl's target a specific generic type with at least one type parameter differing between the two impls coherence is preserved and program is not rejected.
+
+\section{Orphan rules}
+
+To guarantee impl coherence between all version of a crate rust imposes so called orphan rules.
+Implementation of a trait for a type is passes an orphan rule check if either (1) trait or (2) type is defined in current trait.
+This is not an exact definition of these rules, but it will suffice for our purposes.
+This allows rust package manager \textbf{cargo} to allow for different versions of the same dependency.
+What it means for us is that we cannot impl traits from standard library for types from standard library as such items would be external to any crate.

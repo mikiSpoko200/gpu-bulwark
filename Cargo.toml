@@ -11,7 +11,6 @@ nalgebra-glm = { version = "0.18.0", optional = true }
 nalgebra = { version = "0.32.5", optional = true }
 
 hi = { path = "himark", package = "himark" }
-disjoint_impls = "0.7.1"
 dm = { version = "0.99.18", package = "derive_more" }
 concat-idents = "1.1.5"
 

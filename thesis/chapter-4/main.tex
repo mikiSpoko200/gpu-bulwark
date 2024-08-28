@@ -18,13 +18,7 @@ Our library utilizes several publicly available crates from crates.io, we will b
     \item \texttt{derive\_move} --- is a procedural macro crate that expands \texttt{derive} to support more built--in traits. It significantly reduces code boilerplate.
     \item \texttt{concat\_idents} --- provides singular procedural macro that allows to concatenate identifiers akin to C's \texttt{\#\#} operator. We utilize this macro for identifier generation for certain OpenGL names that strictly follow a naming convection. This yet again helps to reduce boilerplate, makes code more succinct and minimizes risk of typos.
     \item \texttt{nalgebra} and \texttt{nalgebra-glm} --- define algorithms and types for linear algebra computations. They are not used directly in our library for their functionality but rather for optional integration with \texttt{gpu-bulwark}.
-\end{itemize}
-% FIXME: replace this 
-Remaining packages are imported for use in examples only.
-%
-\begin{itemize}
-    \item \texttt{thiserror} and \texttt{anyhow} --- very popular crates which make error handling more ergonomic.
-    \item \texttt{raw-window-handle}, \texttt{glutin} and \texttt{winit} allow for cross platform window creation and OpenGL context initialization.
+    \item \texttt{thiserror} --- very popular crate which provides declarative macros for faster error type generation.
 \end{itemize}
 
 \section{Identified design patterns}
@@ -65,14 +59,26 @@ Implementation of functionality for HLists needs to mirror their abstract and re
 one for unit in the base case and another recursive for a the binary tuple for recursive step.
 
 These homogenous collections have been implemented as an independent module called \texttt{hlist} which can be found in the root of our crate.
- 
+
+\begin{lstlisting}
+pub trait HList {
+    const LENGTH: usize;
+}
+
+impl HList for () {
+    const LENGTH: usize = 0;
+}
+// left folding
+impl<H, T> HList for (H, T) where H: HList {
+    const LENGTH: usize = H::LENGTH + 1;
+}
+\end{lstlisting}
+
 \paragraph{Use case}
 
 In \texttt{gpu-bulwark} HLists are used every time variable--length user configuration is required, most notably to represent shader inputs, outputs, used uniforms or external resources like textures.
 Almost always we create a facade marker trait which joins together predefined pieces of functionality from \texttt{hlist} module
 and adds specialized requirements for HList member types in order to prohibit creation of invalid type list.
-
-
 
 \subsection{Const generics in const expressions}
 
