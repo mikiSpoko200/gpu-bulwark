@@ -32,8 +32,8 @@ In addition to function pointer loading, an OpenGL context must be initialized a
 This context serves as the environment in which OpenGL commands are executed and keeps track of allocated resources.
 
 Tough both can be implemented manually by interfacing with raw OS APIs, typically there are specialized libraries available to handle each of these tasks.
-For example, on PC platforms, the OpenGL Extension Wrangler Library (GLEW) \cite{glewwebiste} is commonly used for function pointer loading, 
-while the Graphics Library Framework (GLFW) \cite{glfwwebiste} is often employed for window creation and OpenGL context management.
+For example, on PC platforms, the OpenGL Extension Wrangler Library (GLEW) \cite{glewwebsite} is commonly used for function pointer loading, 
+while the Graphics Library Framework (GLFW) \cite{glfwwebsite} is often employed for window creation and OpenGL context management.
 
 Once these tasks --- function pointer loading and context creation --- are completed, OpenGL can be utilized in C or C++ applications, provided that care is taken to ensure proper C interoperability. 
 
@@ -44,8 +44,8 @@ In C++ the situation is a bit better due to RAII mechanism, object orientation a
 critical limitation of C++ is its relatively weak type system (partially amended with Cpp20 concepts feature) \cite{cppref}.
 C++'s templates are essentially advanced macros, all type variables are simply inserted and type analyses in performed on concrete types.
 There is no way to express abstraction in a way that type system could reason about it.
-To C++'s credit its compile time capabilities are much reacher than Rust's and could possibly achieve similar results tough
-with significant downside of diagnostics 
+To C++'s credit its compile time capabilities are much more expansive than Rust's and could possibly achieve similar results tough
+with notable downside of validation having to be hand written and not scaling by default, as opposed to type based rules.
 
 In summary, using native C/C++ bindings for OpenGL provides powerful access to the graphics pipeline with maximum control and efficiency, 
 but it requires careful management of resources and a good understanding of platform--specific requirements.

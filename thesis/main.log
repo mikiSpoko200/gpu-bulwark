@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  28 AUG 2024 21:55
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  29 AUG 2024 01:25
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -230,33 +230,48 @@ File: lstmisc.sty 2024/05/25 1.10b (Carsten Heinz)
 File: listings.cfg 2024/05/25 1.10b listings configuration
 ))
 Package: listings 2024/05/25 1.10b (Carsten Heinz)
- (d:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
+ (d:/texlive/2024/texmf-dist/tex/latex/graphics/graphicx.sty
+Package: graphicx 2021/09/16 v1.2d Enhanced LaTeX Graphics (DPC,SPQR)
+ (d:/texlive/2024/texmf-dist/tex/latex/graphics/graphics.sty
+Package: graphics 2024/05/23 v1.4g Standard LaTeX Graphics (DPC,SPQR)
+ (d:/texlive/2024/texmf-dist/tex/latex/graphics/trig.sty
+Package: trig 2023/12/02 v1.11 sin cos tan (DPC)
+) (d:/texlive/2024/texmf-dist/tex/latex/graphics-cfg/graphics.cfg
+File: graphics.cfg 2016/06/04 v1.11 sample graphics configuration
+)
+Package graphics Info: Driver file: pdftex.def on input line 106.
+ (d:/texlive/2024/texmf-dist/tex/latex/graphics-def/pdftex.def
+File: pdftex.def 2024/04/13 v1.2c Graphics/color driver for pdftex
+))
+\Gin@req@height=\dimen159
+\Gin@req@width=\dimen160
+) (d:/texlive/2024/texmf-dist/tex/latex/l3backend/l3backend-pdftex.def
 File: l3backend-pdftex.def 2024-05-08 L3 backend support: PDF output (pdfTeX)
 \l__color_backend_stack_int=\count295
 \l__pdf_internal_box=\box54
 ) (./main.aux (./introduction/main.aux) (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux) (./chapter-4/main.aux) (./chapter-5/main.aux))
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for OT4/cmr/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 36.
-LaTeX Font Info:    ... okay on input line 36.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for OT4/cmr/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 37.
+LaTeX Font Info:    ... okay on input line 37.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -293,17 +308,17 @@ LaTeX Font Info:    ... okay on input line 36.
 * \@reversemarginfalse
 * (1in=72.27pt=25.4mm, 1cm=28.453pt)
 
-Package hyperref Info: Link coloring OFF on input line 36.
+Package hyperref Info: Link coloring OFF on input line 37.
 (./main.out) (./main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 36.
+(Font)              <12> on input line 37.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 36.
+(Font)              <8> on input line 37.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 36.
+(Font)              <6> on input line 37.
 
 
 [1
@@ -313,7 +328,7 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 [2
 
 ]
-LaTeX Font Info:    Trying to load font information for OT4+cmtt on input line 36.
+LaTeX Font Info:    Trying to load font information for OT4+cmtt on input line 37.
  (d:/texlive/2024/texmf-dist/tex/latex/polski/ot4cmtt.fd
 File: ot4cmtt.fd 2008/02/24 v1.2.1 Font defs for fonts PL (MW)
 )
@@ -337,7 +352,25 @@ Underfull \vbox (badness 6708) has occurred while \output is active []
 \openout4 = `main.toc'.
 
 \c@lstlisting=\count296
-
+ (d:/texlive/2024/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
+[Loading MPS to PDF converter (version 2006.09.02).]
+\scratchcounter=\count297
+\scratchdimen=\dimen161
+\scratchbox=\box55
+\nofMPsegments=\count298
+\nofMParguments=\count299
+\everyMPshowfont=\toks22
+\MPscratchCnt=\count300
+\MPscratchDim=\dimen162
+\MPnumerator=\count301
+\makeMPintoPDFobject=\count302
+\everyMPtoPDFconversion=\toks23
+) (d:/texlive/2024/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
+Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
+Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
+ (d:/texlive/2024/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
+File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
+))
 
 [7]
 \openout2 = `introduction/main.aux'.
@@ -491,69 +524,100 @@ Chapter 4.
 [35]
 
 [36]
+<figures/lisp-list.png, id=638, 540.51938pt x 165.61874pt>
+File: figures/lisp-list.png Graphic file (type png)
+<use figures/lisp-list.png>
+Package pdftex.def Info: figures/lisp-list.png  used on input line 55.
+(pdftex.def)             Requested size: 398.33861pt x 122.05557pt.
 
-[37]
+Overfull \hbox (21.90005pt too wide) in paragraph at lines 55--56
+[][] 
+ []
+
+
+Overfull \hbox (2.43556pt too wide) in paragraph at lines 72--73
+[][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
+ []
+
+LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <6> not available
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 78.
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <6> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 78.
+
+
+[37 <./figures/lisp-list.png>]
 
 [38]
 
 [39]
 
 [40]
+Underfull \vbox (badness 1314) has occurred while \output is active []
+
+
 
 [41]
-Underfull \vbox (badness 1072) has occurred while \output is active []
-
-
 
 [42]
 
 [43]
-Overfull \hbox (43.42648pt too wide) in paragraph at lines 306--310
-\OT4/cmr/m/n/10.95 Vertex Ar-ray can be cre-ated with \OT4/cmtt/m/n/10.95 create\OT4/cmr/m/n/10.95 . It ex-poses a sin-gle method \OT4/cmtt/m/n/10.95 vertex[]attrib[]pointer
- []
-
-
-Underfull \vbox (badness 4217) has occurred while \output is active []
-
-
 
 [44]
-Underfull \vbox (badness 1253) has occurred while \output is active []
+Overfull \hbox (43.42648pt too wide) in paragraph at lines 367--371
+\OT4/cmr/m/n/10.95 Vertex Ar-ray can be cre-ated with \OT4/cmtt/m/n/10.95 create\OT4/cmr/m/n/10.95 . It ex-poses a sin-gle method \OT4/cmtt/m/n/10.95 vertex[]attrib[]pointer
+ []
 
 
 
 [45]
 
-[46])
+[46]
 
-[47]
+[47])
+
+[48]
 \openout2 = `chapter-5/main.aux'.
 
  (./chapter-5/main.tex
-
-[48
-
-
-
-
-]
 Chapter 5.
 
 
-[49])
+[49
+
+
+
+
+])
 
 [50] (./main.bbl
-Underfull \hbox (badness 6927) in paragraph at lines 21--23
-[]\OT4/cmr/m/n/10.95 Opengl wiki hosted by khronos.  []$\OT4/cmtt/m/n/10.95 https : / / registry . khronos . org /
- []
-
-)
 
 [51
 
 
 
-] (./main.aux (./introduction/main.aux) (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux) (./chapter-4/main.aux) (./chapter-5/main.aux))
+]
+Underfull \hbox (badness 10000) in paragraph at lines 90--93
+[]\OT4/cmr/m/n/10.95 Niko Mat-sakis.  Many modes: A gats pat-tern, 2022.
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 90--93
+[]$\OT4/cmtt/m/n/10.95 https : / / smallcultfollowing . com / babysteps / blog / 2022 / 06 / 27 /
+ []
+
+
+Underfull \hbox (badness 1242) in paragraph at lines 95--99
+\OT4/cmr/m/n/10.95 2019.  []$\OT4/cmtt/m/n/10.95 https : / / www . khronos . org / registry / OpenGL / specs / gl / glspec46 .
+ []
+
+
+Underfull \hbox (badness 2582) in paragraph at lines 101--104
+[]\OT4/cmr/m/n/10.95 Embark Stu-dios.  rust-gpu github repos-i-tory.  []$\OT4/cmtt/m/n/10.95 https : / / github . com /
+ []
+
+)
+
+[52] (./main.aux (./introduction/main.aux) (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux) (./chapter-4/main.aux) (./chapter-5/main.aux))
  ***********
 LaTeX2e <2024-06-01> patch level 2
 L3 programming layer <2024-05-27>
@@ -562,18 +626,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: C3D8025D7C260765AF1274D21432384D;10755.
  ) 
 Here is how much of TeX's memory you used:
- 12115 strings out of 473583
- 188859 string characters out of 5732342
- 1946908 words of memory out of 5000000
- 34577 multiletter control sequences out of 15000+600000
- 570571 words of font info for 67 fonts, out of 8000000 for 9000
+ 12972 strings out of 473583
+ 201632 string characters out of 5732342
+ 1953908 words of memory out of 5000000
+ 35378 multiletter control sequences out of 15000+600000
+ 571069 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,6n,93p,611b,1916s stack positions out of 10000i,1000n,20000p,200000b,200000s
-<d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (51 pages, 237262 bytes).
+<d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
+Output written on main.pdf (52 pages, 282338 bytes).
 PDF statistics:
- 868 PDF objects out of 1000 (max. 8388607)
- 783 compressed objects within 8 object streams
- 241 named destinations out of 1000 (max. 500000)
- 577 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 941 PDF objects out of 1000 (max. 8388607)
+ 847 compressed objects within 9 object streams
+ 267 named destinations out of 1000 (max. 500000)
+ 582 words of extra memory for PDF output out of 10000 (max. 10000000)
 

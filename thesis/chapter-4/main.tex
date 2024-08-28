@@ -33,7 +33,6 @@ Some features have been work--in--progress for over the years and are still nowh
 Others have seen minimal--viable--product releases, and some are merely the subject of wishful thinking and speculation. 
 Features we found useful in type--based design fall into all of these categories. 
 Most of them can be emulated with varying levels of complexity and user experience degradation.
-
 Stemming from often contrived usage of type system and different language features
 resulting error messages are very verbose and difficult to interpret.
 
@@ -44,35 +43,77 @@ resulting error messages are very verbose and difficult to interpret.
 It is common practice among programming language developers to support variadic function arguments --- functions which can accept arbitrarily many arguments.
 This capability is a major syntactic convenience and serves as a tool for more complex abstractions.
 
-It is substantially less common to support variadic type parameters in generic types; in fact, Rust has no such language feature.
-One highly desirable use case for such variadic generics was identified: non homogenous collections. 
+It is substantially less common to support variadic type parameters in generic types. Rust does not no have such a language feature,
+and yet one highly desirable use case for variadic generics was identified: non--homogenous collections. 
+Typical generic collections can contain one of more values of the same type.
+Structs and tuples can contain arbitrary data but the number, and names of aggregated types are fixed so the collection cannot grow.
 
 \paragraph{Solution}
 
-Rust has an excellent support for recursive types thanks to the \texttt{impl} syntax, and since lists can be defined recursively we derived a variadic generics emulation scheme from that.
-We used type level recursion on binary tuples (recursive step) and unit type as \texttt{Nil}. We call such recursive type list a \textbf{HList}.
-HLists can be wound to the left: first tuple component contains n - 1 elements and second the n'th type or to the right in reverse order.
+Lists can be defined recursively using pairs and special list termination symbol \cite{structureandinterpretation}.
+
+\includegraphics[width=\textwidth]{figures/lisp-list.png}
+
+An empty list is simply the termination symbol and a list of length n is a pair containing an element in one slot and a list of length n - 1 in the other.
+Rust's type system understands recursion and provides a singleton unit type along with an ordered pair type - a binary tuple.
+Functionality for such lists would need to be expressed using traits since our very goal is to abstract over lists of different types --- so no concrete type could possibly suffice.
+With all that in mind, we present a scheme for non--homogenous collections of types in Rust.
+
+Starting with the most basic type list, we define a trait simply states that given type is a type list (called HLists henceforth \cite{frunk}), and provide no functionality.
+
+\begin{lstlisting}
+pub trait HList { }
+\end{lstlisting}
+
+Then we provide implementations for base and recursive cases.
+
+\begin{lstlisting}
+impl HList for () { }
+impl<Head, Tail> HList for (Head, Tail) where Tail: HList { }
+\end{lstlisting}
+
+We verify that our implementation works with a no--op function that simply checks if passed value is of type that implements \texttt{HList}.
+
+\begin{lstlisting}[basicstyle=\tiny]
+fn test<HL>(_: HL) where HL: HList { }
+
+fn main() {
+  let list_1: ()                         = ();
+  let list_2: (i32, ())                  = (1, list_1.clone());
+  let list_3: (f32, (i32, ()))           = (42.0, list_2.clone());
+  let list_4: (String, (f32, (i32, ()))) = (String::from("wow"), list_3.clone());
+
+  test(list_1);
+  test(list_2);
+  test(list_3);
+  test(list_4);
+}
+\end{lstlisting}
+
+Type annotations are redundant, as types can be inferred, and were purposefully added to better visualize the mechanism.
+This sample can be run interactively in the rust playground --- an online service hosted by rust foundation that provides 
+a browser interface to the Rust compiler to experiment with the language. 
+To run this listing follow this \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=0c13e950bb10a01dbae1981b0c15aa5f}{permalink}.
+
+One can create increasingly complex traits and implement them in a similar manner, for example below we implement HList length computation.
+
+\begin{lstlisting}
+pub trait HList { fn len(&self) -> usize; }
+impl HList for () {
+  fn len(&self) -> usize { 0 }
+}
+impl<H, T> HList for (H, T) where T: HList {
+  fn len(&self) -> usize { self.1.len() + 1 }
+}
+\end{lstlisting}
+
+\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=13d2d29f768d207f8fe7fa1bde7acef1}{[playground parmalink]}
+
+By deciding in which slot to place the tuple and in which the current element we can change the winding order of the HLists.
 These two schemes are equivalent in terms of functionality, but differ in terms of potential user experience.
 In our use case appending new types to the end of a HList was by far the most common use case, and as such we almost exclusively use left wound HLists (LHLists).
 
-Implementation of functionality for HLists needs to mirror their abstract and recursive nature. This can be achieved using two \texttt{impl}s, 
-one for unit in the base case and another recursive for a the binary tuple for recursive step.
-
 These homogenous collections have been implemented as an independent module called \texttt{hlist} which can be found in the root of our crate.
-
-\begin{lstlisting}
-pub trait HList {
-    const LENGTH: usize;
-}
-
-impl HList for () {
-    const LENGTH: usize = 0;
-}
-// left folding
-impl<H, T> HList for (H, T) where H: HList {
-    const LENGTH: usize = H::LENGTH + 1;
-}
-\end{lstlisting}
 
 \paragraph{Use case}
 
@@ -92,7 +133,21 @@ As a result, we cannot perform arbitrary compile--time computations on these par
 \paragraph{Solution}
 
 However, there is one exception to that limitation: associated constants. Associated constants can have their values computed using compile--time evaluated \texttt{const fn}s and themselves be used in such computations as parameters.
+Example with HList length could be adapted to use consts instead of methods like so.
+
+\begin{lstlisting}
+pub trait HList { const LENGTH: usize; }
+impl HList for () {
+    const LENGTH: usize = 0;
+}
+impl<H, T> HList for (H, T) where T: HList {
+    const LENGTH: usize = T::LENGTH + 1;
+}
+\end{lstlisting}
+\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=05d326a2dc997f8005fb06711fe6fa3f}{[playground permalink]}
+
 These functions can panic with static error message (no formatting) and may cause compilation errors based on programable logic.
+Lack of compile--time formatting makes it difficult to provide useful error messages, yet another advantage of using type--based validation.
 As a consequence, different limitation was imposed: associated constants cannot be used as const parameters in types, they can only be used as values in code.
 
 \paragraph{Use case}
@@ -103,7 +158,11 @@ The only viable solution would be to a blanket impl stating that two types are d
 CT validation that types are all different is required to assert that glsl variable layout locations do not overlap.
 In certain scenarios when layout components are used this overlap may be valid; we ignored it in this work because it can be easily taken into account in future releases.
 
-We use associated constants and conditionally panicking \texttt{const} function to check that location ranges do not overlap.
+We use associated constants, conditionally panicking \texttt{const} function and environment variables to allow for compile--time validation that HLists of glsl variables 
+of arbitrary length do not overlap.
+
+We prepared an another example in the \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=61baf4a1043d947594ef33d03bb8390b}{playground} where
+HLists are checked to contain types with increasing numeric indices assigned to them.
 
 \subsection{Effect system}
 
@@ -114,9 +173,10 @@ Ability to type check function invocation context in OpenGL would be especially 
 
 \paragraph{Solution}
 
-We instead were forced to opt for more error prone and verbose approach. 
+We instead were forced to opt for more error prone and verbose approach.
 Objects like textures or buffers can produce binder objects which in their constructor binds, and in their destructors unbinds, object from appropriate binding point.
 This lets us control context bindings using lexical scope, but does not in any way prevent distinct objects with the same target from overriding the global binding.
+A minimal example showing of effect emulation can be found on \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=3724852e646ce5d0ed1faf0c57f3e5c1}{playground}.
 
 \paragraph{Use Case}
 
@@ -190,16 +250,17 @@ A scheme very similar to template method pattern.
 \subsection{Type State}
 
 Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile--time.
+
+Type state is a refinement of the traditional concept of type in programming languages. 
+It determines the subset of operations permitted on a data object in a particular context, 
+enhancing software reliability by detecting and preventing semantically undefined execution sequences at compile--time.
+
 For the duration of this subsection it is worth to think about generic types as of type constructors which can be partially applied to create another constructor or fully applied to produce a type.
 
 Recall from the section on coherence \ref{sec:coherence} that Rust determines if \texttt{impl}s are non--overlapping, what it implies is that each associated item can be resolved uniquely.
 Additionally \texttt{impl} blocks can 
 
-
-
-However, if we were to intentionally add new phantom type parameters 
-for 
-we could encode state information into the type system itself, thus enabling the compiler to enforce constraints based on the state of the object.
+We could encode state information into the type system itself, thus enabling the compiler to enforce constraints based on the state of the object.
 Generic type with one of it's parameters supplied can have an inherent \texttt{impl} for 
 
 \section{OpenGL wrapper}

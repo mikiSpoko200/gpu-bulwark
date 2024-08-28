@@ -103,12 +103,12 @@ They constitute the basic building blocks for any user defined types. The memory
 but it can be fixed with the \texttt{repr} attribute. The fields of a struct may be qualified by visibility modifiers, to allow access to data in a struct outside a module.
 A tuple struct type is just like a struct type, except that the fields are anonymous. 
 A unit--like struct type is like a struct type, except that it has no fields. The one value constructed by the associated struct expression is the only value that inhabits such a type.
-\cite{rustrefernce}
+\cite{rustreference}
 
 \subsubsection{\texttt{enum}s}
 
 An enumeration, also referred to as an enum, is a simultaneous definition of a nominal enumerated type as well as a set of constructors, 
-that can be used to create or pattern--match values of the corresponding enumerated type \cite{rustrefernce}.
+that can be used to create or pattern--match values of the corresponding enumerated type \cite{rustreference}.
 
 One noteworthy aspect is that enums without any constructors cannot be ever instantiated.
 
@@ -247,7 +247,7 @@ pub trait Foo {
 
 \subsection{Associated types}
 
-Associated types are type aliases associated with another type. Associated types cannot be defined in inherent implementations nor can they be given a default implementation in traits \cite{rustrefernce}.
+Associated types are type aliases associated with another type. Associated types cannot be defined in inherent implementations nor can they be given a default implementation in traits \cite{rustreference}.
 
 \lstinputlisting{listings/assoc\-type/declaration.rs}
 
@@ -263,8 +263,6 @@ Most importantly from the perspective of this study, in trait bounds, associated
 In the listing above \texttt{bar} must be a value of type \texttt{T} which implemented \texttt{Foo} with its associated type \texttt{Bar} equal to 32--bit signed int.
 
 \subsection{Associated Constants}
-
-Besides 
 
 Traits can uniquely, be implemented generically for all types that salify given bounds using a generic implementation often referred to as a blanket impl:
 \texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.

@@ -1,81 +1,110 @@
 \begin{thebibliography}{10}
 
+\bibitem{structureandinterpretation}
+Harold Abelson and Gerald~Jay Sussman.
+\newblock {\em Structure and Interpretation of Computer Programs}.
+\newblock The MIT Press, 1996.
+
 \bibitem{rtrendering}
 Tomas Akenine-Moller, Eric Haines, and Naty Hoffman.
-\newblock {\em Real-time rendering}.
-\newblock AK Peters/crc Press, 2019.
+\newblock {\em Real--Time Rendering}.
+\newblock AK Peters/CRC Press, 2019.
+
+\bibitem{pythontyping}
+Python~Documentation Authors.
+\newblock {\em Python Typing Module}.
+\newblock \url{https://docs.python.org/3/library/typing.html}.
 
 \bibitem{cppref}
-Opengl wikipedia article.
+CppReference Contributors.
+\newblock {\em C++ Reference}.
 \newblock \url{https://en.cppreference.com/w/}.
 
-\bibitem{glewwebiste}
-Glew website.
-\newblock \url{https://glew.sourceforge.net/}.
-
-\bibitem{glfwwebiste}
-Glfw website.
-\newblock \url{https://www.glfw.org/}.
-
-\bibitem{glwiki}
-Opengl wiki hosted by khronos.
-\newblock \url{https://registry.khronos.org/OpenGL-Refpages/gl4/}.
-
-\bibitem{glwikip}
-Opengl wikipedia article.
-\newblock \url{https://en.wikipedia.org/wiki/OpenGL}.
-
 \bibitem{irisglwiki}
-Iris gl wikipedia article.
+Wikipedia Contributors.
+\newblock Iris gl wikipedia article.
 \newblock \url{https://en.wikipedia.org/wiki/IRIS_GL}.
 
+\bibitem{glwikip}
+Wikipedia Contributors.
+\newblock Opengl wikipedia article.
+\newblock \url{https://en.wikipedia.org/wiki/OpenGL}.
+
+\bibitem{frunk}
+Frunk Developers.
+\newblock {\em Documentation of hlist module from frunk crate}.
+\newblock \url{https://docs.rs/frunk/latest/frunk/hlist/index.html}.
+
+\bibitem{glewwebsite}
+GLEW Developers.
+\newblock Glew website.
+\newblock \url{https://glew.sourceforge.net/}.
+
+\bibitem{glfwwebsite}
+GLFW Developers.
+\newblock Glfw website.
+\newblock \url{https://www.glfw.org/}.
+
+\bibitem{gliumgithub}
+Glium Developers.
+\newblock Glium github repository.
+\newblock \url{https://github.com/glium/glium}.
+
+\bibitem{rustpage}
+The Rust~Project Developers.
+\newblock Rust lang website.
+\newblock \url{https://www.rust-lang.org/}.
+
+\bibitem{rustreference}
+The Rust~Project Developers.
+\newblock {\em The Rust Reference}.
+\newblock \url{https://doc.rust-lang.org/stable/reference/}.
+
+\bibitem{wgpugithub}
+gfx-rs Developers.
+\newblock wgpu github repository.
+\newblock \url{https://github.com/gfx-rs/wgpu}.
+
+\bibitem{glwiki}
+Khronos~Group Inc.
+\newblock {\em OpenGL Wiki Hosted by Khronos}.
+\newblock \url{https://registry.khronos.org/OpenGL-Refpages/gl4/}.
+
+\bibitem{spirvspec}
+The Khronos~Group Inc.
+\newblock {\em SPIR-V Specification}.
+\newblock \url{https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html}.
+
 \bibitem{glslspec}
-Rost Kessenich, Baldwin.
-\newblock The opengl shading language, version 4.60.8.
+John Kessenich, David Baldwin, and Randi Rost.
+\newblock {\em The OpenGL Shading Language, Version 4.60.8}.
+\newblock The Khronos Group Inc., 2020.
+\newblock \url{https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf}.
 
 \bibitem{rustbook}
 Steve Klabnik and Carol Nichols.
-\newblock The rust programming language, 2023.
+\newblock {\em The Rust Programming Language}.
+\newblock No Starch Press, 2023.
 
 \bibitem{nikobloggats}
-Many modes: a gats pattern.
+Niko Matsakis.
+\newblock Many modes: A gats pattern, 2022.
 \newblock \url{https://smallcultfollowing.com/babysteps/blog/2022/06/27/many-modes-a-gats-pattern/}.
-
-\bibitem{pythontyping}
-Python typing module.
-\newblock \url{https://docs.python.org/3/library/typing.html}.
-
-\bibitem{rustgpugithub}
-rust-gpu github.
-\newblock \url{https://github.com/EmbarkStudios/rust-gpu}.
-
-\bibitem{rustpage}
-Rust lang website.
-\newblock \url{https://www.rust-lang.org/}.
-
-\bibitem{rustrefernce}
-The rust reference.
-\newblock \url{https://doc.rust-lang.org/stable/reference/}, 2024.
 
 \bibitem{openglspec}
 Mark Segal and Kurt Akeley.
-\newblock The opengl graphics system: A specification (version 4.6 (core profile)-october 22, 2019), 2021.
+\newblock {\em The OpenGL Graphics System: A Specification (Version 4.6 (Core Profile)-October 22, 2019)}.
+\newblock The Khronos Group Inc., 2019.
+\newblock \url{https://www.khronos.org/registry/OpenGL/specs/gl/glspec46.core.pdf}.
 
-\bibitem{spirvspec}
-Opengl wikipedia article.
-\newblock \url{https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html}.
-
-\bibitem{gliumgithub}
-glium github.
-\newblock \url{https://github.com/glium/glium}.
-
-\bibitem{wgpugithub}
-wgpu github.
-\newblock \url{https://github.com/gfx-rs/wgpu}.
+\bibitem{rustgpugithub}
+Embark Studios.
+\newblock rust-gpu github repository.
+\newblock \url{https://github.com/EmbarkStudios/rust-gpu}.
 
 \bibitem{glsuperbible}
 Richard Wright, Benjamin Lipchak, and Nicholas Haemel.
-\newblock {\em OpenGL SuperBible: comprehensive tutorial and reference}.
+\newblock {\em OpenGL SuperBible: Comprehensive Tutorial and Reference}.
 \newblock Pearson Education, 2007.
 
 \end{thebibliography}

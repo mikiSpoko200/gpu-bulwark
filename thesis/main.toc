@@ -65,42 +65,42 @@
 \contentsline {subsubsection}{Variadic Generics}{36}{section*.9}%
 \contentsline {paragraph}{Problem}{36}{section*.10}%
 \contentsline {paragraph}{Solution}{37}{section*.11}%
-\contentsline {paragraph}{Use case}{37}{section*.12}%
-\contentsline {subsection}{\numberline {4.2.2}Const generics in const expressions}{37}{subsection.4.2.2}%
-\contentsline {paragraph}{Problem}{37}{section*.13}%
+\contentsline {paragraph}{Use case}{38}{section*.12}%
+\contentsline {subsection}{\numberline {4.2.2}Const generics in const expressions}{38}{subsection.4.2.2}%
+\contentsline {paragraph}{Problem}{38}{section*.13}%
 \contentsline {paragraph}{Solution}{38}{section*.14}%
-\contentsline {paragraph}{Use case}{38}{section*.15}%
-\contentsline {subsection}{\numberline {4.2.3}Effect system}{38}{subsection.4.2.3}%
-\contentsline {paragraph}{Problem}{38}{section*.16}%
-\contentsline {paragraph}{Solution}{38}{section*.17}%
-\contentsline {paragraph}{Use Case}{38}{section*.18}%
-\contentsline {section}{\numberline {4.3}Validation of program structure at compile--time}{39}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Markers}{39}{subsection.4.3.1}%
-\contentsline {paragraph}{Problem}{39}{section*.19}%
-\contentsline {paragraph}{Solution}{39}{section*.20}%
-\contentsline {paragraph}{Use Case}{39}{section*.21}%
-\contentsline {paragraph}{many modes}{40}{section*.22}%
-\contentsline {subsection}{\numberline {4.3.2}Subtyping}{40}{subsection.4.3.2}%
-\contentsline {paragraph}{Problem}{40}{section*.23}%
-\contentsline {paragraph}{Solution}{40}{section*.24}%
-\contentsline {paragraph}{Use Case}{40}{section*.25}%
-\contentsline {subsection}{\numberline {4.3.3}Type State}{40}{subsection.4.3.3}%
-\contentsline {section}{\numberline {4.4}OpenGL wrapper}{41}{section.4.4}%
-\contentsline {subsection}{\numberline {4.4.1}GLSL module}{41}{subsection.4.4.1}%
-\contentsline {subsection}{\numberline {4.4.2}Shaders}{42}{subsection.4.4.2}%
-\contentsline {subsection}{\numberline {4.4.3}Program}{42}{subsection.4.4.3}%
-\contentsline {subsubsection}{Builder}{43}{section*.27}%
-\contentsline {subsubsection}{Uniform Specification}{43}{section*.28}%
-\contentsline {subsubsection}{Pipeline Configuration}{43}{section*.29}%
-\contentsline {subsection}{\numberline {4.4.4}Buffer}{44}{subsection.4.4.4}%
-\contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{44}{subsection.4.4.5}%
-\contentsline {subsection}{\numberline {4.4.6}Vertex Array}{44}{subsection.4.4.6}%
-\contentsline {subsubsection}{Draw Calls}{44}{section*.30}%
-\contentsline {subsection}{\numberline {4.4.7}Textures}{45}{subsection.4.4.7}%
-\contentsline {subsubsection}{Storage}{45}{section*.31}%
-\contentsline {subsubsection}{Image Format}{46}{section*.32}%
-\contentsline {subsubsection}{Pixels}{46}{section*.33}%
-\contentsline {section}{\numberline {4.5}Examples}{46}{section.4.5}%
+\contentsline {paragraph}{Use case}{39}{section*.15}%
+\contentsline {subsection}{\numberline {4.2.3}Effect system}{39}{subsection.4.2.3}%
+\contentsline {paragraph}{Problem}{39}{section*.16}%
+\contentsline {paragraph}{Solution}{39}{section*.17}%
+\contentsline {paragraph}{Use Case}{40}{section*.18}%
+\contentsline {section}{\numberline {4.3}Validation of program structure at compile--time}{40}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Markers}{40}{subsection.4.3.1}%
+\contentsline {paragraph}{Problem}{40}{section*.19}%
+\contentsline {paragraph}{Solution}{40}{section*.20}%
+\contentsline {paragraph}{Use Case}{40}{section*.21}%
+\contentsline {paragraph}{many modes}{41}{section*.22}%
+\contentsline {subsection}{\numberline {4.3.2}Subtyping}{41}{subsection.4.3.2}%
+\contentsline {paragraph}{Problem}{41}{section*.23}%
+\contentsline {paragraph}{Solution}{41}{section*.24}%
+\contentsline {paragraph}{Use Case}{42}{section*.25}%
+\contentsline {subsection}{\numberline {4.3.3}Type State}{42}{subsection.4.3.3}%
+\contentsline {section}{\numberline {4.4}OpenGL wrapper}{42}{section.4.4}%
+\contentsline {subsection}{\numberline {4.4.1}GLSL module}{43}{subsection.4.4.1}%
+\contentsline {subsection}{\numberline {4.4.2}Shaders}{43}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.3}Program}{44}{subsection.4.4.3}%
+\contentsline {subsubsection}{Builder}{44}{section*.27}%
+\contentsline {subsubsection}{Uniform Specification}{44}{section*.28}%
+\contentsline {subsubsection}{Pipeline Configuration}{44}{section*.29}%
+\contentsline {subsection}{\numberline {4.4.4}Buffer}{45}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{45}{subsection.4.4.5}%
+\contentsline {subsection}{\numberline {4.4.6}Vertex Array}{45}{subsection.4.4.6}%
+\contentsline {subsubsection}{Draw Calls}{46}{section*.30}%
+\contentsline {subsection}{\numberline {4.4.7}Textures}{46}{subsection.4.4.7}%
+\contentsline {subsubsection}{Storage}{46}{section*.31}%
+\contentsline {subsubsection}{Image Format}{47}{section*.32}%
+\contentsline {subsubsection}{Pixels}{47}{section*.33}%
+\contentsline {section}{\numberline {4.5}Examples}{47}{section.4.5}%
 \contentsline {chapter}{\numberline {5}Conclusions}{49}{chapter.5}%
 \contentsline {section}{\numberline {5.1}Identified benefits of type--driven design for systems programming}{49}{section.5.1}%
 \contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{49}{section.5.2}%
