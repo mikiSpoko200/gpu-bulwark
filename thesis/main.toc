@@ -32,6 +32,7 @@
 \contentsline {subsection}{\numberline {1.4.2}Associated types}{19}{subsection.1.4.2}%
 \contentsline {subsection}{\numberline {1.4.3}Associated Constants}{19}{subsection.1.4.3}%
 \contentsline {section}{\numberline {1.5}Implementation Coherence}{20}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Orphan rules}{20}{section.1.6}%
 \contentsline {chapter}{\numberline {2}OpenGL and GLSL}{21}{chapter.2}%
 \contentsline {section}{\numberline {2.1}Introduction}{21}{section.2.1}%
 \contentsline {section}{\numberline {2.2}History}{21}{section.2.2}%
@@ -67,15 +68,15 @@
 \contentsline {paragraph}{Use case}{37}{section*.12}%
 \contentsline {subsection}{\numberline {4.2.2}Const generics in const expressions}{37}{subsection.4.2.2}%
 \contentsline {paragraph}{Problem}{37}{section*.13}%
-\contentsline {paragraph}{Solution}{37}{section*.14}%
+\contentsline {paragraph}{Solution}{38}{section*.14}%
 \contentsline {paragraph}{Use case}{38}{section*.15}%
 \contentsline {subsection}{\numberline {4.2.3}Effect system}{38}{subsection.4.2.3}%
 \contentsline {paragraph}{Problem}{38}{section*.16}%
 \contentsline {paragraph}{Solution}{38}{section*.17}%
 \contentsline {paragraph}{Use Case}{38}{section*.18}%
-\contentsline {section}{\numberline {4.3}Validation of program structure at compile--time}{38}{section.4.3}%
-\contentsline {subsection}{\numberline {4.3.1}Markers}{38}{subsection.4.3.1}%
-\contentsline {paragraph}{Problem}{38}{section*.19}%
+\contentsline {section}{\numberline {4.3}Validation of program structure at compile--time}{39}{section.4.3}%
+\contentsline {subsection}{\numberline {4.3.1}Markers}{39}{subsection.4.3.1}%
+\contentsline {paragraph}{Problem}{39}{section*.19}%
 \contentsline {paragraph}{Solution}{39}{section*.20}%
 \contentsline {paragraph}{Use Case}{39}{section*.21}%
 \contentsline {paragraph}{many modes}{40}{section*.22}%
@@ -88,21 +89,21 @@
 \contentsline {subsection}{\numberline {4.4.1}GLSL module}{41}{subsection.4.4.1}%
 \contentsline {subsection}{\numberline {4.4.2}Shaders}{42}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Program}{42}{subsection.4.4.3}%
-\contentsline {subsubsection}{Builder}{42}{section*.27}%
+\contentsline {subsubsection}{Builder}{43}{section*.27}%
 \contentsline {subsubsection}{Uniform Specification}{43}{section*.28}%
 \contentsline {subsubsection}{Pipeline Configuration}{43}{section*.29}%
-\contentsline {subsection}{\numberline {4.4.4}Buffer}{43}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.4}Buffer}{44}{subsection.4.4.4}%
 \contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{44}{subsection.4.4.5}%
 \contentsline {subsection}{\numberline {4.4.6}Vertex Array}{44}{subsection.4.4.6}%
 \contentsline {subsubsection}{Draw Calls}{44}{section*.30}%
-\contentsline {subsection}{\numberline {4.4.7}Textures}{44}{subsection.4.4.7}%
+\contentsline {subsection}{\numberline {4.4.7}Textures}{45}{subsection.4.4.7}%
 \contentsline {subsubsection}{Storage}{45}{section*.31}%
-\contentsline {subsubsection}{Image Format}{45}{section*.32}%
+\contentsline {subsubsection}{Image Format}{46}{section*.32}%
 \contentsline {subsubsection}{Pixels}{46}{section*.33}%
 \contentsline {section}{\numberline {4.5}Examples}{46}{section.4.5}%
-\contentsline {chapter}{\numberline {5}Conclusions}{47}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Identified benefits of type--driven design for systems programming}{47}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{47}{section.5.2}%
-\contentsline {section}{\numberline {5.3}What works}{48}{section.5.3}%
-\contentsline {section}{\numberline {5.4}What could be improved}{48}{section.5.4}%
-\contentsline {chapter}{Bibliography}{49}{chapter*.34}%
+\contentsline {chapter}{\numberline {5}Conclusions}{49}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Identified benefits of type--driven design for systems programming}{49}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{49}{section.5.2}%
+\contentsline {section}{\numberline {5.3}What works}{50}{section.5.3}%
+\contentsline {section}{\numberline {5.4}What could be improved}{50}{section.5.4}%
+\contentsline {chapter}{Bibliography}{51}{chapter*.34}%
