@@ -3,39 +3,114 @@
 
 \chapter*{Introduction}
 
-Rust is an open-source, general purpose, multi paradigm, compiled, statically and strongly typed language maintained by Rust Foundation.
+Rust is an open--source, general purpose, multi paradigm, compiled, statically and strongly typed language maintained by Rust Foundation.
 
 Although general purpose, language lends itself particularly well to systems programming, where software reliability, scalability and efficiency are paramount.
 These qualities can be largely attributed to powerful and expressive type system and ownership based memory management system which guarantees memory safety without a garbage collector.
 
 \section{Data types}
 
-% TODO: Scalars, Boolean, character, tuples, array, slice, str
+\section*{Built--in Rust Types}
+
+\subsection{Scalars}
+\textbf{Scalars} are the most basic types in Rust, representing single values. There are four primary scalar types in Rust:
+
+\begin{itemize}
+    \item \textbf{Integers}: These represent whole numbers and come in signed (\texttt{i8}, \texttt{i16}, \texttt{i32}, \texttt{i64}, \texttt{i128}, \texttt{isize}) 
+    and unsigned (\texttt{u8}, \texttt{u16}, \texttt{u32}, \texttt{u64}, \texttt{u128}, \texttt{usize}) varieties. 
+    The numbers in the names indicate the number of bits used for storage. \texttt{isize} and \texttt{usize} depend on the architecture of the machine, being 32--bit or 64--bit.
+    
+    \item \textbf{Floating--Point Numbers}: These represent numbers with fractional parts. Rust provides two floating--point types: \texttt{f32} (32--bit) and \texttt{f64} (64--bit).
+    
+    \item \textbf{Char}: The \texttt{char} type represents a single Unicode code point. It can represent a wide range of characters, including emojis, and is always four bytes in size.
+    
+    \item \textbf{Boolean}: The \texttt{bool} type has two possible values: \texttt{true} and \texttt{false}.
+\end{itemize}
+
+\begin{lstlisting}
+let is_rust_fun: bool = true;
+\end{lstlisting}
+
+\subsection{Character (\texttt{char})}
+The \textbf{\texttt{char}} type represents a single Unicode scalar value, which includes a wide array of characters from different languages, symbols, and even emojis. It is four bytes in size and is distinct from other language's \texttt{char} types, which often represent only ASCII characters.
+
+\begin{lstlisting}
+let heart_emoji: char = 'A';
+\end{lstlisting}
+
+\subsection{Tuples}
+\textbf{Tuples} are a compound type that allows you to group together multiple values of different types into a single entity. The values are ordered, and each element can be of a different type. Tuples have a fixed size, meaning once they are declared, they cannot grow or shrink in size.
+
+\begin{lstlisting}
+let person: (i32, &str, bool) = (25, "Alice", true);
+\end{lstlisting}
+
+You can access the elements of a tuple using dot notation with a zero--based index:
+
+\begin{lstlisting}
+let age = person.0;  // 25
+let name = person.1; // "Alice"
+\end{lstlisting}
+
+\subsection{Array}
+An \textbf{array} is a collection of elements of the same type stored in a contiguous block of memory. Arrays in Rust have a fixed size, meaning once they are defined, their size cannot be changed.
+Arrays are useful when you need a collection of items that are all of the same type and the number of elements is known and does not change.
+
+\begin{lstlisting}
+let numbers: [i32; 3] = [1, 2, 3];
+\end{lstlisting}
+
+Here, \texttt{[i32; 3]} indicates an array of three 32--bit integers.
+
+\subsection{Slice}
+A \textbf{slice} is a reference to a contiguous sequence of elements within an array or another slice. Unlike arrays, slices are not of a fixed size; they are dynamically sized.
+Slices are used when you want to reference a portion of an array without needing to own the entire array. Slices have two forms: \textbf{borrowed slices} (\texttt{\&[T]}) and \textbf{mutable slices} (\texttt{\&mut [T]}).
+
+\begin{lstlisting}
+let numbers: [i32; 3] = [1, 2, 3];
+let slice: &[i32] = &numbers[1..];
+\end{lstlisting}
+
+Here, \texttt{slice} refers to the elements \texttt{[2, 3]} in the \texttt{numbers} array.
+
+\subsection{\texttt{str}}
+The \textbf{\texttt{str}} type is a string slice, which represents a view into a string data. It's typically seen as a reference, 
+\texttt{\&str}, and is used for passing strings around without needing to own them. \texttt{str} is an immutable sequence of UTF--8 encoded bytes.
+
+\begin{lstlisting}
+let greeting: &str = "Hello, world!";
+\end{lstlisting}
+
+A \texttt{\&str} is often created from string literals or from string manipulation functions, and it is the most commonly used string type when you don't need to modify the string contents.
+
+Both \texttt{str}s and slices are unsized data types 
 
 \subsection{User defined types}
 
-Rust provides 3 ways to construct used defined aggregate types which.
-These are:
-- \texttt{struct}s
-- \texttt{enum}s
-- \texttt{union}s
+Rust provides 3 ways to construct user defined aggregate types, these are:
+\begin{itemize}
+    \item \texttt{struct}s
+    \item \texttt{enum}s
+    \item \texttt{union}s
+\end{itemize}
 
 We focus on the first two of these.
 
-\paragraph{\texttt{struct}s}
+\subsubsection{\texttt{struct}s}
 
 Struct is a heterogeneous product of other types, they are analogous to struct types in C, the record types of the ML family, or the struct types of the Lisp family. 
-They constitute the basic building blocks for any user defined types.
+They constitute the basic building blocks for any user defined types. The memory layout of a struct is undefined by default to allow for compiler optimizations like field reordering, 
+but it can be fixed with the \texttt{repr} attribute. The fields of a struct may be qualified by visibility modifiers, to allow access to data in a struct outside a module.
+A tuple struct type is just like a struct type, except that the fields are anonymous. 
+A unit--like struct type is like a struct type, except that it has no fields. The one value constructed by the associated struct expression is the only value that inhabits such a type.
+\cite{rustrefernce}
 
-A struct type is a heterogeneous product of other types, called the fields of the type. 
+\subsubsection{\texttt{enum}s}
 
-The memory layout of a struct is undefined by default to allow for compiler optimizations like field reordering, but it can be fixed with the repr attribute. In either case, fields may be given in any order in a corresponding struct expression; the resulting struct value will always have the same memory layout.
+An enumeration, also referred to as an enum, is a simultaneous definition of a nominal enumerated type as well as a set of constructors, 
+that can be used to create or pattern--match values of the corresponding enumerated type \cite{rustrefernce}.
 
-The fields of a struct may be qualified by visibility modifiers, to allow access to data in a struct outside a module.
-
-A tuple struct type is just like a struct type, except that the fields are anonymous.
-
-A unit-like struct type is like a struct type, except that it has no fields. The one value constructed by the associated struct expression is the only value that inhabits such a type.
+One noteworthy aspect is that enums without any constructors cannot be ever instantiated.
 
 \section{Implementations}
 
@@ -44,8 +119,10 @@ Instead it's associated with a type by so called \textit{implementations}.
 Implementations for a type are contained within a block introduced by the \texttt{impl} keyword.
 
 There are two types of implementations:
-- inherent implementations
-- trait implementations
+\begin{itemize}
+    \item inherent implementations
+    \item trait implementations
+\end{itemize}
 
 All items within impl block are called associated items
 
@@ -68,16 +145,18 @@ Such blocks can contain definition of a constants or functions.
 \section{Generic types}
 
 As of version 1.80 Rust provides 3 kinds of generic parameters types can use. 
-These are:
-- type parameters
-- constant parameters
-- lifetime parameters
+These are: (1) type parameters, (2) constant (const) parameters and (3) lifetime parameters. 
 Type which uses any generic parameters is said to be generic.
 
 \subsection{Type parameters}
 
 Type parameters can be used in function or type definition; they represent an abstract type which must be specified (or inferred) during compilation.
 Type generics are most commonly used for collections since they can contain arbitrary object and don't need to know almost anything about the inner types.
+
+\begin{lstlisting}
+    struct Collection<T> { inner: Vec<T> }
+    fn add<T>(element: T) { todo!() }
+\end{lstlisting}
 
 However, one can't do much with truly arbitrary type, even collections require ordering for tree structures, hashing for hash based collections and even the simplest collections
 like vectors and queues need to know that types they contain have finite size, or can be shared across thread boundaries. Most languages either provide these kinds of behavior
@@ -92,10 +171,48 @@ provide brand new level of expressive power, statically sized arrays especially 
 improving performance and reducing heap fragmentation, but for our purposes it allows type system verify and enforce certain quantities or reason about them in an abstract 
 way which, as we will show in this study, can be used to express very complex systems.
 
+Constant generics, could for example be used to type--check dimensions of matrices like so:
+
+\begin{lstlisting}
+struct Matrix<const N: usize, const M: usize> {
+    array: [[f32; M]; N]
+}
+fn mat_mul<const N: usize, const M: usize, const K: usize>(
+    lhs: Matrix<N, M>, rhs: Matrix<M, K>
+) -> Matrix<N, K> { todo!() }
+\end{lstlisting}
+
 \subsection{Lifetime parameters}
 
 Lifetime parameters are standout feature of Rust. They represent duration based on lexical scoping for how long reference remains valid, so being generic over lifetime means being generic
-to how long given reference can be held.
+to how long given reference can be held for.
+
+\begin{lstlisting}[basicstyle=\small]    
+struct Adapter<'a>(&'a mut String);
+
+fn foo<'a>(used: &'a mut String, ignored: &mut String) -> Adapter<'a> {
+    Adapter(used)
+}
+\end{lstlisting}
+
+As shown in the listing above lifetime parameters need to be used in both types - so that during type's instantiation
+a relation can be established as to what data is being borrowed. If lifetime annotations in the above listing were removed
+this code would fail to compile with error message stating:
+
+\begin{verbatim}
+help: this function's return type contains a borrowed value, but the 
+  signature does not say whether it is borrowed from `used` or `ignored`
+\end{verbatim}
+
+\subsection{Type Aliases}
+
+A type alias defines a new name for an existing type, similarly to C's \texttt{typedef}. Type aliases are declared with the keyword \texttt{type}.
+Type aliases can have generic parameters which must be used in the aliased type.
+
+\begin{lstlisting}
+type IntVec = Vec<i32>;
+type MyVec<T> = Vec<T>;
+\end{lstlisting}
 
 \section{Traits}
 
@@ -109,13 +226,55 @@ Types and generic parameters have their requirements states in such where clause
 What distinguishes Rust's traits from most other languages is its unique scheme of implementing functionality for types.
 Trait for a type is implemented in a very similar fashion to inherent impls using \texttt{impl Trait for Type \string{ ... \string}} syntax.
 
-Such impl block must contain definition for all items a trait provides.
+Such impl block must contain definition for all items a trait provides, these items consist of: (1) functions or methods, (2) associated types and (3) associated constants. 
+
+\subsection{Associated functions and methods}
+
+Associated functions and methods are the basic mean to express common behavior.
+In this regard they function like interfaces in most object oriented languages.
+Both methods and functions can have default implementations which implementors can override.
+
+\begin{lstlisting}
+pub trait Foo {
+    fn function() -> String;
+    fn method(&self);
+    fn default_impl() -> String {
+        String::from("hello world!")
+    }
+}
+
+\end{lstlisting}
+
+\subsection{Associated types}
+
+Associated types are type aliases associated with another type. Associated types cannot be defined in inherent implementations nor can they be given a default implementation in traits \cite{rustrefernce}.
+
+\lstinputlisting{listings/assoc\-type/declaration.rs}
+
+In associated type definition traits bounds can be defined. Compliance with these bounds will be checked during trait implementation.
+
+\lstinputlisting{listings/assoc-type/with-bound.rs}
+
+Since only one trait implementation per concrete type (non--generic type) is allowed, traits with associated types create a type--level function from implementing types to associated types.
+Most importantly from the perspective of this study, in trait bounds, associated types can be constraint by equality to given specified type.
+
+\lstinputlisting{listings/assoc-type/eq-in-bounds.rs}
+
+In the listing above \texttt{bar} must be a value of type \texttt{T} which implemented \texttt{Foo} with its associated type \texttt{Bar} equal to 32--bit signed int.
+
+\subsection{Associated Constants}
+
+Besides 
+
 Traits can uniquely, be implemented generically for all types that salify bounds using an \textbf{blanket impl} \texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.
-This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside - a blanket impl is the only impl for that trait that may exist.
-This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section
+This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside --- a blanket impl is the only impl for that trait that may exist.
+This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section.
 
 \section{Implementation Coherence}
+\label{sec:coherence}
 
 Rust must be always able to uniquely determine which method corresponds to which impl block that is, impl blocks must be coherent with each other, they must not interfere or overlap.
-That's the reason why as of 2024 Rust enforces one blanket impl - it cannot guarantee that two blanket impls of the same trait don't target some type twice.
+That's the reason why as of 2024 Rust enforces one blanket impl --- it cannot guarantee that two blanket impls of the same trait don't target some type twice.
+This is overly restrictive 
+
 However, if inherent or trait impl's target a specific generic type with at least one type parameter differing between the two impls coherence is preserved and program is not rejected.

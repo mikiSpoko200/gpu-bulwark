@@ -278,7 +278,6 @@ where
     {
         let bind = self.bind();
         definitions.0.set(&bind);
-
         Program {
             object: self.object,
             state: ProgramState::new(Declarations::default()),

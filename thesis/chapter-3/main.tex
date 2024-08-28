@@ -5,7 +5,7 @@ In this research we focused foremost on providing minimalistic wrapper and stayi
 By this we mean that appropriate GL functions take analogous parameters as in original spec and have their names and semantics preserved.
 Major benefit of this approach is that we could simply follow the OpenGL specification when creating type safe facades around procedures.
 
-Starting from these minimalistic principles we focused on providing maximal level of type safety. The main goal was to enable rejection of as many ill-formed programs at compile time as possible.
+Starting from these minimalistic principles we focused on providing maximal level of type safety. The main goal was to enable rejection of as many ill--formed programs at compile time as possible.
 
 There are many levels of safety guarantees we can expect from any software package.
 In this analysis we devise 
@@ -16,18 +16,38 @@ We distinguish between a language of choice and any framework at use.
 
 \section{Native C / C++ bindings}
 
-The simplest way one can program with OpenGL is using platform provided C bindings contained within an os provided dynamic link library (.dll for MS Windows, .so ) along with appropriate function pointer loader.
-The requirement for the latter stems from common practice among OS vendors to officially guarantee distribution of very dated version of the specification (1.1 for Windows).
-This poses a requirement for manual function pointer loading at runtime, an approach that has two main benefits
-- abstracts away details of dynamic library loading for different platforms, 
-- provides unified mechanism for using optional core standard extensions.
+The simplest way to program with OpenGL is by using platform--provided C bindings, 
+typically contained within an OS--provided dynamic link library (e.g., .dll for MS Windows or .so for Unix--based systems), 
+along with an appropriate function pointer loader.
+The necessity for a function pointer loader arises from the common practice among OS vendors of officially supporting only very dated versions of the OpenGL specification 
+(e.g., version 1.1 on Windows). As a result, manual function pointer loading at runtime becomes essential. 
 
-Additionally to function pointer loading one needs to initialize OpenGL context following platform defined protocol.
+This approach offers two main benefits:
+\begin{itemize}
+    \item It abstracts away the intricacies of dynamic library loading across different platforms.
+    \item It provides a unified mechanism for utilizing optional core standard extensions.
+\end{itemize}
 
-Most commonly there exists a library for each task, some examples for PC are GLEW for function loading and GLFW for window creation and context creation.
-Once these actions are accomplished one can use OpenGL in C or C++ provided appropriate attention to C interoperability.
+In addition to function pointer loading, an OpenGL context must be initialized according to platform--specific protocols. 
+This context serves as the environment in which OpenGL commands are executed and keeps track of allocated resources.
 
-Writing C application provides no auto
+Tough both can be implemented manually by interfacing with raw OS APIs, typically there are specialized libraries available to handle each of these tasks.
+For example, on PC platforms, the OpenGL Extension Wrangler Library (GLEW) \cite{glewwebiste} is commonly used for function pointer loading, 
+while the Graphics Library Framework (GLFW) \cite{glfwwebiste} is often employed for window creation and OpenGL context management.
+
+Once these tasks --- function pointer loading and context creation --- are completed, OpenGL can be utilized in C or C++ applications, provided that care is taken to ensure proper C interoperability. 
+
+Writing an application in C, however, does not benefit from features such as automatic resource management and type safety that higher--level languages may offer.
+Therefore, developers must manually manage resources such as memory and OpenGL objects, ensuring proper cleanup to avoid memory leaks and other potential issues.
+This can be beneficial as automatic binding and unbinding of OpenGL objects can cause 
+In C++ the situation is a bit better due to RAII mechanism, object orientation and templates which all may be utilized to improve user experience but the
+critical limitation of C++ is its relatively weak type system (partially amended with Cpp20 concepts feature) \cite{cppref}.
+C++'s templates are essentially advanced macros, all type variables are simply inserted and type analyses in performed on concrete types.
+There is no way to express abstraction in a way that type system could reason about it.
+
+
+In summary, using native C/C++ bindings for OpenGL provides powerful access to the graphics pipeline with maximum control and efficiency, 
+but it requires careful management of resources and a good understanding of platform--specific requirements.
 
 \section{Rust with unsafe bindings}
 
@@ -37,10 +57,7 @@ Once context is initialized and function pointers loaded one can call C function
 
 \section{Rust graphics libraries}
 
-Among rust native graphics programming libraries most notable are 
-\href{https://github.com/glium/glium}{\texttt{glium}}, 
-\href{https://github.com/gfx-rs/wgpu}{\texttt{wgpu}}
-and \href{https://github.com/EmbarkStudios/rust-gpu}{rust-gpu}.
+Among rust native graphics programming libraries most notable are \texttt{glium} \cite{gliumgithub}, \texttt{wgpu} \cite{wgpugithub} and \texttt{rust-gpu} \cite{rustgpugithub}.
 
 Whilst both provide varying levels of safety non of them provide nearly the amount of static verification we do.
 \texttt{glium} is specifically an OpenGL adapter but it operates on much higher level of abstraction.
@@ -48,14 +65,14 @@ Shaders are untyped containers for code, there is a limited number of predefined
 and drawing operates on very high level of abstraction. Underlying OpenGL is not very clearly visible which in our work was A
 crucial aspect.
 
-\texttt{wgpu} is a very large project with over 400 contributors. Its is a cross-platform, safe, pure-rust graphics API, that
+\texttt{wgpu} is a very large project with over 400 contributors. Its is a cross--platform, safe, pure--rust graphics API, that
 does not expose any specific hardware programming API but rather creates a unified abstraction over GPU and uses graphics APIs 
 as a backed.
 This again is not what we have strived for with \texttt{gpu-bulwark}, we tried to stay as true to OpenGL spec as possible
 and accentuate its design characteristics.
 
-\texttt{rust-gpu} is a very interesting crate. Currently in heavy development, it compiles rust code to SPIR-V which is a intermediate 
-assembly-like representation for graphics shader stages and compute kernels.
+\texttt{rust-gpu} is a very interesting crate. Currently in heavy development, it compiles rust code to SPIR--V which is a binary, intermediate, 
+assembly--like representation for graphics shader stages and compute kernels \cite{spirvspec}.
 Perhaps we could integrate it with \texttt{gpu-bulwark} to contain the entirety of graphics programming entirely inside rust 
 with perhaps build scripts using external tools, macros or \texttt{const fn}s when their capabilities are expanded.
 

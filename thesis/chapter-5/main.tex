@@ -1,0 +1,34 @@
+\chapter{Conclusions}
+
+\section{Identified benefits of type--driven design for systems programming}
+
+Type--driven design forces greater attention during the initial phase of software creation. The logical principles underlying the type system allow for a very precise description of the program's structure, algorithm invariants, as well as the interactions between different components.
+
+Enforcing greater attention during system architecture design brings significant benefits in later stages of development. Type annotations also serve as a very good source of self--documentation.
+
+The biggest benefit of extensive use of the type system is the static verification of the correctness of the analyzed programs. Rust's type system allows for the expression of a vast number of contracts.
+
+\section{Identified downsides of type--driven design for systems programming}
+
+This approach to programming requires expert knowledge of the language and an understanding of advanced concepts in logic and type theory, which significantly limits the accessibility of this method of software development due to the potential lack of specialists.
+
+A large portion of the patterns and techniques presented in this publication requires writing a lot of code that does not necessarily carry much meaning --- produces boilerplate. Error messages generated for highly recursive types are often unreadable and convey very little useful information.
+Specifically, in the case of Rust, the lack of certain features significantly complicates programming and forces the addition of even more unreadable code, bending the language's functionalities beyond the creators' intent.
+
+Even for a small project like our library, compilation times become noticeably longer, making code iteration more difficult.
+
+Reverting form an erroneous design decision causes cascading errors and requires changes in many places of the codebase. Due to this it is difficult to maintain backwards compatibility.
+
+\section{What works}
+
+We managed to create a minimal wrapper for OpenGL that allows for the realization of a vast majority of even quite complex applications.
+
+The library protects against misuse the most commonly used and critical functionalities of OpenGL, such as data flow through the pipeline, memory allocations, and resource management. A large part of the specification would not benefit from extensive type coverage because it operates on non--programmable parts of the pipeline where we have data form guarantees, there is no chance to invoke undefined behavior. These parts, when improperly configured, will only produce incorrect computation results rather than critical errors. 
+
+\section{What could be improved}
+
+The minimalism of our wrapper lies in covering disjoint interfaces in the smallest possible way, which can be mechanically generalized to other, often simply more general, cases without encountering any problems.
+
+Not all objects provided by OpenGL were implemented because they are quite niche and solve highly specialized problems. 
+They are not necessary for constructing all applications. 
+Such functionalities include immutable buffers, mutable and buffer--backed textures, asynchronous pixel transfer operations, constructing a context within our package, instanced rendering, supporting arbitrary types through macros and traits as vertex attributes.

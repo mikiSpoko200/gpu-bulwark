@@ -8,27 +8,39 @@
 \advisor{dr Andrzej Łukaszewski}
 \transcriptnum {328690}
 \advisorgen    {dr. Andrzeja Łukaszewskiego}
-\englishtitle{Analysis of Type-Driven approach to systems programming:\fmlinebreak Implementation of OpenGL library for Rust}
+\englishtitle{Analysis of Type--Driven approach to systems programming:\fmlinebreak Implementation of OpenGL library for Rust}
 
 \polishtitle{Analiza programowania systemowego z wykorzystaniem systemu typów:\fmlinebreak Implementacja biblioteki do OpenGL dla języka Rust}
 
-\englishabstract{For the past few years in the software development industry there has been a growing interest in strongly typed languages. It manifests itself in emergence of brand-new technologies in which strong type systems were one of the core founding principles or in changes introduced to existing languages. The most common examples of modern languages with powerful type systems are TypeScript as an alternative to JavaScript in the world of web development or Rust in domain of systems programming in place of C and C++. More mature languages also had their type systems revised for example in C\# 8 explicit type nullability annotations were introduced, or even dynamically typed Python has seen major improvements to its type annotation system.
+\englishabstract{For the past few years in the software development industry there has been a growing interest in strongly typed languages. 
+It manifests itself in emergence of brand--new technologies in which strong type systems were one of the core founding principles or in changes introduced to existing languages. 
+The most common examples of modern languages with powerful type systems are TypeScript as an alternative to JavaScript in the world of web development or Rust in domain of systems programming in place of C and C++. 
+More mature languages also had their type systems revised for example in C\# 8 explicit type nullability annotations were introduced, 
+or even dynamically typed Python has seen major improvements to its type annotation system.
 
-This study - an implementation of the OpenGL graphics API wrapper library for Rust - will attempt to demonstrate how Rust’s type system can be utilized to improve low-level software safety and maintainability as well as how it affects API design and codebase structure.
+This study --- an implementation of the OpenGL graphics API wrapper library for Rust --- will attempt to demonstrate 
+how Rust's type system can be utilized to improve low--level software safety and maintainability as well as how it affects API design and codebase structure.
 }
 
-\polishabstract{For the past few years in the software development industry there has been a growing interest in strongly typed languages. It manifests itself in emergence of brand-new technologies in which strong type systems were one of the core founding principles or in changes introduced to existing languages. The most common examples of modern languages with powerful type systems are TypeScript as an alternative to JavaScript in the world of web development or Rust in domain of systems programming in place of C and C++. More mature languages also had their type systems revised for example in C\# 8 explicit type nullability annotations were introduced, or even dynamically typed Python has seen major improvements to its type annotation system.
+\polishabstract{Od kilku lat w branży programistycznej rośnie zainteresowanie językami silnie typowanymi. Przejawia się to przez powstawanie zupełnie nowych technologii, 
+w których silne systemy typów są fundamentem budowy języka lub w zmianach wprowadzanych do istniejących języków. Przykładami takich nowoczesnych języków są TypeScript, 
+jako alternatywa dla JavaScript w świecie stron internetowych lub Rust w dziedzinie programowania systemowego zamiast C i C++. Starsze technologie rozszerzyły swoje systemy typów, 
+na przykład w C\# 8 wprowadzono jawne adnotacje o tym, że typ może przyjmować wartości \texttt{null}. 
+Nawet dynamicznie typowany Python doczekał się znacznych ulepszeń w swoim systemie adnotacji typów \cite{pythontyping}.
 
-This study - an implementation of the OpenGL graphics API wrapper library for Rust - will attempt to demonstrate how Rust’s type system can be utilized to improve low-level software safety and maintainability as well as how it affects API design and codebase structure.
+Niniejsza praca --- implementacja biblioteki opakowującej API OpenGL dla języka Rust --- będzie próbą zademonstrowania w jaki sposób jego 
+system typów może zostać wykorzystany do zwiększenia niezadwodności, łatwości utrzymania oraz rozwoju oprogramowania i 
+jego niskopoziomowego bezpieczeństwa; a także w jaki sposób wpływa on na projektowanie API i strukturę kodu.
 }
 
 \begin{document}
 
-\include{introduction/main.tex}
+\include{introduction/main}
 \include{chapter-1/main}
 \include{chapter-2/main}
 \include{chapter-3/main}
 \include{chapter-4/main}
+\include{chapter-5/main}
 
 \bibliographystyle{plain}
 \bibliography{bibliography}

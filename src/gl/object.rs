@@ -34,7 +34,7 @@ impl<B: Binder> Bind<B> {
 
 impl<B: Binder> Drop for Bind<B> {
     fn drop(&mut self) {
-        // B::unbind();
+        B::unbind();
     }
 }
 

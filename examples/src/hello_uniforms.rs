@@ -155,11 +155,12 @@ impl crate::Sample for Sample {
             winit::keyboard::KeyCode::KeyS => self.camera.fixed_move(&crate::common::camera::Direction::Back),
             winit::keyboard::KeyCode::KeyA => self.camera.fixed_move(&crate::common::camera::Direction::Left),
             winit::keyboard::KeyCode::KeyD => self.camera.fixed_move(&crate::common::camera::Direction::Right),
+            winit::keyboard::KeyCode::Escape => std::process::exit(0),
             _ => (),
         };
         self.program.uniform(&matrix, &self.camera.view_projection_matrix());
-        if code == winit::keyboard::KeyCode::KeyX {
-            self.scale -= 0.05;
+        if code == winit::keyboard::KeyCode::Space {
+            self.scale -= 0.01;
             if self.scale < 0.4 {
                 self.scale = 1.5;
             }
@@ -170,12 +171,12 @@ impl crate::Sample for Sample {
     fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
         let glsl::vars![matrix, _scale] = Uniforms::default();
 
-        self.camera.rotate((dy as f32).to_radians(), (-dx as f32).to_radians());
+        self.camera.rotate((-dy as f32).to_radians(), (-dx as f32).to_radians());
         self.program.uniform(&matrix, &self.camera.view_projection_matrix());
     }
 
     fn usage(&self) -> String {
-        String::from("use W, A, S, D keys to move around and mouse to operate the camera, use space bar tp modify triangle's size")
+        String::from("use W, A, S, D keys to move around and mouse to operate the camera, hold space bar to modify triangle's size, press esc to quit")
     }
     
     fn name() -> String {

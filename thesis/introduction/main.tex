@@ -2,9 +2,9 @@
 
 This study aims to demonstrate how extensive use of advanced type systems can change the way software is developed.
 Advancements in type systems allow their users to express increasingly more complex invariants and contracts for their programs using logic rules, 
-and enable type checkers to proof that all these invariants upheld at compile-time.
+and enable type checkers to proof that all these invariants upheld at compile--time.
 
-This is very desired as type systems not only offer extensive compile-time verification, but just as importantly logic based rules are substantially less susceptible to bugs
+This is very desired as type systems not only offer extensive compile--time verification, but just as importantly logic based rules are substantially less susceptible to bugs
 due to programming errors like regular validation code is.
 
 For over a decade now we have now seen gradual shift toward both stronger typing and more of a functional approach to program specification in many languages.
@@ -15,9 +15,10 @@ We chose to implement wrapper library for OpenGL using Rust due to several impor
 Rust has: a state of the art type system comparable to Haskell's, 
 is natively compiled language with very good support for C interoperability,
 its ownership based model of resource lifetime management provides strong guarantees about when exactly destructor will be called,
-borrow checker allows to better express how different pieces of program use different 
+borrow checker allows to better express how different pieces of program interact with each other.
+Rust is also a systems programming language, and we wanted to showcase that it can be successfully applied to graphics programming \cite{rustpage}
 
-OpenGL is a very mature, cross-platform, well understood and widely supported graphics specification.
+OpenGL is a very mature, cross--platform, well understood and widely supported graphics specification.
 Its also arguably the best API for beginners in hardware accelerated graphics programming.
 With all that being said its also quite dated, and its sequential model of execution does accurately represent the realities of graphics hardware.
 
