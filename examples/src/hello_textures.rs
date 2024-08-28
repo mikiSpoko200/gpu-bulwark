@@ -16,34 +16,36 @@ use gl::vertex_array::Attribute;
 use gl::shader;
 use gl::buffer::{Static, Draw};
 use gl::{Program, Buffer, VertexArray};
+use texture::pixel::channels::Channels as _;
 use glsl::MatchingInputs as _;
 
+// imports for reading images
+use std::io::Cursor;
+use slice_of_array::prelude::*;
 
 pub mod logo {
-    const BITMAP_OFFSET: usize = 54;
-    const RAW_BITMAP_SIZE: usize = 262198;
+    use std::path::Path;
 
-    type Bitmap = [u8; RAW_BITMAP_SIZE];
+    use image::{DynamicImage, GenericImage, Pixel, RgbImage, Rgba};
 
-    static UWR: &'static Bitmap = include_bytes!("../resources/uwr.bmp");
-    static RUST: &'static Bitmap = include_bytes!("../resources/rust.bmp");
-    static OPENGL: &'static Bitmap = include_bytes!("../resources/opengl.bmp");
-
-    pub fn pixels(bmp: &'static Bitmap) -> &'static [[u8; 4]] {
-        /// SAFETY: data layout is correct
-        unsafe { std::mem::transmute(&bmp[BITMAP_OFFSET..]) }
+    pub fn try_load_bitmap(path: &str) -> image::ImageResult<RgbImage> {
+        image::open(path).map(|dynamic| dynamic.into_rgb8())
     }
 
-    pub fn uwr() -> &'static [[u8; 4]] {
-        pixels(&UWR)
+    pub fn load_bitmap_from_resources(path: &str) -> RgbImage {
+        try_load_bitmap(path).expect("resource paths are valid")
     }
 
-    pub fn rust() -> &'static [[u8; 4]] {
-        pixels(RUST)
+    pub fn uwr(dest: &mut RgbImage) {
+        dest.copy_from(&load_bitmap_from_resources("resources/uwr.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
     }
 
-    pub fn opengl() -> &'static [[u8; 4]] {
-        pixels(OPENGL)
+    pub fn rust(dest: &mut RgbImage) {
+        dest.copy_from(&load_bitmap_from_resources("resources/rust.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
+    }
+
+    pub fn opengl(dest: &mut RgbImage) {
+        dest.copy_from(&load_bitmap_from_resources("resources/opengl.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
     }
 }
 
@@ -60,10 +62,6 @@ type FsOutputs = glsl::Outputs! {
     layout(location = 0) vec4;
 };
 
-type Uniforms = glsl::Glsl! {
-    layout(location = 0) uniform mat4;
-};
-
 type Resources = glsl::Glsl! {
     layout(binding = 0) uniform sampler2D;
 };
@@ -77,29 +75,14 @@ type Attributes = gb::HList! {
 use texture::{target::D2, Immutable, image::{Format, format}};
 
 pub struct Sample {
-    program: Program<Inputs, FsOutputs, Uniforms, Resources>,
+    program: Program<Inputs, FsOutputs, (), Resources>,
     vao: VertexArray<Attributes>,
-    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGBA, u8>, 0>
+    texture: texture::TextureUnit<D2, Immutable<D2>, Format<format::RGB, u8>, 0>,
+    image: image::RgbImage,
 }
 
 impl Sample {
-    fn generate_256x256_texture() -> Vec<[u8; 3]> {
-        let width = 256;
-        let height = 256;
-        let mut texture = Vec::with_capacity(width * height);
-    
-        for y in 0..height {
-            for x in 0..width {
-                let pixel = [
-                    (x as u8).wrapping_add(y as u8),
-                    y as u8,
-                    x as u8,
-                ];
-                texture.push(pixel);
-            }
-        }
-        texture
-    }
+    const TEXTURE_SIZE: usize = 256;
 }
 
 impl crate::Sample for Sample {
@@ -115,7 +98,6 @@ impl crate::Sample for Sample {
         let fs_inputs = vs_outputs.matching_inputs();
         let glsl::vars![ fs_output ] = FsOutputs::default();
 
-        let glsl::vars![ view_matrix_location ] = Uniforms::default();
         let glsl::vars![ sampler ] = Resources::default();
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
@@ -125,7 +107,6 @@ impl crate::Sample for Sample {
         uncompiled_fs.source(&[&fs_source]);
     
         let vs = uncompiled_vs
-            .uniform(&view_matrix_location)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -137,26 +118,14 @@ impl crate::Sample for Sample {
             .output(&fs_output);
 
         let program = Program::builder()
-        .uniforms(|definitions| definitions
-            .define(&view_matrix_location, &[[0f32; 4]; 4])
-        )
+        .no_uniforms()
         .resources(|resources| resources
             .sampler(&sampler)
         )
         .vertex_main(&vs)
-        .uniforms(|matcher| matcher.bind(&view_matrix_location))
         .fragment_main(&fs)
         .build()?;
 
-        // let mut positions = Buffer::create();
-        // positions.data::<(Static, Draw)>(
-        //     &[[0.5, -0.5], [ 0.5, 0.5], [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]
-        // );
-        
-        // let mut texture_coords = Buffer::create();
-        // texture_coords.data::<(Static, Draw)>(
-        //     &[[ 1.0, 0.0], [ 1.0, 1.0], [ 0.0, 0.0], [ 0.0, 1.0], [ 1.0, 1.0], [ 0.0, 0.0]]
-        // );  
         let mut positions = Buffer::create();
         positions.data::<(Static, Draw)>(
             &[[0.5, -0.5], [ 0.5, 0.5], [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]
@@ -164,15 +133,15 @@ impl crate::Sample for Sample {
         
         let mut texture_coords = Buffer::create();
         texture_coords.data::<(Static, Draw)>(
-            &[[ 1.0, 0.0], [ 1.0, 1.0], [ 0.0, 0.0], [ 0.0, 1.0], [ 1.0, 1.0], [ 0.0, 0.0]]
-        );  
+            &[[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]
+        );
 
-        let mut texture = texture::Texture::create_with_storage_2d(256, 256);
+        let mut image = image::RgbImage::new(Self::TEXTURE_SIZE as _, Self::TEXTURE_SIZE as _);
+        let mut texture = texture::Texture::create_with_storage_2d(Self::TEXTURE_SIZE, Self::TEXTURE_SIZE);
 
-        let pixels = logo::uwr();
+        logo::uwr(&mut image);
         
-        texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
-
+        texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &image.nest::<[_; 3]>());
 
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)
@@ -181,7 +150,8 @@ impl crate::Sample for Sample {
         let inner = Self {
             program,
             vao,
-            texture: TextureUnit::<_, _, _, 0>::new(texture).expect("texture unit 0 is bindable")
+            texture: TextureUnit::<_, _, _, 0>::new(texture).expect("texture unit 0 is bindable"),
+            image,
         };
 
         Ok(Ctx {
@@ -210,16 +180,17 @@ impl crate::Sample for Sample {
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
         let texture = &mut self.texture;
 
-        let mut update_image = |pixels: &[[u8; 4]], message: &str| {
+        let mut update_image = |load: fn(&mut image::RgbImage), message: &str| {
             print!("\rdisplaying logo {:>6}", message);
             std::io::stdout().flush().unwrap();
-            texture.sub_image_2d::<pixel::channels::BGRA, _>(0..256, 0..256, &pixels);
+            load(&mut self.image);
+            texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &self.image.nest::<[_; 3]>());
         };
 
         match code {
-            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr(), "uwr"),
-            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl(), "opengl"),
-            winit::keyboard::KeyCode::KeyD => update_image(logo::rust(), "rust"),
+            winit::keyboard::KeyCode::KeyA => update_image(logo::uwr, "uwr"),
+            winit::keyboard::KeyCode::KeyS => update_image(logo::opengl, "opengl"),
+            winit::keyboard::KeyCode::KeyD => update_image(logo::rust, "rust"),
             _ => (),
         }
     }
