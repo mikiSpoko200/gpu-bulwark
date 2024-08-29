@@ -171,13 +171,7 @@ impl<T: Sample> App<T> {
                 .build_surface_attributes(<_>::default())
                 .expect("Failed to build surface attributes");
             let surface = unsafe { config.display().create_window_surface(&config, &attrs).unwrap() };
-        
-            // let context_attributes = context::ContextAttributesBuilder::new()
-            //     .with_debug(true)
-            //     .with_context_api(context::ContextApi::OpenGl(Some(version)))
-            //     .with_profile(context::GlProfile::Core)
-            //     .build(Some(raw_window_handle));
-        
+               
             let gl_context = not_current_gl_context.make_current(&surface).expect("can make surface current");
         
             gb::load_with(|symbol| {
@@ -191,6 +185,7 @@ impl<T: Sample> App<T> {
 
             println!("*-----------------------------------------------------------*\n");
             println!("{}", self.ctx.as_ref().unwrap().inner.usage());
+            println!("press escape key to exit");
             println!("\n*-----------------------------------------------------------*");
         }
     }
@@ -232,7 +227,10 @@ impl<T: Sample> ApplicationHandler for App<T> {
                 physical_key: keyboard::PhysicalKey::Code(key),
                 state: ElementState::Pressed,
             }) => {
-                self.process_key(key)
+                match key {
+                    winit::keyboard::KeyCode::Escape => std::process::exit(0),
+                    other => self.process_key(other),
+                }
             },
             _ => (),
         }

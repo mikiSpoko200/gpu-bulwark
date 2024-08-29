@@ -155,7 +155,6 @@ impl crate::Sample for Sample {
             winit::keyboard::KeyCode::KeyS => self.camera.fixed_move(&crate::common::camera::Direction::Back),
             winit::keyboard::KeyCode::KeyA => self.camera.fixed_move(&crate::common::camera::Direction::Left),
             winit::keyboard::KeyCode::KeyD => self.camera.fixed_move(&crate::common::camera::Direction::Right),
-            winit::keyboard::KeyCode::Escape => std::process::exit(0),
             _ => (),
         };
         self.program.uniform(&matrix, &self.camera.view_projection_matrix());
@@ -176,7 +175,7 @@ impl crate::Sample for Sample {
     }
 
     fn usage(&self) -> String {
-        String::from("use W, A, S, D keys to move around and mouse to operate the camera, hold space bar to modify triangle's size, press esc to quit")
+        String::from("use W, A, S, D keys to move around and mouse to operate the camera, hold space bar to modify triangle's size")
     }
     
     fn name() -> String {

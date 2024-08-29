@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  29 AUG 2024 17:47
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  29 AUG 2024 22:37
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -458,9 +458,6 @@ Overfull \hbox (15.56691pt too wide) in paragraph at lines 199--199
 [18]
 Package hyperref Info: bookmark level for unknown lstlisting defaults to 0 on input line 247.
  (./listings/assoc-type/declaration.rs) (./listings/assoc-type/with-bound.rs) (./listings/assoc-type/eq-in-bounds.rs)
-Underfull \vbox (badness 1132) has occurred while \output is active []
-
-
 
 [19])
 
@@ -560,67 +557,67 @@ LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <6> not available
 [40]
 
 [41]
-Overfull \hbox (120.6968pt too wide) in paragraph at lines 258--259
+Overfull \hbox (120.6968pt too wide) in paragraph at lines 259--260
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (61.56618pt too wide) in paragraph at lines 259--260
+Overfull \hbox (61.56618pt too wide) in paragraph at lines 260--261
 [][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (94.41652pt too wide) in paragraph at lines 262--263
+Overfull \hbox (94.41652pt too wide) in paragraph at lines 263--264
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (219.24782pt too wide) in paragraph at lines 263--264
+Overfull \hbox (219.24782pt too wide) in paragraph at lines 264--265
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 267--269
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 268--270
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (252.09816pt too wide) in paragraph at lines 279--280
+Overfull \hbox (252.09816pt too wide) in paragraph at lines 280--281
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (61.56618pt too wide) in paragraph at lines 280--281
+Overfull \hbox (61.56618pt too wide) in paragraph at lines 281--282
 [][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (114.12672pt too wide) in paragraph at lines 285--286
+Overfull \hbox (114.12672pt too wide) in paragraph at lines 286--287
 [][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 288--289
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 289--290
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (127.26686pt too wide) in paragraph at lines 289--290
+Overfull \hbox (127.26686pt too wide) in paragraph at lines 290--291
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (146.97707pt too wide) in paragraph at lines 290--291
+Overfull \hbox (146.97707pt too wide) in paragraph at lines 291--292
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (166.68727pt too wide) in paragraph at lines 291--293
+Overfull \hbox (166.68727pt too wide) in paragraph at lines 292--294
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (28.71584pt too wide) in paragraph at lines 299--300
+Overfull \hbox (28.71584pt too wide) in paragraph at lines 300--301
 [][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
@@ -634,29 +631,29 @@ Underfull \vbox (badness 10000) has occurred while \output is active []
 [43]
 
 [44]
-Overfull \hbox (19.37202pt too wide) in paragraph at lines 382--385
+Overfull \hbox (19.37202pt too wide) in paragraph at lines 383--386
 []\OT4/cmr/m/n/10.95 To rep-re-sent a per-ma-nent con-nec-tion (like a TCP socket) we cre-ated the \OT4/cmtt/m/n/10.95 Connection
  []
 
 
-Overfull \hbox (15.5757pt too wide) in paragraph at lines 391--392
+Overfull \hbox (15.5757pt too wide) in paragraph at lines 392--393
 [][][][][][][][][][][][][][][][][][] 
  []
 
 
 
 [45]
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 440--441
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 442--443
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (9.00563pt too wide) in paragraph at lines 450--451
+Overfull \hbox (9.00563pt too wide) in paragraph at lines 452--453
 [][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (219.24782pt too wide) in paragraph at lines 451--452
+Overfull \hbox (219.24782pt too wide) in paragraph at lines 453--454
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
@@ -669,44 +666,45 @@ Overfull \hbox (219.24782pt too wide) in paragraph at lines 451--452
 [48]
 
 [49]
-Overfull \hbox (43.42648pt too wide) in paragraph at lines 571--575
+Overfull \hbox (43.42648pt too wide) in paragraph at lines 573--584
 \OT4/cmr/m/n/10.95 Vertex Ar-ray can be cre-ated with \OT4/cmtt/m/n/10.95 create\OT4/cmr/m/n/10.95 . It ex-poses a sin-gle method \OT4/cmtt/m/n/10.95 vertex[]attrib[]pointer
  []
 
 
 
 [50]
-Underfull \vbox (badness 1895) has occurred while \output is active []
 
+[51]
 
+[52])
 
-[51])
-
-[52]
+[53]
 \openout2 = `chapter-5/main.aux'.
 
  (./chapter-5/main.tex
+
+[54
+
+
+
+
+]
 Chapter 5.
 
 
-[53
+[55]
 
+[56])
 
+[57] (./main.bbl
 
-
-]
-
-[54])
-
-[55] (./main.bbl
-
-[56
+[58
 
 
 
 ]
 
-[57]
+[59]
 Underfull \hbox (badness 10000) in paragraph at lines 90--93
 []\OT4/cmr/m/n/10.95 Niko Mat-sakis.  Many modes: A gats pat-tern, 2022.
  []
@@ -728,7 +726,7 @@ Underfull \hbox (badness 2582) in paragraph at lines 106--109
 
 )
 
-[58] (./main.aux (./introduction/main.aux) (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux) (./chapter-4/main.aux) (./chapter-5/main.aux))
+[60] (./main.aux (./introduction/main.aux) (./chapter-1/main.aux) (./chapter-2/main.aux) (./chapter-3/main.aux) (./chapter-4/main.aux) (./chapter-5/main.aux))
  ***********
 LaTeX2e <2024-06-01> patch level 2
 L3 programming layer <2024-05-27>
@@ -737,18 +735,18 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 1FED6BC7C1FDF2E129F635CF98E8AF93;10933.
  ) 
 Here is how much of TeX's memory you used:
- 13136 strings out of 473583
- 204129 string characters out of 5732342
+ 13139 strings out of 473583
+ 204159 string characters out of 5732342
  1990908 words of memory out of 5000000
- 35383 multiletter control sequences out of 15000+600000
+ 35384 multiletter control sequences out of 15000+600000
  571069 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,6n,93p,476b,1865s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (58 pages, 299726 bytes).
+Output written on main.pdf (60 pages, 302015 bytes).
 PDF statistics:
- 1162 PDF objects out of 1200 (max. 8388607)
- 1060 compressed objects within 11 object streams
- 426 named destinations out of 1000 (max. 500000)
+ 1172 PDF objects out of 1200 (max. 8388607)
+ 1068 compressed objects within 11 object streams
+ 428 named destinations out of 1000 (max. 500000)
  590 words of extra memory for PDF output out of 10000 (max. 10000000)
 

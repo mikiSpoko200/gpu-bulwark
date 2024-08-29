@@ -380,13 +380,14 @@ where
     }
 
     /// Draw arrays using program that uses external resources. Bindings for these resources need to be provided in order to draw. 
-    pub fn draw_arrays_ext<Attrs, Handles>(&self, vao: &gl::VertexArray<Attrs>, _: &texture::TextureUnits<Handles>)
+    pub fn draw_arrays_ext<Attrs, Handles>(&self, vao: &gl::VertexArray<Attrs>, handles: &texture::TextureUnits<Handles>)
     where
         Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
-        Handles: ResourceProviders<Res>,
+        Handles: ResourceProviders<Res> + texture::Binders,
     {
         let _vao_bind = vao.bind();
         let _program_bind = self.bind();
+        let _texture_binders = handles.binders();
 
         gl::call! {
             [panic]

@@ -59,7 +59,7 @@ Rust's type system understands recursion and provides a singleton unit type alon
 Functionality for such lists would need to be expressed using traits since our very goal is to abstract over lists of different types --- so no concrete type could possibly suffice.
 With all that in mind, we present a scheme for non--homogenous collections of types in Rust.
 
-Starting with the most basic type list, we define a trait simply states that given type is a type list (called HLists henceforth \cite{frunk}), and provide no functionality.
+Starting with the most basic type list, we define a trait which simply states that given type is a type list (called HLists henceforth \cite{frunk}), and provides no actual functionality.
 
 \begin{lstlisting}
 pub trait HList { }
@@ -107,11 +107,12 @@ impl<H, T> HList for (H, T) where T: HList {
 }
 \end{lstlisting}
 
-\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=13d2d29f768d207f8fe7fa1bde7acef1}{[playground parmalink]}
+\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=13d2d29f768d207f8fe7fa1bde7acef1}{[playground permalink]}
 
 By deciding in which slot to place the tuple and in which the current element we can change the winding order of the HLists.
 These two schemes are equivalent in terms of functionality, but differ in terms of potential user experience.
-In our use case appending new types to the end of a HList was by far the most common use case, and as such we almost exclusively use left wound HLists (LHLists).
+In our case appending new types to the end of a HList was by far the most common use case, and as such we almost exclusively use left wound HLists (LHLists)
+due to cleaner type signatures being produced that way.
 
 These homogenous collections have been implemented as an independent module called \texttt{hlist} which can be found in the root of our crate.
 
@@ -153,7 +154,7 @@ As a consequence, different limitation was imposed: associated constants cannot 
 \paragraph{Use case}
 
 Due to the lack of negative reasoning, as of yet, in Rust compiler we cannot express type inequality.
-The only viable solution would be to a blanket impl stating that two types are different if they are not the same type; since such a blanket would apply to user defined types as well.
+As the only viable solution would be tp write a blanket impl stating that two types are different if they are not the same type; since such a blanket would apply to user defined types as well.
 
 CT validation that types are all different is required to assert that glsl variable layout locations do not overlap.
 In certain scenarios when layout components are used this overlap may be valid; we ignored it in this work because it can be easily taken into account in future releases.
@@ -174,7 +175,7 @@ Ability to type check function invocation context in OpenGL would be especially 
 \paragraph{Solution}
 
 We instead were forced to opt for more error prone and verbose approach.
-Objects like textures or buffers can produce binder objects which in their constructor binds, and in their destructors unbinds, object from appropriate binding point.
+Objects like textures or buffers can produce binder objects which in their constructor bind, and in their destructors unbind, object from the appropriate binding point.
 This lets us control context bindings using lexical scope, but does not in any way prevent distinct objects with the same target from overriding the global binding.
 A minimal example showing of effect emulation can be found on \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=3724852e646ce5d0ed1faf0c57f3e5c1}{playground}.
 
@@ -310,7 +311,7 @@ Types representing these variables aggregated into hlists are specified by the u
 Marker traits in miscellaneous \texttt{\_::valid} modules define relations between valid combinations of data types. Buffer in raw OpenGL, 
 due to C's lack of generics, has its buffer populated using \texttt{*void} and the documentation enumerates valid types. 
 To make things worse validity of data types changes depending on what's the buffer's target.
-It is illegal for index buffer to contain anything other than unsigned integers, pixel buffers can contain almost everything and vertex buffers, 
+It is illegal for index buffer to contain anything other than unsigned integers, pixel buffers can contain almost everything, whilst vertex buffers, 
 yet again, can contain only specific combinations of data.
 By associating a phantom type with a Buffer and using marker trait based validation relations on uploaded data we solve both of these issues.
 
@@ -324,7 +325,7 @@ We use many modes in \texttt{Variable<S, L, T, Store>} to abstract over kind of 
 
 \subsection{Type State}
 
-Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile--time.
+Type state is a very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile--time.
 Its name refers to static verification technique of the same name proposed by Robert E. Strom and Shaula Yemini \cite{typestate}. 
 Which allowed to determine the subset of operations permitted on a data object in a particular context,
 detecting and preventing semantically undefined execution sequences at compile--time.
@@ -427,8 +428,9 @@ impl Session<Verified> {
 \end{lstlisting}
 
 Session in each state holds a \texttt{Connection} instance, phantom data and ctx to store current state type and any data associated with it.
-We then precede to define semantics of our type state. We allow direct creation of only anonymous sessions, as well as access to secrete information
-for authenticated users. Now all that remains are the state transitions.
+We then precede to define semantics of our type state. 
+We allow direct creation of only anonymous sessions, and for access to secret information for authenticated sessions. 
+Now all that remains are the state transitions.
 
 \begin{lstlisting}
 #[derive(Error, Debug)]
@@ -472,14 +474,14 @@ A full sample along with few examples can be accessed via \noindent \href{https:
 \subsection*{Scope}
 
 Our goal with this study was foremost to explore how Rust's type system can be utilized to improve static validation of OpenGL programs.
-We by no means meant to cover the entirety of OpenGL functionality only the most essential aspects like shaders, programs, vertex arrays and buffers and textures.
+We by no means meant to cover the entirety of OpenGL functionality, only the most essential aspects like shaders, programs, vertex arrays and buffers and textures.
 Nevertheless, a great deal of consideration was taken before every major design decision to ensure that one could simply duplicate existing solution from a single 
 API variant to all others and obtain the same level of functionality and protection.
 Additionally, we tried staying as true to original OpenGL API as possible. We preserves most of the semantics, function names and parameters that made sense.
 All objects don't retain any parameters, they simply forward them to appropriate GL procedure calls. 
 
-In the end we arrived at minimal working example of a type--driven OpenGL 4.6 core wrapper that provides ability to create all the aforementioned GL objects
-and program even moderately complex computer graphics in a safer fashion.
+In the end we arrived at minimal working example of a type--driven OpenGL 4.6 core wrapper that provides ability to create all the aforementioned GL objects,
+and program even moderately complex computer graphics applications in a safer fashion.
 
 \subsection{GLSL module}
 
@@ -508,7 +510,7 @@ In this state the only operation one can perform is provide shader source code. 
 Compilation can either succeed and return shader object now in \texttt{Compiled} state or a compilation error back to the user.
 Once shader has been compiled successfully one can specify what uniform variable this shader requires or precede forward by converting shader 
 to either shader containing a pipeline stage entry point \texttt{main}, or to \texttt{Lib} shader for use for linking.
-\texttt{Main} shader require specification of inputs or outputs using appropriate \texttt{glsl::Variable}s defined in global scope using declarative macros.
+\texttt{Main} shader require specification of inputs or outputs using appropriate \texttt{glsl::Variable}s.
 
 Such shaders are ready for attachment to program Objects.
 
@@ -518,7 +520,7 @@ In this study we implement non--separable program objects, which means that at l
 
 \subsubsection{Builder}
 
-Programs build using the most complex type state builder. It contains six type parameters corresponding to
+Program is built using the most complex type state builder. It contains six type parameters corresponding to
 \begin{itemize}
     \item target shader of most recently attached shader with entrypoint
     \item vertex input
@@ -539,11 +541,11 @@ instead of plain old data like matrices or vectors.
 
 \subsubsection{Pipeline Configuration}
 
-Once uniforms and resources builder transitions to vertex shader stage where obligatory main entrypoint for vertex stage needs to be provided.
+Once uniforms and resource declarations and configures, builder transitions to vertex shader stage where obligatory main entrypoint for vertex stage needs to be provided.
 From here type state will force the user to follow valid configuration paths for the pipeline as defined in the specification, 
 validating that outputs from most recently attached entrypoint shader match inputs to the newly provided one using location layout qualifiers 
 on shader provided inputs and outputs, resulting in compilation error in case of a mismatch. 
-This traversal always concludes with specification of the fragment stage entrypoint shader where linking can be performed and actual Program object obtained.
+This traversal always concludes with specification of the fragment stage entrypoint, after which linking can be performed and actual Program object obtained.
 
 If program is obtained it means that pipeline is configured correctly, program is linked and ready for use. Otherwise either compilation or runtime program link error was generated.
 In the current version we do not validate that representation of shader interfaces actually matches shader status, but it can be easily achieved 
@@ -551,7 +553,7 @@ by either parsing shader source code or querying shaders interfaces using OpenGL
 
 \subsection{Buffer}
 
-Buffer objects heavily leverage phantom types and markers to provide type information and content type validation to otherwise untyped integers.
+Buffer objects heavily leverage phantom types and markers to provide type information and content validation, to what otherwise would be a basic integer resource descriptor.
 
 Buffers are created, as for all objects, with \texttt{create} function.
 Once buffer is created its data store can be allocated and populated with \texttt{data} function which expects one type parameter for usage hint.
@@ -561,17 +563,24 @@ Once buffer is created its data store can be allocated and populated with \textt
 Buffers have an interesting feature that they can be mapped into memory and used with Direct Memory Access.
 We provide this functionality using auxiliary \texttt{Mapped\_} types which borrow a buffer and are smart pointers that provide \texttt{Deref} and \texttt{DerefMut} to slices,
 allowing for idiomatic store access.
-A noteworthy implementation detail is that \texttt{Mapped\_} smart pointers leverage the borrow checked to safeguard against an error condition during rendering
+A noteworthy implementation detail is that \texttt{Mapped\_} smart pointers, leverage the borrow checker to safeguard against an error condition during rendering
 where draw call was issues using vertex array that sources vertex data from memory mapped buffer. 
 Smart pointers hold references to buffers borrowed in turn from VAO, and since \texttt{draw\_arrays} method also requires mutable reference to VAO borrow checker will reject
 a program if any buffer used as vertex source is mapped during drawing.
 
 \subsection{Vertex Array}
 
-Vertex Array can be created with \texttt{create}.
-It exposes a single method \texttt{vertex\_attrib\_pointer} which takes ownership of a Buffer bound to \texttt{BUFFER\_ARRAY}
-and stores it in VAOs internal HList of \texttt{Attribute}s.
+Vertex Array can be created with \texttt{create}. It exposes a single method \texttt{vertex\_attrib\_pointer} which takes ownership of a Buffer bound to \texttt{BUFFER\_ARRAY}
+and an \texttt{in} variable to associate given buffer with as an \texttt{Attribute}.
 Attributes encompass buffer, vertex format and attribute index. This is a complete set of information needed to match vertex shader input variables.
+and stores it in VAOs internal HList of \texttt{Attribute}s. 
+Buffer object must contain data which is deemed \texttt{Compatible} with program's input at a matching location.
+Compatibility is determined using based of implementor of our internal unsafe trait \texttt{ffi::FFI} which states that for any non glsl type, bytes of type implementing it,
+can be safely reinterpreted as array of given type and size. 
+We implemented this traits for arrays, scalars and even integrated it with \texttt{nalgebra} crates,
+as well as for phantom types from the \texttt{glsl} module.
+During buffer content matching we check that type which it contains has the same ffi layout as corresponding glsl variable expects using equality bound on types as discussed in \ref{sec:assoctypes}.
+This allows us to provide data for \texttt{mat2} using \texttt{[f32; 4]}, \texttt{[[f32; 2]; 2]} or \texttt{nalgebra::Matrix2}.
 
 \subsubsection{Draw Calls}
 
@@ -586,7 +595,9 @@ Textures have the broadest API of all the OpenGL objects.
 Textures consist of three components: (1) sampling parameters, (2) texture parameters and (3) texture images, but only the storage benefits 
 from strong typing due somewhat complex allocation and wide range of rules regarding valid parameter combinations which all can be easily expressed and checked at compile--time.
 
-Textures support mipmaps in order better antialias textures during sampling. Mipmaps are a sequence of images generated from original image by halving its dimensions until they all reach 1px.
+Textures support mipmaps in order better antialias textures during sampling. 
+Mipmaps are a sequence of images generated from original image by halving its dimensions until they all reach 1px.
+For a well defined behavior all mipmap levels must be allocated in the correct way, this requirement is called texture's mipmap completeness.
 
 \subsubsection{Storage}
 
@@ -595,10 +606,12 @@ When texture is created its storage kind (immutable, mutable, buffer) and textur
 Textures can have 3 types of their storage
 \begin{itemize}
     \item mutable texture owned --- allocated using \texttt{TexImage*} family of functions. 
-        These are the earliest form of textures. Storage can be later reallocated, hence mutability. 
-        Mipmaps need to be manually allocated and uploaded which is quite error prone.
-        Pixel data for mutable storage can be specified directly using 
-        \texttt{TexImage*} \texttt{data} parameter of a Buffer bound to \texttt{PIXEL\_UNPACK\_BUFFER}.
+        This was historically the earliest form of texture storage, and thus suffers the most from issues related to backwards compatibility. 
+        This kind of storage can be later reallocated, hence mutability. 
+        Mipmaps need to be manually allocated and uploaded which is quite error prone, 
+        since if texture is not mipmap complete using it causes undefined behavior.
+        Pixel data for mutable storage can be specified directly using
+        \texttt{TexImage*} \texttt{data} parameter or a Buffer bound to \texttt{PIXEL\_UNPACK\_BUFFER}.
         Data may also be modified using \texttt{TexSubImage*} functions.
     \item immutable texture owned --- allocated using \texttt{TexStorage*} family of functions. 
         This is the most recently added kind of texture backing storage. 
@@ -629,12 +642,12 @@ it symbolizes how shader should interpret these values: either integers or float
 Once texture is allocated it needs to be initialized with pixels, by means of a pixel transfer operation.
 The simplest way to transfer pixel data is by using \texttt{TexSubImage*} functions.
 Ranges along each texture dimension have to be specified where pixels will be substituted,
-along with pixel type and format parameters both of which we encoded in types and validate them 
-against internal image format of the targeted texture.
+along with pixel's type and format.
+These to parameters are expressed using traits and implemented for Rust's arrays of appropriate size and content.
 Format parameter has dual meaning it describes: (1) what texture channels to target with current pixel transfer
 (which indirectly determines number of components in provided data) with formats like \texttt{RED}, \texttt{GREEN}, \texttt{BLUE},
 \texttt{BGRA} or \texttt{BGR}, and how pixels are to be interpreted during texture sampling --- as integers or floats --- which needs to match
-texture image's \texttt{Interpretation} parameter.
+texture's image format \texttt{Interpretation} parameter.
 
 Pixel transfer operations are implemented in such a way that type inference treats internal format's types
 as valid ones and will validate pixels that user is trying to transfer against that and report a compilation error
@@ -652,7 +665,9 @@ There are four samples which increase in complexity as follows:
         Two vertex attributes are used: one for vertex positions and another for vertex color.
         This sample is interactive, user can use A, S and D keys to modify color values stored in buffers 
         which is implemented using buffer memory mapping and using buffers via normal rust slices.
+    \item \texttt{hello\_textures} --- example of how to use textures. By pressing A, S, D user can change the displayed bitmap.
     \item \texttt{hello\_uniforms} --- sample that shows how more complex programs which use uniforms may be constructed.
         Program implements an interactive 3D camera which can be controlled with mouse and keyboard to navigate in 3D space and
-        view the scene: a single rainbow triangle. This interactivity is produced by using two uniform variables 
+        view the scene: a single rainbow triangle which can be shrunk using space bar. This interactivity is produced by using two uniform variables: 
+        (1) view--perspective matrix and (2) a float uniform that scales the triangle. Sample can be closed with the escape key.
 \end{itemize}

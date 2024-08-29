@@ -4,6 +4,8 @@ pub mod valid;
 pub mod pixel;
 pub mod image;
 
+use std::ops::Deref;
+
 use crate::gl;
 use crate::glsl;
 use crate::ts;
@@ -24,7 +26,8 @@ pub use storage::{Immutable, Mutable, Storage};
 pub struct TextureObject<T>(PhantomData<T>) where T: Target;
 
 impl<T> Binder for TextureObject<T>
-where T: Target
+where
+    T: Target
 {
     fn bind(name: u32) {
         gl::call! {
@@ -106,7 +109,6 @@ impl<F> texture::image::marker::Format for ts::Some<F> where F: texture::image::
     
     type Composition = F::Composition;
     type ComponentType = F::ComponentType;
-    // type Kind = F::Kind;
 }
 
 pub struct Builder<T, K, F>
@@ -269,6 +271,7 @@ where
     InternalFormat: texture::image::marker::Format,
 {
     pub fn new<const N: usize>(texture: Texture<Target, Kind, InternalFormat>) -> gl::Result<TextureUnit<Target, Kind, InternalFormat, N>> {
+        let binder = texture.bind();
         gl::call! {
             [propagate]
             unsafe {
@@ -295,7 +298,35 @@ where
 pub fn units() -> TextureUnits<()> {
     TextureUnits::<()>::default()
 }
-pub struct TextureUnits<Handles>(Handles);
+
+pub trait Binders {
+    type Binders;
+
+    fn binders(&self) -> Self::Binders;
+}
+
+
+pub struct TextureUnits<Handles>(Handles) where Handles: Binders;
+
+impl Binders for () {
+    type Binders = ();
+
+    fn binders(&self) -> Self::Binders { () }
+}
+
+impl<H, Target, Kind, InternalFormat, const BINDING: usize> Binders for (H, &TextureUnit<Target, Kind, InternalFormat, BINDING>)
+where
+    H: Binders,
+    Target: texture::Target,
+    Kind: texture::storage::marker::Kind<Target = Target>,
+    InternalFormat: texture::image::marker::Format,
+{
+    type Binders = (H::Binders, object::Bind<texture::TextureObject<Target>>);
+
+    fn binders(&self) -> Self::Binders {
+        (self.0.binders(), self.1.object.bind())
+    }
+}
 
 impl Default for TextureUnits<()> {
     fn default() -> Self {
@@ -303,7 +334,7 @@ impl Default for TextureUnits<()> {
     }
 }
 
-impl<Handles> TextureUnits<Handles> {
+impl<Handles> TextureUnits<Handles> where Handles: Binders {
     pub fn add<Target, Kind, InternalFormat, const BINDING: usize>(self, unit: &TextureUnit<Target, Kind, InternalFormat, BINDING>) -> TextureUnits<(Handles, &TextureUnit<Target, Kind, InternalFormat, BINDING>)> 
     where
         Target: texture::Target,
@@ -311,5 +342,9 @@ impl<Handles> TextureUnits<Handles> {
         InternalFormat: texture::image::marker::Format,
     {
         TextureUnits((self.0, unit))
+    }
+
+    pub fn binders(&self) -> Handles::Binders {
+        self.0.binders()
     }
 }

@@ -37,15 +37,18 @@ pub mod logo {
     }
 
     pub fn uwr(dest: &mut RgbImage) {
-        dest.copy_from(&load_bitmap_from_resources("resources/uwr.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
+        let loaded = load_bitmap_from_resources("resources/uwr.bmp");
+        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 
     pub fn rust(dest: &mut RgbImage) {
-        dest.copy_from(&load_bitmap_from_resources("resources/rust.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
+        let loaded = load_bitmap_from_resources("resources/rust.bmp");
+        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 
     pub fn opengl(dest: &mut RgbImage) {
-        dest.copy_from(&load_bitmap_from_resources("resources/opengl.bmp"), 0, 0).expect("image storage matches loaded bitmaps")
+        let loaded = load_bitmap_from_resources("resources/opengl.bmp");
+        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 }
 
@@ -174,7 +177,6 @@ impl crate::Sample for Sample {
             }
         }
         self.program.draw_arrays_ext(&self.vao, &texture_bindings);
-        
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
@@ -184,7 +186,7 @@ impl crate::Sample for Sample {
             print!("\rdisplaying logo {:>6}", message);
             std::io::stdout().flush().unwrap();
             load(&mut self.image);
-            texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &self.image.nest::<[_; 3]>());
+            texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &self.image.nest::<[u8; 3]>());
         };
 
         match code {
@@ -212,3 +214,4 @@ impl crate::Sample for Sample {
         String::from("hello-textures")
     }
 }
+
