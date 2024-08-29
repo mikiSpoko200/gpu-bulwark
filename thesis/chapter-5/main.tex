@@ -28,8 +28,8 @@ Reverting form an erroneous design decision causes cascading errors and requires
 We managed to create a minimal wrapper for OpenGL that allows for the realization of a vast majority of even quite complex applications.
 
 The library protects against misuse the most commonly used and critical functionalities of OpenGL, such as data flow through the pipeline, memory allocations, and resource management. 
-A large part of the specification would not benefit from extensive type coverage because it operates on non--programmable parts of the pipeline where we have data from guarantees, 
-there is no chance to invoke undefined behavior. These parts, when improperly configured, will only produce incorrect computation results rather than critical errors. 
+A large part of the specification would not benefit from extensive type coverage because it operates on non--programmable parts of the pipeline where we have data form guarantees, 
+and there is no chance to invoke undefined behavior. These parts, when improperly configured, will only produce incorrect computation results rather than critical errors. 
 
 \section{What could be improved}
 
@@ -40,12 +40,12 @@ They are not necessary for constructing all applications.
 Such functionalities include immutable buffers, mutable and buffer--backed textures, asynchronous pixel transfer operations, constructing a context within our package, instanced rendering, supporting arbitrary types through macros and traits as vertex attributes.
 
 From a user experience perspective, many aspects could be improved.
-With substantial effort, we could wrap all important type parameters in a wrapper type, with all validation traits implemented for it, ensuring that every program type-checks
+With substantial effort, we could wrap all important type parameters in a wrapper type, with all validation traits implemented for it, ensuring that every program type--checks,
 and moving validation to be run--time checked. Which mode of validation if used could be controlled using an environment variable and a type alias.
 
 However, this approach would reimplement verification functionality to occur at runtime. 
 From the user's perspective, this change would be partially transparent. 
-Since, during compile-time validation, these types would be appear, potentially causing even more confusion. 
+Since, during compile--time validation, these types would be appear, potentially causing even more confusion. 
 At the same time, it would provide much better runtime diagnostics. 
 Perhaps switching between these modes of validation could enhance user experience by improving error messages.
 

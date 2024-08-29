@@ -82,28 +82,28 @@
 \contentsline {subsection}{\numberline {4.3.1}Markers}{41}{subsection.4.3.1}%
 \contentsline {paragraph}{Problem}{41}{section*.21}%
 \contentsline {paragraph}{Solution}{41}{section*.22}%
-\contentsline {paragraph}{Use Case}{43}{section*.23}%
+\contentsline {paragraph}{Use Case}{42}{section*.23}%
 \contentsline {paragraph}{many modes}{43}{section*.24}%
 \contentsline {subsection}{\numberline {4.3.2}Type State}{43}{subsection.4.3.2}%
-\contentsline {section}{\numberline {4.4}OpenGL wrapper}{47}{section.4.4}%
+\contentsline {section}{\numberline {4.4}OpenGL wrapper}{46}{section.4.4}%
 \contentsline {subsection}{\numberline {4.4.1}GLSL module}{47}{subsection.4.4.1}%
-\contentsline {subsection}{\numberline {4.4.2}Shaders}{48}{subsection.4.4.2}%
+\contentsline {subsection}{\numberline {4.4.2}Shaders}{47}{subsection.4.4.2}%
 \contentsline {subsection}{\numberline {4.4.3}Program}{48}{subsection.4.4.3}%
 \contentsline {subsubsection}{Builder}{48}{section*.26}%
-\contentsline {subsubsection}{Uniform Specification}{49}{section*.27}%
+\contentsline {subsubsection}{Uniform Specification}{48}{section*.27}%
 \contentsline {subsubsection}{Pipeline Configuration}{49}{section*.28}%
-\contentsline {subsection}{\numberline {4.4.4}Buffer}{50}{subsection.4.4.4}%
-\contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{50}{subsection.4.4.5}%
+\contentsline {subsection}{\numberline {4.4.4}Buffer}{49}{subsection.4.4.4}%
+\contentsline {subsection}{\numberline {4.4.5}Memory Mapping}{49}{subsection.4.4.5}%
 \contentsline {subsection}{\numberline {4.4.6}Vertex Array}{50}{subsection.4.4.6}%
-\contentsline {subsubsection}{Draw Calls}{51}{section*.29}%
-\contentsline {subsection}{\numberline {4.4.7}Textures}{51}{subsection.4.4.7}%
+\contentsline {subsubsection}{Draw Calls}{50}{section*.29}%
+\contentsline {subsection}{\numberline {4.4.7}Textures}{50}{subsection.4.4.7}%
 \contentsline {subsubsection}{Storage}{51}{section*.30}%
-\contentsline {subsubsection}{Image Format}{52}{section*.31}%
+\contentsline {subsubsection}{Image Format}{51}{section*.31}%
 \contentsline {subsubsection}{Pixels}{52}{section*.32}%
-\contentsline {section}{\numberline {4.5}Examples}{53}{section.4.5}%
-\contentsline {chapter}{\numberline {5}Conclusions}{55}{chapter.5}%
-\contentsline {section}{\numberline {5.1}Identified benefits of type--driven design for systems programming}{55}{section.5.1}%
-\contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{55}{section.5.2}%
-\contentsline {section}{\numberline {5.3}What works}{56}{section.5.3}%
-\contentsline {section}{\numberline {5.4}What could be improved}{56}{section.5.4}%
-\contentsline {chapter}{Bibliography}{59}{chapter*.33}%
+\contentsline {section}{\numberline {4.5}Examples}{52}{section.4.5}%
+\contentsline {chapter}{\numberline {5}Conclusions}{53}{chapter.5}%
+\contentsline {section}{\numberline {5.1}Identified benefits of type--driven design for systems programming}{53}{section.5.1}%
+\contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{53}{section.5.2}%
+\contentsline {section}{\numberline {5.3}What works}{54}{section.5.3}%
+\contentsline {section}{\numberline {5.4}What could be improved}{54}{section.5.4}%
+\contentsline {chapter}{Bibliography}{57}{chapter*.33}%

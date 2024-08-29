@@ -254,7 +254,7 @@ Marker traits along with marker types can be used as:
     \item typing external resources -- by using \texttt{PhantomData} we can attach type information to otherwise untyped parts of an API.
 \end{itemize}
 
-\begin{lstlisting}
+\begin{lstlisting}[basicstyle=\tiny]
 use std::marker::PhantomData;
 
 /// This pattern of pub trait in private module provides the sealing behaviour.
@@ -576,11 +576,11 @@ and an \texttt{in} variable to associate given buffer with as an \texttt{Attribu
 Attributes encompass buffer, vertex format and attribute index. This is a complete set of information needed to match vertex shader input variables.
 and stores it in VAOs internal HList of \texttt{Attribute}s. 
 Buffer object must contain data which is deemed \texttt{Compatible} with program's input at a matching location.
-Compatibility is determined using based of implementor of our internal unsafe trait \texttt{ffi::FFI} which states that for any non glsl type, bytes of type implementing it,
+Compatibility is determined based on implementation of our internal unsafe trait \texttt{ffi::FFI} which states that for any non glsl type, bytes of type implementing it,
 can be safely reinterpreted as array of given type and size. 
 We implemented this traits for arrays, scalars and even integrated it with \texttt{nalgebra} crates,
 as well as for phantom types from the \texttt{glsl} module.
-During buffer content matching we check that type which it contains has the same ffi layout as corresponding glsl variable expects using equality bound on types as discussed in \ref{sec:assoctypes}.
+During buffer content matching we check, that type which it contains, has the same ffi layout as corresponding glsl variable expects, using equality bound on types as discussed in \ref{sec:assoctypes}.
 This allows us to provide data for \texttt{mat2} using \texttt{[f32; 4]}, \texttt{[[f32; 2]; 2]} or \texttt{nalgebra::Matrix2}.
 
 \subsubsection{Draw Calls}
