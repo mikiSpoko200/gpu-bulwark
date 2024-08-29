@@ -222,8 +222,8 @@ INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plbx12.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plr12.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plbx12.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/tfm/jknappen/ec/tcrm1095.tfm
-INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/pltt12.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc
+INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/pltt12.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/tfm/public/pl/plti10.tfm
 INPUT d:/texlive/2024/texmf-dist/fonts/enc/dvips/pl/plit.enc
 INPUT d:/texlive/2024/texmf-dist/tex/latex/base/omlcmr.fd

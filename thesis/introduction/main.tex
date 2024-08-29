@@ -2,12 +2,12 @@
 
 This study aims to demonstrate how extensive use of advanced type systems can change the way software is developed.
 Advancements in type systems allow their users to express increasingly more complex invariants and contracts for their programs using logic rules, 
-and enable type checkers to proof that all these invariants upheld at compile--time.
+and enable type checkers to proof that all these invariants are upheld at compile--time.
 
 This is very desired as type systems not only offer extensive compile--time verification, but just as importantly logic based rules are substantially less susceptible to bugs
 due to programming errors like regular validation code is.
 
-For over a decade now we have now seen gradual shift toward both stronger typing and more of a functional approach to program specification in many languages.
+For over a decade now in many languages we have seen a gradual shift toward both stronger typing, and more of a functional approach to program specification.
 with strong and expressive types systems as a foundation of this trend.
 
 We chose to implement wrapper library for OpenGL using Rust due to several important factors.
@@ -19,7 +19,7 @@ borrow checker allows to better express how different pieces of program interact
 Rust is also a systems programming language, and we wanted to showcase that it can be successfully applied to graphics programming \cite{rustpage}
 
 OpenGL is a very mature, cross--platform, well understood and widely supported graphics specification.
-Its also arguably the best API for beginners in hardware accelerated graphics programming.
+Its also arguably the best API for beginners in hardware accelerated graphics programming to start with.
 With all that being said its also quite dated, and its sequential model of execution does accurately represent the realities of graphics hardware.
 
 We realized that Rust's type system can help to amend certain aspects of OpenGL which make it sometimes difficult to use.

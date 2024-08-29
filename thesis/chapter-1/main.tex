@@ -6,42 +6,31 @@
 Rust is an open--source, general purpose, multi paradigm, compiled, statically and strongly typed language maintained by Rust Foundation.
 
 Although general purpose, language lends itself particularly well to systems programming, where software reliability, scalability and efficiency are paramount.
-These qualities can be largely attributed to powerful and expressive type system and ownership based memory management system which guarantees memory safety without a garbage collector.
+These qualities can be largely attributed to powerful and expressive type system and ownership based memory management which guarantees memory safety without a garbage collector.
 
 \section{Data types}
 
 \section{Built--in Rust Types}
 
 \subsection{Scalars}
-\textbf{Scalars} are the most basic types in Rust, representing single values. There are four primary scalar types in Rust:
+\textbf{Scalars} are the most basic types in Rust, representing single numeric values. There are four primary scalar types in Rust:
 
 \begin{itemize}
     \item \textbf{Integers}: These represent whole numbers and come in signed (\texttt{i8}, \texttt{i16}, \texttt{i32}, \texttt{i64}, \texttt{i128}, \texttt{isize}) 
     and unsigned (\texttt{u8}, \texttt{u16}, \texttt{u32}, \texttt{u64}, \texttt{u128}, \texttt{usize}) varieties. 
     The numbers in the names indicate the number of bits used for storage. \texttt{isize} and \texttt{usize} depend on the architecture of the machine, being 32--bit or 64--bit.
     
-    \item \textbf{Floating--Point Numbers}: These represent numbers with fractional parts. Rust provides two floating--point types: \texttt{f32} (32--bit) and \texttt{f64} (64--bit).
+    \item \textbf{Floating--Point Numbers}: These represent numbers with fractional parts. Rust provides two floating--point types defined in IEEE754, namely single precision 32--bit \texttt{f32} and double precision 64--bit \texttt{f64}.
     
     \item \textbf{Char}: The \texttt{char} type represents a single Unicode code point. It can represent a wide range of characters, including emojis, and is always four bytes in size.
     
     \item \textbf{Boolean}: The \texttt{bool} type has two possible values: \texttt{true} and \texttt{false}.
 \end{itemize}
 
-\begin{lstlisting}
-let is_rust_fun: bool = true;
-\end{lstlisting}
-
-\subsection{Character (\texttt{char})}
-The \textbf{\texttt{char}} type represents a single Unicode scalar value, which includes a wide array of characters from different languages, symbols, and even emojis. It is four bytes in size and is distinct from other language's \texttt{char} types, which often represent only ASCII characters.
-
-\begin{lstlisting}
-let a: char = 'A';
-\end{lstlisting}
-
 \subsection{Tuples}
 \textbf{Tuples} are a compound type that allows you to group together multiple values of different types into a single entity. 
 The values are ordered, and each element can be of a different type. 
-Tuples have a fixed size, meaning once they are declared, they cannot grow or shrink in size.
+Tuples have a fixed size, meaning once they are declared, they cannot grow or shrink.
 
 \begin{lstlisting}
 let person: (i32, &str, bool) = (25, "Alice", true);
@@ -56,7 +45,7 @@ let name = person.1; // "Alice"
 
 \subsection{Array}
 An \textbf{array} is a collection of elements of the same type stored in a contiguous block of memory. Arrays in Rust have a fixed size, meaning once they are defined, their size cannot be changed.
-Arrays are useful when you need a collection of items that are all of the same type and the number of elements is known and does not change.
+Arrays are useful when you need a collection of items that are all of the same type and the exact number of elements is known at compile--time.
 
 \begin{lstlisting}
 let numbers: [i32; 3] = [1, 2, 3];
@@ -65,7 +54,7 @@ let numbers: [i32; 3] = [1, 2, 3];
 Here, \texttt{[i32; 3]} indicates an array of three 32--bit integers.
 
 \subsection{Slice}
-A \textbf{slice} is a reference to a contiguous sequence of elements within an array or another slice. Unlike arrays, slices are not of a fixed size; they are dynamically sized.
+A \textbf{slice} is a reference to a contiguous sequence of elements within an array or another slice. Unlike arrays, slices are dynamically sized.
 Slices are used when you want to reference a portion of an array without needing to own the entire array. Slices have two forms: \textbf{borrowed slices} (\texttt{\&[T]}) and \textbf{mutable slices} (\texttt{\&mut [T]}).
 
 \begin{lstlisting}
@@ -144,6 +133,10 @@ We will shorthand implementation to impl which is common in Rust terminology.
 Inherent impls associate contents of an \texttt{impl} block with specified nominal type.
 Such blocks can contain definition of a constants or functions. 
 
+\subsection{Trait implementations}
+
+Trait implementations are discussed in section dedicated to traits \ref{sec:traits}.
+
 \section{Generic types}
 
 As of version 1.80 Rust provides 3 kinds of generic parameters types can use. 
@@ -164,16 +157,15 @@ However, one can't do much with truly arbitrary type, even collections require o
 like vectors and queues need to know that types they contain have finite size, or can be shared across thread boundaries. Most languages either provide these kinds of behavior
 inductively by the structure of a type but that's not what Rust does. Rust requires that pretty much all capabilities of a type are specified.
 
-Capabilities of a type parameter are expressed using traits which we in the next section.
+Capabilities of a type parameter are expressed using traits which we describe in section dedicated to traits \ref{sec:traits}.
 
 \subsection{Constant parameters}
 
 Similarity to how types can be generic over type, rust allows types to be generic by a constant value. These, so called, dependent types
 provide brand new level of expressive power, statically sized arrays especially become much more useful. This makes stack based allocations much more common,
-improving performance and reducing heap fragmentation, but for our purposes it allows type system verify and enforce certain quantities or reason about them in an abstract 
-way which, as we will show in this study, can be used to express very complex systems.
+improving performance and reducing heap fragmentation, but for our purposes it allows type system verify and enforce certain quantities or reason about them in an abstract way.
 
-Constant generics, could for example be used to type--check dimensions of matrices like so:
+Constant generics, could for example be used to type--check dimensions of matrix multiplication like so:
 
 \begin{lstlisting}
 struct Matrix<const N: usize, const M: usize> {
@@ -217,6 +209,7 @@ type MyVec<T> = Vec<T>;
 \end{lstlisting}
 
 \section{Traits}
+\label{sec:traits}
 
 Traits provide an ability to express shared behavior in abstract way \cite{rustbook}. We are mostly interested in their use in \textit{trait bounds} on types and type parameters.
 Trait bounds declare contracts that types must fulfil or else the program will be rejected. 
@@ -266,9 +259,9 @@ In the listing above \texttt{bar} must be a value of type \texttt{T} which imple
 
 \subsection{Associated Constants}
 
-Traits can uniquely, be implemented generically for all types that salify given bounds using a generic implementation often referred to as a blanket impl:
+Traits can be implemented generically for all types that satisfy given bounds using a generic implementation, often referred to as a blanket impl:
 \texttt{impl<T> Trait for T where T: ... \string{ ... \string}}.
-This will even influence types from crate external to trait's definition. Blanket impls however come with significant downside --- a blanket impl is the only impl for that trait that may exist.
+This will even influence types from external crates. Blanket impls however come with significant downside --- a blanket impl is the only impl for that trait that may exist.
 This requirement is overly conservative and stems from necessity to guarantee impl coherence which we discuss in the next section.
 
 \section{Implementation Coherence}
@@ -282,8 +275,8 @@ However, if inherent or trait impl's target a specific generic type with at leas
 
 \section{Orphan rules}
 
-To guarantee impl coherence between all version of a crate rust imposes so called orphan rules.
+To guarantee impl coherence between all version of a crate rust imposes, so called, orphan rules.
 Implementation of a trait for a type is passes an orphan rule check if either (1) trait or (2) type is defined in current trait.
 This is not an exact definition of these rules, but it will suffice for our purposes.
-This allows rust package manager \textbf{cargo} to allow for different versions of the same dependency.
+This enables rust package manager \textbf{cargo} to handle different versions of the same dependency.
 What it means for us is that we cannot impl traits from standard library for types from standard library as such items would be external to any crate.
