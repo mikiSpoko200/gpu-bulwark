@@ -10,7 +10,7 @@ These qualities can be largely attributed to powerful and expressive type system
 
 \section{Data types}
 
-\section*{Built--in Rust Types}
+\section{Built--in Rust Types}
 
 \subsection{Scalars}
 \textbf{Scalars} are the most basic types in Rust, representing single values. There are four primary scalar types in Rust:
@@ -35,11 +35,13 @@ let is_rust_fun: bool = true;
 The \textbf{\texttt{char}} type represents a single Unicode scalar value, which includes a wide array of characters from different languages, symbols, and even emojis. It is four bytes in size and is distinct from other language's \texttt{char} types, which often represent only ASCII characters.
 
 \begin{lstlisting}
-let heart_emoji: char = 'A';
+let a: char = 'A';
 \end{lstlisting}
 
 \subsection{Tuples}
-\textbf{Tuples} are a compound type that allows you to group together multiple values of different types into a single entity. The values are ordered, and each element can be of a different type. Tuples have a fixed size, meaning once they are declared, they cannot grow or shrink in size.
+\textbf{Tuples} are a compound type that allows you to group together multiple values of different types into a single entity. 
+The values are ordered, and each element can be of a different type. 
+Tuples have a fixed size, meaning once they are declared, they cannot grow or shrink in size.
 
 \begin{lstlisting}
 let person: (i32, &str, bool) = (25, "Alice", true);

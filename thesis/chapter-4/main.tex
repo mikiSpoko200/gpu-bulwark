@@ -182,6 +182,49 @@ A minimal example showing of effect emulation can be found on \href{https://play
 
 As already mentioned above, effect system would greatly improve the handling of context bindings in terms of statically verifiable correctness, as well as, user and developer experience.
 
+\subsection{Subtyping}
+
+\paragraph{Problem}
+
+Subtyping or inheritance is a very common concept in object oriented programming. 
+In these languages, one can create a type and inherit from it to produce more specialized version of the original type -- a subtype.
+Subtype extends functionality of base type and can seamlessly delegate all base type's method calls to the base type, and can be used in all places the base type can.
+
+\paragraph{Solution}
+
+Using generic type and automatic dereferencing via \texttt{Deref} we can emulate the relation of subtyping.
+The base type has a generic parameter which corresponds to any potential subtype, and implements \texttt{Deref} and \texttt{DerefMut} targeting that subtype.
+
+\begin{lstlisting}
+struct Base<Child> { base: i32, child: Child }
+
+impl<Child> Deref for Base<Child> {
+    type Target = Child;
+    fn deref(&self) -> &Self::Target { &self.child }
+}
+
+impl<Child> DerefMut for Base<Child> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.child
+    }
+}
+
+struct Subtype;
+type Inherited = Base<Subtype>;
+impl Inherited { /* ... */ }
+\end{lstlisting}
+
+\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=8946828515f1f87f388374b6bbc69bca}{[playground permalink]}
+
+Subtype is obtained by defining a type alias for the generic base type with concrete subtype state specified.
+Subtype--specific functionality can now be specified using an \texttt{impl} block on this alias.
+Such an \texttt{impl} would be coherent since all other subtypes have different nominal types representing their states and have full access to both base type's and subtype's states.
+
+\paragraph{Use Case}
+
+We applied this emulation of inheritance to model OpenGL objects. \texttt{ObjectBase<T>} contains base state and functionality and \texttt{T} provides implementation 
+for subtype specific allocation, deallocation and context binding in a scheme very similar to template method pattern.
+
 \section{Validation of program structure at compile--time}
 
 \subsection{Markers}
@@ -208,14 +251,66 @@ Marker traits along with marker types can be used as:
     \item typing external resources -- by using \texttt{PhantomData} we can attach type information to otherwise untyped parts of an API.
 \end{itemize}
 
+\begin{lstlisting}
+use std::marker::PhantomData;
+
+/// This pattern of pub trait in private module provides the sealing behaviour.
+/// Downstream users cannot use this trait but other public traits can
+/// list it in its super traits.
+mod sealed {
+    /// A marker trait that will be implemented for predefined set of types
+    /// from which downstream clients should choose pixel channel types in PixelFormat struct.
+    pub trait Channels { }
+}
+
+// Four marker types used by pixel format to statically dispatch impl blocks.
+
+pub struct R;
+pub struct RG;
+pub struct RGB;
+pub struct RGBA;
+
+impl sealed::Channels for R { }
+impl sealed::Channels for RG { }
+impl sealed::Channels for RGB { }
+impl sealed::Channels for RGBA { }
+
+/// Using marker types and traits we provide typing information to external resource such as pixels
+pub struct PixelFormat<C, const COMPONENT_SIZE: usize>(PhantomData<C>)
+where 
+    C: sealed::Channels
+;
+
+// Now we provide functionality for PixelFormats with channels from predefined
+// set of possible configurations.
+
+impl<const N: usize> PixelFormat<R, N> { pub fn r() { println!("R{}", N); } }
+impl<const N: usize> PixelFormat<RG, N> { pub fn rg() { println!("RG{}", N); } }
+impl<const N: usize> PixelFormat<RGB, N> { pub fn rgb() { println!("RGB{}", N); } }
+impl<const N: usize> PixelFormat<RGBA, N> { pub fn rgba() { println!("RGBA{}", N); } }
+
+fn main() {
+    PixelFormat::<R, 4>::r();
+    PixelFormat::<RG, 8>::rg();
+    PixelFormat::<RGB, 16>::rgb();
+    PixelFormat::<RGBA, 32>::rgba();
+    
+    // Error -- we prevent the very creation of nonsensical type.
+    // PixelFormat::<i32, 32>;
+}
+\end{lstlisting}
+\noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=7d092a3be5593833894fa27b5fa56757}{[playground permalink]}
+
 \paragraph{Use Case}
 
 We make heavy use of markers to implement entirety of glsl module which consists almost exclusively of ZSTs for purposes of modelling shader \texttt{in}, \texttt{out} and \texttt{uniform} variables.
 Types representing these variables aggregated into hlists are specified by the user with help of GLSL DSL implemented using lightweight declarative macros.
 
-Marker traits in miscellaneous \texttt{\_::valid} modules define relations between valid combinations of data types. Buffer in raw OpenGL, due to C's lack of generics, has its buffer populated using \texttt{*void} 
-and the documentation enumerates valid types. To make things worse validity of data types changes depending on what's the buffer's target.
-It is illegal for index buffer to contain anything other than unsigned integers, pixel buffers can contain almost everything and vertex buffers, yet again, can contain only specific combinations of data.
+Marker traits in miscellaneous \texttt{\_::valid} modules define relations between valid combinations of data types. Buffer in raw OpenGL, 
+due to C's lack of generics, has its buffer populated using \texttt{*void} and the documentation enumerates valid types. 
+To make things worse validity of data types changes depending on what's the buffer's target.
+It is illegal for index buffer to contain anything other than unsigned integers, pixel buffers can contain almost everything and vertex buffers, 
+yet again, can contain only specific combinations of data.
 By associating a phantom type with a Buffer and using marker trait based validation relations on uploaded data we solve both of these issues.
 
 This methodology can be extended to form \textbf{many modes} pattern, in which one uses marker types that implement trait 
@@ -226,42 +321,150 @@ containing generic associated types to control behavior in more complex fashion 
 We use many modes in \texttt{Variable<S, L, T, Store>} to abstract over kind of storage used for variable's type member --- \texttt{Phantom} or \texttt{Inline}.
 \texttt{Phantom} uses \texttt{PhantomData} as its associated type and effectively discards value and \texttt{Inline} keeps it as is.
 
-\subsection{Subtyping}
-
-\paragraph{Problem}
-
-Subtyping or inheritance is a very common concepts in object oriented programming. 
-In these languages, one can create a type and inherit from it to produce more specialized version of the original type -- a subtype.
-Subtype extends functionality of base type and can seamlessly (without clients knowledge) delegate all base type's method calls to the base type, and can be used in all places the base type can.
-
-\paragraph{Solution}
-
-Using generic type and automatic dereferencing via \texttt{Deref} we can emulate the relation of subtyping.
-The base type has a generic parameter which corresponds to any potential subtype, and implements \texttt{Deref} and \texttt{DerefMut} targeting that subtype.
-Subtype is obtained by defining a type alias for the generic base type with concrete subtype state specified.
-Subtype--specific functionality can now be specified using an \texttt{impl} block on this alias. 
-Such an \texttt{impl} would be coherent since all other subtypes have different nominal types representing their states and have full access to both base type's and subtype's states.
-
-\paragraph{Use Case}
-
-We applied this emulation of inheritance to model OpenGL objects. \texttt{ObjectBase<T>} contains base state and functionality and \texttt{T} provides implementation for subtype specific allocation, deallocation and context binding.
-A scheme very similar to template method pattern.
-
 \subsection{Type State}
 
 Type state is very powerful pattern that takes advantage of how rust understands generic types and allows for tracking runtime capabilities at compile--time.
+Its name refers to static verification technique of the same name proposed by Robert E. Strom and Shaula Yemini \cite{typestate}. 
+Which allowed to determine the subset of operations permitted on a data object in a particular context,
+detecting and preventing semantically undefined execution sequences at compile--time.
 
-Type state is a refinement of the traditional concept of type in programming languages. 
-It determines the subset of operations permitted on a data object in a particular context, 
-enhancing software reliability by detecting and preventing semantically undefined execution sequences at compile--time.
-
+This behavior can be elegantly implemented in rust using generics.
 For the duration of this subsection it is worth to think about generic types as of type constructors which can be partially applied to create another constructor or fully applied to produce a type.
 
 Recall from the section on coherence \ref{sec:coherence} that Rust determines if \texttt{impl}s are non--overlapping, what it implies is that each associated item can be resolved uniquely.
-Additionally \texttt{impl} blocks can 
+Additionally \texttt{impl} blocks can be generic and implemented for generic types. These \texttt{impl}s can be generic over a subset of parameters, 
+by providing fixed types for certain parameters.
 
-We could encode state information into the type system itself, thus enabling the compiler to enforce constraints based on the state of the object.
-Generic type with one of it's parameters supplied can have an inherent \texttt{impl} for 
+\begin{lstlisting}
+struct Generic<T, H, F>(T, H, F);
+
+impl<F, H> Generic<i32, F, H> { /* ... */ }
+impl<F, H> Generic<u32, F, H> { /* ... */ }
+impl<H> Generic<u32, (), H> { /* ... */ }
+\end{lstlisting}
+
+Rust understands that \texttt{Generic<i32, F, H>} and \texttt{Generic<u32, F, H>} must be different types (note the difference \texttt{i32} and \texttt{u32}),
+and as such any implementations for these two types must be disjoint.
+This behavior is what empowers type state pattern. We can intentionally add or use an existing generic parameter (const parameters can be used as well)
+to encode certain states and provide functionality for the main type in that specific state. Along with state specific type capabilities state transitions between the states are provided,
+allowing to encode a compile--time state machine.
+
+In the below listings we show how type state, along with markers could be used to statically guarantee, that only users who were successfully authenticated
+can access secret information. We start by creating marker types \texttt{Anonymous} and \texttt{Verified} which represent different states a user session can be in.
+We constrain the possible set of state types, and assign each state its own data with \texttt{AuthenticationStatus}.
+
+\begin{lstlisting}
+pub trait AuthenticationStatus {
+    type Ctx: Sized;
+}
+
+pub struct Verified;
+pub struct Anonymous;
+
+/// Empty state is associated with an anonymous user.
+impl AuthenticationStatus for Anonymous {
+    type Ctx = ();
+}
+
+/// Representation of a user.
+pub struct User {
+    pub user_name: String,
+    /* ... */
+}
+
+/// If user is logged in, User data can be obtained.
+impl AuthenticationStatus for Verified {
+    type Ctx = User;
+}
+\end{lstlisting}
+
+To represent a permanent connection (like a TCP socket) we created the \texttt{Connection} type.
+Its a simple wrapper around IPv4 socket address thats used solely as a identifier, no actual network connections are made.
+Its purpose it to demonstrate that type state can accommodate persistent data by moving it between states.
+
+\begin{lstlisting}
+struct Connection(Ipv4Addr);
+
+impl Connection {
+    pub fn new(client: Ipv4Addr) -> Self {
+        println!("connection established with: {:?}", &client);
+        Self(client)
+    }
+}
+
+impl Drop for Connection {
+    fn drop(&mut self) {
+        println!("connection closed with: {:?}", &self.0);
+    }
+}
+\end{lstlisting}
+
+Finally we define type state based \texttt{Session} type.
+
+\begin{lstlisting}
+struct Session<AS> where AS: AuthenticationStatus {
+    type_state: PhantomData<AS>,
+    connection: Connection,
+    ctx: AS::Ctx,
+}
+
+impl Session<Anonymous> {
+    fn new(ip: Ipv4Addr) -> Self {
+        Self {
+            type_state: PhantomData,
+            connection: Connection::new(ip),
+            ctx: (),
+        }
+    }
+}
+
+impl Session<Verified> {
+    fn secret(&self) -> String {
+        "'a secret'".into()
+    }
+}
+\end{lstlisting}
+
+Session in each state holds a \texttt{Connection} instance, phantom data and ctx to store current state type and any data associated with it.
+We then precede to define semantics of our type state. We allow direct creation of only anonymous sessions, as well as access to secrete information
+for authenticated users. Now all that remains are the state transitions.
+
+\begin{lstlisting}
+#[derive(Error, Debug)]
+enum LoginError {
+    #[error("invalid password for {user_name}: {password}")]
+    InvalidPassword { user_name: String, password: String },
+}
+
+fn db_check_password(user: &User, password: &str) -> Result<(), LoginError> {
+    (password == "password")
+        .then_some(())
+        .ok_or(LoginError::InvalidPassword {
+            user_name: user.user_name.clone(),
+            password: password.into(),
+        })
+}
+
+impl Session<Anonymous> {
+    /// We provide ability to log in only for anonymous users.
+    pub fn log_in(self, user: User, password: &str) -> Result<Session<Verified>, LoginError> {
+        db_check_password(&user, password).map(|_| Session {
+            type_state: PhantomData,
+            connection: self.connection,
+            ctx: user,
+        })
+    }
+}
+\end{lstlisting}
+
+We provide some basic mocks of the authentication mechanism and use it to define the \texttt{log\_in} method on \texttt{Session<Anonymous>}.
+It consumes an anonymous session, validates given credentials and constructs validated session's instance if validation was successful,
+which is the only way to obtain an instance of the \texttt{Session<Verified>} type.
+That's how type state enforces that only logged in users can access secret information. This invariant is guaranteed at compile-time.
+However, if the actual transition succeeds is determined at runtime. We statically enforced a sequence of operations, and prevented
+function invocation sequence which is semantically incorrect.
+
+A full sample along with few examples can be accessed via \noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=bb0ff57d61dcdc9f4473cf51bec012a3}{[playground permalink]}.
 
 \section{OpenGL wrapper}
   

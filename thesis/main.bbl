@@ -97,6 +97,11 @@ Mark Segal and Kurt Akeley.
 \newblock The Khronos Group Inc., 2019.
 \newblock \url{https://www.khronos.org/registry/OpenGL/specs/gl/glspec46.core.pdf}.
 
+\bibitem{typestate}
+Robert~E. Strom and Shaula Yemini.
+\newblock Typestate: A programming language concept for enhancing software reliability.
+\newblock {\em IEEE Transactions on Software Engineering}, SE-12(1):157--171, 1986.
+
 \bibitem{rustgpugithub}
 Embark Studios.
 \newblock rust-gpu github repository.
