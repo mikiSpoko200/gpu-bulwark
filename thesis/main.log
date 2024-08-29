@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  30 AUG 2024 00:40
+This is pdfTeX, Version 3.141592653-2.6-1.40.26 (TeX Live 2024) (preloaded format=pdflatex 2024.7.29)  30 AUG 2024 00:56
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -507,6 +507,9 @@ Chapter 3.
 
 
 [31]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+
 
 [32])
 
@@ -530,25 +533,28 @@ Chapter 4.
 <figures/lisp-list.png, id=635, 540.51938pt x 165.61874pt>
 File: figures/lisp-list.png Graphic file (type png)
 <use figures/lisp-list.png>
-Package pdftex.def Info: figures/lisp-list.png  used on input line 55.
+Package pdftex.def Info: figures/lisp-list.png  used on input line 56.
 (pdftex.def)             Requested size: 398.33861pt x 122.05557pt.
 
-Overfull \hbox (21.90005pt too wide) in paragraph at lines 55--56
+Overfull \hbox (21.90005pt too wide) in paragraph at lines 56--57
 [][] 
  []
 
 
-Overfull \hbox (2.43556pt too wide) in paragraph at lines 72--73
+Overfull \hbox (2.43556pt too wide) in paragraph at lines 73--74
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 LaTeX Font Info:    Font shape `OML/cmr/m/n' in size <6> not available
-(Font)              Font shape `OML/cmm/m/it' tried instead on input line 78.
+(Font)              Font shape `OML/cmm/m/it' tried instead on input line 79.
 LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <6> not available
-(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 78.
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 79.
 
 
 [37 <./figures/lisp-list.png>]
+Underfull \vbox (badness 1092) has occurred while \output is active []
+
+
 
 [38]
 
@@ -557,103 +563,100 @@ LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <6> not available
 [40]
 
 [41]
-Overfull \hbox (120.6968pt too wide) in paragraph at lines 259--260
+Overfull \hbox (120.6968pt too wide) in paragraph at lines 260--261
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (61.56618pt too wide) in paragraph at lines 260--261
+Overfull \hbox (61.56618pt too wide) in paragraph at lines 261--262
 [][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (94.41652pt too wide) in paragraph at lines 263--264
+Overfull \hbox (94.41652pt too wide) in paragraph at lines 264--265
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (219.24782pt too wide) in paragraph at lines 264--265
+Overfull \hbox (219.24782pt too wide) in paragraph at lines 265--266
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 268--270
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 269--271
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (252.09816pt too wide) in paragraph at lines 280--281
+Overfull \hbox (252.09816pt too wide) in paragraph at lines 281--282
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (61.56618pt too wide) in paragraph at lines 281--282
+Overfull \hbox (61.56618pt too wide) in paragraph at lines 282--283
 [][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (114.12672pt too wide) in paragraph at lines 286--287
+Overfull \hbox (114.12672pt too wide) in paragraph at lines 287--288
 [][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 289--290
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 290--291
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (127.26686pt too wide) in paragraph at lines 290--291
+Overfull \hbox (127.26686pt too wide) in paragraph at lines 291--292
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (146.97707pt too wide) in paragraph at lines 291--292
+Overfull \hbox (146.97707pt too wide) in paragraph at lines 292--293
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (166.68727pt too wide) in paragraph at lines 292--294
+Overfull \hbox (166.68727pt too wide) in paragraph at lines 293--295
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
-
-
-Overfull \hbox (28.71584pt too wide) in paragraph at lines 300--301
-[][][][][][][][][][][][][][][][][][][][][][][][][][] 
- []
-
-
-Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
 [42]
+Overfull \hbox (28.71584pt too wide) in paragraph at lines 301--302
+[][][][][][][][][][][][][][][][][][][][][][][][][][] 
+ []
+
+
 
 [43]
 
 [44]
-Overfull \hbox (19.37202pt too wide) in paragraph at lines 383--386
+Overfull \hbox (19.37202pt too wide) in paragraph at lines 384--387
 []\OT4/cmr/m/n/10.95 To rep-re-sent a per-ma-nent con-nec-tion (like a TCP socket) we cre-ated the \OT4/cmtt/m/n/10.95 Connection
  []
 
 
-Overfull \hbox (15.5757pt too wide) in paragraph at lines 392--393
+Overfull \hbox (15.5757pt too wide) in paragraph at lines 393--394
 [][][][][][][][][][][][][][][][][][] 
  []
 
 
 
 [45]
-Overfull \hbox (107.55666pt too wide) in paragraph at lines 442--443
+Overfull \hbox (107.55666pt too wide) in paragraph at lines 443--444
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (9.00563pt too wide) in paragraph at lines 452--453
+Overfull \hbox (9.00563pt too wide) in paragraph at lines 453--454
 [][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
 
-Overfull \hbox (219.24782pt too wide) in paragraph at lines 453--454
+Overfull \hbox (219.24782pt too wide) in paragraph at lines 454--455
 [][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][][] 
  []
 
@@ -666,15 +669,21 @@ Overfull \hbox (219.24782pt too wide) in paragraph at lines 453--454
 [48]
 
 [49]
-Overfull \hbox (43.42648pt too wide) in paragraph at lines 573--584
+Overfull \hbox (43.42648pt too wide) in paragraph at lines 574--585
 \OT4/cmr/m/n/10.95 Vertex Ar-ray can be cre-ated with \OT4/cmtt/m/n/10.95 create\OT4/cmr/m/n/10.95 . It ex-poses a sin-gle method \OT4/cmtt/m/n/10.95 vertex[]attrib[]pointer
  []
+
+
+Underfull \vbox (badness 10000) has occurred while \output is active []
 
 
 
 [50]
 
 [51]
+Underfull \vbox (badness 1199) has occurred while \output is active []
+
+
 
 [52])
 
@@ -737,13 +746,13 @@ Package rerunfilecheck Info: File `main.out' has not changed.
 Here is how much of TeX's memory you used:
  13137 strings out of 473583
  204135 string characters out of 5732342
- 1990908 words of memory out of 5000000
+ 1987908 words of memory out of 5000000
  35383 multiletter control sequences out of 15000+600000
  571069 words of font info for 68 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
  90i,6n,93p,476b,1865s stack positions out of 10000i,1000n,20000p,200000b,200000s
 <d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plbx12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plr6.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plsl10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/plti10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt10.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/pl/pltt12.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb><d:/texlive/2024/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb>
-Output written on main.pdf (60 pages, 302136 bytes).
+Output written on main.pdf (60 pages, 302098 bytes).
 PDF statistics:
  1167 PDF objects out of 1200 (max. 8388607)
  1063 compressed objects within 11 object streams

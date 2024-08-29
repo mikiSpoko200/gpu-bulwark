@@ -7,13 +7,6 @@ Major benefit of this approach is that we could simply follow the OpenGL specifi
 
 Starting from these minimalistic principles we focused on providing maximal level of type safety. The main goal was to enable rejection of as many ill--formed programs at compile time as possible.
 
-There are many levels of safety guarantees we can expect from any software package.
-In this analysis we devise 
-
-Here we consider alternative ways of programming computer graphics with use of OpenGL as rendering backend.
-
-We distinguish between a language of choice and any framework at use. 
-
 \section{Native C / C++ bindings}
 
 The simplest way to program with OpenGL is by using platform--provided C bindings, 
@@ -42,10 +35,10 @@ Therefore, developers must manually manage resources such as memory and OpenGL o
 This can be beneficial as automatic binding and unbinding of OpenGL objects can result, if not done carefuly, in a very non linear and invisible control flow.
 In C++ the situation is a bit better due to RAII mechanism, object orientation and templates which all may be utilized to improve user experience but the
 critical limitation of C++ is its relatively weak type system (partially amended with Cpp20 concepts feature) \cite{cppref}.
-C++'s templates are essentially advanced macros, all type variables are simply inserted and type analyses in performed on concrete types.
+C++'s templates are essentially advanced macros, all type variables are simply substituted, and type analyses in performed on concrete types.
 There is no way to express abstraction in a way that type system could reason about it.
-To C++'s credit its compile time capabilities are much more expansive than Rust's, and could possibly achieve similar results though
-with notable downside of validation having to be hand written and not scaling by default, as opposed to type based rules.
+To C++'s credit its compile time capabilities are much more expansive than Rust's, and could possibly achieve similar results; 
+though with notable downside of validation having to be hand written and not scaling by default, as opposed to type based rules.
 
 \section{Rust with unsafe bindings}
 
@@ -65,7 +58,7 @@ Underlying OpenGL is not very clearly visible, which in our work was a crucial d
 
 \texttt{wgpu} is a very large project with over 400 contributors. Its is a cross--platform, safe, pure--rust graphics API, that
 does not expose any specific hardware programming API but rather creates a unified abstraction over GPU and uses graphics APIs 
-as a backed.
+as a backend.
 This again is not what we have strived for with \texttt{gpu-bulwark}, we tried to stay as true to OpenGL spec as possible
 and accentuate its design characteristics.
 

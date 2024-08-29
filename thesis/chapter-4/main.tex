@@ -23,17 +23,18 @@ Our library utilizes several publicly available crates from crates.io, we will b
 
 \section{Identified design patterns}
 
-All general purpose design patterns we encountered during development are implemented in these modules.
+All general purpose design patterns we encountered during development are implemented in auxiliary modules in the package's root; 
+except for \texttt{himakr} which is our crate, published in crates.io it is stored in main repository folder.
 In our exploration we found that patterns which tend to emerge during programming with types can be broadly divided into two categories: (1) compensation for language limitations (2) validation of program structure at compile--time.
 
 \subsection{Compensation for language limitations}
 
 Rust is in continuous development. 
-Some features have been work--in--progress for over the years and are still nowhere near completion. 
+Some features have been work--in--progress for many years and are still nowhere near completion. 
 Others have seen minimal--viable--product releases, and some are merely the subject of wishful thinking and speculation. 
-Features we found useful in type--based design fall into all of these categories. 
+Features we found useful in type--based design fall into all three of these categories.
 Most of them can be emulated with varying levels of complexity and user experience degradation.
-Stemming from often contrived usage of type system and different language features
+Stemming from often contrived usage of type system and different language features,
 resulting error messages are very verbose and difficult to interpret.
 
 \subsubsection{Variadic Generics}
@@ -43,7 +44,7 @@ resulting error messages are very verbose and difficult to interpret.
 It is common practice among programming language developers to support variadic function arguments --- functions which can accept arbitrarily many arguments.
 This capability is a major syntactic convenience and serves as a tool for more complex abstractions.
 
-It is substantially less common to support variadic type parameters in generic types. Rust does not no have such a language feature,
+It is substantially less common to support variadic type parameters in generic types. Rust does not have such a language feature,
 and yet one highly desirable use case for variadic generics was identified: non--homogenous collections. 
 Typical generic collections can contain one of more values of the same type.
 Structs and tuples can contain arbitrary data but the number, and names of aggregated types are fixed so the collection cannot grow.
@@ -93,7 +94,7 @@ fn main() {
 Type annotations are redundant, as types can be inferred, and were purposefully added to better visualize the mechanism.
 This sample can be run interactively in the rust playground --- an online service hosted by rust foundation that provides 
 a browser interface to the Rust compiler to experiment with the language. 
-To run this listing follow this \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=0c13e950bb10a01dbae1981b0c15aa5f}{permalink}.
+To run this listing follow this \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=0c13e950bb10a01dbae1981b0c15aa5f}{[playground permalink]}.
 
 One can create increasingly complex traits and implement them in a similar manner, for example below we implement HList length computation.
 
@@ -109,8 +110,8 @@ impl<H, T> HList for (H, T) where T: HList {
 
 \noindent \href{https://play.rust-lang.org/?version=stable&mode=debug&edition=2021&gist=13d2d29f768d207f8fe7fa1bde7acef1}{[playground permalink]}
 
-By deciding in which slot to place the tuple and in which the current element we can change the winding order of the HLists.
-These two schemes are equivalent in terms of functionality, but differ in terms of potential user experience.
+By deciding in which slot to place the tuple and in which the current element we can change the winding order of the HList.
+Both left and right winding schemes are equivalent in terms of functionality, but differ in terms of potential user experience.
 In our case appending new types to the end of a HList was by far the most common use case, and as such we almost exclusively use left wound HLists (LHLists)
 due to cleaner type signatures being produced that way.
 
