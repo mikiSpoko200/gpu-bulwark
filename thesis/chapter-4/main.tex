@@ -13,7 +13,7 @@ Library at its root is logically divided into two halves: (1) main OpenGL wrappe
 %
 Our library utilizes several publicly available crates from crates.io, we will briefly discuss their purposes below:
 \begin{itemize}
-    \item \texttt{gl} --- generates raw OpenGL bindings for Rust using build script. Additionally, it exposes a single function that loads function pointers using the provided routine. 
+    \item \texttt{gl} --- generates raw OpenGL bindings for Rust using a build script. Additionally, it exposes a single function that loads function pointers using the provided routine. 
     These bindings use C types and need to be invoked in \texttt{unsafe} context.
     \item \texttt{derive\_move} --- is a procedural macro crate that expands \texttt{derive} to support more built--in traits. It significantly reduces code boilerplate.
     \item \texttt{concat\_idents} --- provides singular procedural macro that allows to concatenate identifiers akin to C's \texttt{\#\#} operator. We utilize this macro for identifier generation for certain OpenGL names that strictly follow a naming convection. This yet again helps to reduce boilerplate, makes code more succinct and minimizes risk of typos.
