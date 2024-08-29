@@ -10,30 +10,29 @@
 \babel@toc {polish}{}\relax 
 \babel@toc {english}{}\relax 
 \contentsline {chapter}{\numberline {1}The Rust programming language}{11}{chapter.1}%
-\contentsline {section}{\numberline {1.1}Data types}{13}{section.1.1}%
-\contentsline {section}{\numberline {1.2}Built--in Rust Types}{13}{section.1.2}%
-\contentsline {subsection}{\numberline {1.2.1}Scalars}{13}{subsection.1.2.1}%
-\contentsline {subsection}{\numberline {1.2.2}Tuples}{14}{subsection.1.2.2}%
-\contentsline {subsection}{\numberline {1.2.3}Array}{14}{subsection.1.2.3}%
-\contentsline {subsection}{\numberline {1.2.4}Slice}{14}{subsection.1.2.4}%
-\contentsline {subsection}{\numberline {1.2.5}\texttt {str}}{14}{subsection.1.2.5}%
-\contentsline {subsection}{\numberline {1.2.6}User defined types}{15}{subsection.1.2.6}%
+\contentsline {section}{\numberline {1.1}Built--in Data types}{13}{section.1.1}%
+\contentsline {subsection}{\numberline {1.1.1}Scalars}{13}{subsection.1.1.1}%
+\contentsline {subsection}{\numberline {1.1.2}Tuples}{13}{subsection.1.1.2}%
+\contentsline {subsection}{\numberline {1.1.3}Array}{14}{subsection.1.1.3}%
+\contentsline {subsection}{\numberline {1.1.4}Slice}{14}{subsection.1.1.4}%
+\contentsline {subsection}{\numberline {1.1.5}\texttt {str}}{14}{subsection.1.1.5}%
+\contentsline {subsection}{\numberline {1.1.6}User defined types}{15}{subsection.1.1.6}%
 \contentsline {subsubsection}{\texttt {struct}s}{15}{section*.4}%
 \contentsline {subsubsection}{\texttt {enum}s}{15}{section*.5}%
-\contentsline {section}{\numberline {1.3}Implementations}{15}{section.1.3}%
-\contentsline {subsection}{\numberline {1.3.1}Inherent implementations}{16}{subsection.1.3.1}%
-\contentsline {subsection}{\numberline {1.3.2}Trait implementations}{16}{subsection.1.3.2}%
-\contentsline {section}{\numberline {1.4}Generic types}{16}{section.1.4}%
-\contentsline {subsection}{\numberline {1.4.1}Type parameters}{16}{subsection.1.4.1}%
-\contentsline {subsection}{\numberline {1.4.2}Constant parameters}{17}{subsection.1.4.2}%
-\contentsline {subsection}{\numberline {1.4.3}Lifetime parameters}{17}{subsection.1.4.3}%
-\contentsline {subsection}{\numberline {1.4.4}Type Aliases}{18}{subsection.1.4.4}%
-\contentsline {section}{\numberline {1.5}Traits}{18}{section.1.5}%
-\contentsline {subsection}{\numberline {1.5.1}Associated functions and methods}{18}{subsection.1.5.1}%
-\contentsline {subsection}{\numberline {1.5.2}Associated types}{19}{subsection.1.5.2}%
-\contentsline {subsection}{\numberline {1.5.3}Associated Constants}{19}{subsection.1.5.3}%
-\contentsline {section}{\numberline {1.6}Implementation Coherence}{20}{section.1.6}%
-\contentsline {section}{\numberline {1.7}Orphan rules}{20}{section.1.7}%
+\contentsline {section}{\numberline {1.2}Implementations}{15}{section.1.2}%
+\contentsline {subsection}{\numberline {1.2.1}Inherent implementations}{16}{subsection.1.2.1}%
+\contentsline {subsection}{\numberline {1.2.2}Trait implementations}{16}{subsection.1.2.2}%
+\contentsline {section}{\numberline {1.3}Generic types}{16}{section.1.3}%
+\contentsline {subsection}{\numberline {1.3.1}Type parameters}{16}{subsection.1.3.1}%
+\contentsline {subsection}{\numberline {1.3.2}Constant parameters}{17}{subsection.1.3.2}%
+\contentsline {subsection}{\numberline {1.3.3}Lifetime parameters}{17}{subsection.1.3.3}%
+\contentsline {subsection}{\numberline {1.3.4}Type Aliases}{18}{subsection.1.3.4}%
+\contentsline {section}{\numberline {1.4}Traits}{18}{section.1.4}%
+\contentsline {subsection}{\numberline {1.4.1}Associated functions and methods}{18}{subsection.1.4.1}%
+\contentsline {subsection}{\numberline {1.4.2}Associated types}{19}{subsection.1.4.2}%
+\contentsline {subsection}{\numberline {1.4.3}Associated Constants}{19}{subsection.1.4.3}%
+\contentsline {section}{\numberline {1.5}Implementation Coherence}{19}{section.1.5}%
+\contentsline {section}{\numberline {1.6}Orphan rules}{20}{section.1.6}%
 \contentsline {chapter}{\numberline {2}OpenGL and GLSL}{21}{chapter.2}%
 \contentsline {section}{\numberline {2.1}Introduction}{21}{section.2.1}%
 \contentsline {section}{\numberline {2.2}History}{21}{section.2.2}%
@@ -44,7 +43,7 @@
 \contentsline {subsection}{\numberline {2.4.1}Vertex Specification}{23}{subsection.2.4.1}%
 \contentsline {subsection}{\numberline {2.4.2}Vertex Shader}{23}{subsection.2.4.2}%
 \contentsline {subsection}{\numberline {2.4.3}Tessellation}{24}{subsection.2.4.3}%
-\contentsline {subsection}{\numberline {2.4.4}Geometry shading}{24}{subsection.2.4.4}%
+\contentsline {subsection}{\numberline {2.4.4}Geometry shading}{25}{subsection.2.4.4}%
 \contentsline {subsection}{\numberline {2.4.5}Fixed function vertex post--processing}{25}{subsection.2.4.5}%
 \contentsline {subsection}{\numberline {2.4.6}Rasterization}{25}{subsection.2.4.6}%
 \contentsline {subsection}{\numberline {2.4.7}Fragment processing}{26}{subsection.2.4.7}%
