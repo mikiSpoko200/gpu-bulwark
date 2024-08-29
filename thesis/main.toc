@@ -107,4 +107,4 @@
 \contentsline {section}{\numberline {5.2}Identified downsides of type--driven design for systems programming}{53}{section.5.2}%
 \contentsline {section}{\numberline {5.3}What works}{54}{section.5.3}%
 \contentsline {section}{\numberline {5.4}What could be improved}{54}{section.5.4}%
-\contentsline {chapter}{Bibliography}{55}{chapter*.33}%
+\contentsline {chapter}{Bibliography}{57}{chapter*.33}%

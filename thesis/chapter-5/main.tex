@@ -2,18 +2,22 @@
 
 \section{Identified benefits of type--driven design for systems programming}
 
-Type--driven design forces greater attention during the initial phase of software creation. The logical principles underlying the type system allow for a very precise description of the program's structure, algorithm invariants, as well as the interactions between different components.
+Type--driven design forces greater attention during the initial phase of software creation. 
+The logical principles underlying the type system allow for a very precise description of the program's structure, algorithm invariants, as well as the interactions between different components.
 
 Enforcing greater attention during system architecture design brings significant benefits in later stages of development. Type annotations also serve as a very good source of self--documentation.
 
-The biggest benefit of extensive use of the type system is the static verification of the correctness of the analyzed programs. Rust's type system allows for the expression of a vast number of contracts.
+The biggest benefit of extensive use of the type system is the static verification of the correctness of the analyzed programs. 
+Rust's type system allows for the expression of a vast number of contracts.
 
 \section{Identified downsides of type--driven design for systems programming}
 
 This approach to programming requires expert knowledge of the language and an understanding of advanced concepts in logic and type theory, which significantly limits the accessibility of this method of software development due to the potential lack of specialists.
 
-A large portion of the patterns and techniques presented in this publication requires writing a lot of code that does not necessarily carry much meaning --- produces boilerplate. Error messages generated for highly recursive types are often unreadable and convey very little useful information.
-Specifically, in the case of Rust, the lack of certain features significantly complicates programming and forces the addition of even more unreadable code, bending the language's functionalities beyond the creators' intent.
+A large portion of the patterns and techniques presented in this publication requires writing a lot of code that does not necessarily carry much meaning --- produces boilerplate. 
+Error messages generated for highly recursive types are often unreadable and convey very little useful information.
+Specifically, in the case of Rust, the lack of certain features significantly complicates programming and forces the addition of even more unreadable code, 
+bending the language's functionalities beyond the creators' intent.
 
 Even for a small project like our library, compilation times become noticeably longer, making code iteration more difficult.
 
@@ -23,7 +27,9 @@ Reverting form an erroneous design decision causes cascading errors and requires
 
 We managed to create a minimal wrapper for OpenGL that allows for the realization of a vast majority of even quite complex applications.
 
-The library protects against misuse the most commonly used and critical functionalities of OpenGL, such as data flow through the pipeline, memory allocations, and resource management. A large part of the specification would not benefit from extensive type coverage because it operates on non--programmable parts of the pipeline where we have data form guarantees, there is no chance to invoke undefined behavior. These parts, when improperly configured, will only produce incorrect computation results rather than critical errors. 
+The library protects against misuse the most commonly used and critical functionalities of OpenGL, such as data flow through the pipeline, memory allocations, and resource management. 
+A large part of the specification would not benefit from extensive type coverage because it operates on non--programmable parts of the pipeline where we have data form guarantees, 
+there is no chance to invoke undefined behavior. These parts, when improperly configured, will only produce incorrect computation results rather than critical errors. 
 
 \section{What could be improved}
 
@@ -32,3 +38,16 @@ The minimalism of our wrapper lies in covering disjoint interfaces in the smalle
 Not all objects provided by OpenGL were implemented because they are quite niche and solve highly specialized problems. 
 They are not necessary for constructing all applications. 
 Such functionalities include immutable buffers, mutable and buffer--backed textures, asynchronous pixel transfer operations, constructing a context within our package, instanced rendering, supporting arbitrary types through macros and traits as vertex attributes.
+
+From a user experience perspective, many aspects could be improved.
+With substantial effort, we could wrap all important type parameters in a wrapper type, with all validation traits implemented for it, ensuring that every program type-checks
+and moving validation to be run--time checked. Which mode of validation if used could be controlled using an environment variable and a type alias.
+
+However, this approach would reimplement verification functionality to occur at runtime. 
+From the user's perspective, this change would be partially transparent. 
+Since, during compile-time validation, these types would be appear, potentially causing even more confusion. 
+At the same time, it would provide much better runtime diagnostics. 
+Perhaps switching between these modes of validation could enhance user experience by improving error messages.
+
+With future Rust releases some missing, incomplete or limited features could be improved allowing us to convey the same ideas more simply,
+and with better compiler support.
