@@ -93,7 +93,6 @@ impl crate::Sample for Listing {
             .uniforms(|defs| defs
                 .define(&l_attenuation, &attenuation)
                 .define(&l_x_offset, &x_offset)
-                .define(&l_y_offset, &y_offset)
             )
             .no_resources()
             .vertex_main(&vs)

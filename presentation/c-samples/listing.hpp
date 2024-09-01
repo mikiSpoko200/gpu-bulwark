@@ -30,9 +30,9 @@ public:
 
         program.Use();
 
+        // NOTE: Location skipped
         glUniform1f(0, 1.0f);
         glUniform1f(1, 0.0f);
-        glUniform1f(2, 0.0f);
 
         const std::vector<float> colors = {
             1.0f, 0.0f, 0.0f, 1.0f, 
@@ -51,7 +51,6 @@ public:
         colorBuffer.Data(positions, GL_STATIC_DRAW);
         vao.VertexAttribPointer(0, colorBuffer, 3, GL_FLOAT);
 
-        // NOTE: Attribute declaration is missing
         positionBuffer.Data(colors, GL_STATIC_DRAW);
         vao.VertexAttribPointer(1, positionBuffer, 4, GL_FLOAT);
         
@@ -70,7 +69,6 @@ public:
 
         glUniform1f(0, attenuation); CHECK_GL_ERROR;
         glUniform1f(1, x_offset); CHECK_GL_ERROR;
-        glUniform1f(2, y_offset); CHECK_GL_ERROR;
 
         glDrawArrays(GL_TRIANGLES, 0, 3); CHECK_GL_ERROR;
     }
