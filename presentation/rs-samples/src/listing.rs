@@ -1,4 +1,3 @@
-use std::io::Write;
 
 // Sample application imports
 use crate::Ctx;
@@ -16,7 +15,7 @@ use gl::{Program, Buffer, VertexArray};
 
 type VsInputs = glsl::Glsl! {
     layout(location = 0) in vec3;
-    layout(location = 1) in vec3;
+    layout(location = 1) in vec4;
 };
 
 type VsOutputs = glsl::Glsl! {
@@ -31,19 +30,24 @@ type FsOutputs = glsl::Glsl! {
     layout(location = 0) out vec4;
 };
 
+type Uniforms = glsl::Glsl! {
+    layout(location = 0) uniform float;
+    layout(location = 1) uniform float;
+    layout(location = 2) uniform float;
+};
+
 type Attributes = gb::HList! {
     Attribute<[f32; 3], 0>,
-    Attribute<[f32; 3], 1>,
+    Attribute<[f32; 4], 1>,
 };
 
 pub struct Listing {
-    program: Program<VsInputs, FsOutputs, (), ()>,
+    program: Program<VsInputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes>,
-}
-
-impl Listing {
-    // Color values will be shifted by this much with each key press
-    const ATTENUATION_FACTOR: f32 = 0.005;
+    attenuation: f32,
+    x_offset: f32,
+    y_offset: f32,
+    color_shift: f32,
 }
 
 impl crate::Sample for Listing {
@@ -57,7 +61,8 @@ impl crate::Sample for Listing {
         let fs_outputs = FsOutputs::default();
 
         let glsl::vars![ fs_output ] = fs_outputs;
-        let glsl::vars![ vin_color, vin_position ] = &vs_inputs;
+        let glsl::vars![ vin_position, vin_color ] = &vs_inputs;
+        let glsl::vars![ l_attenuation, l_x_offset, l_y_offset ] = Uniforms::default();
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
@@ -66,6 +71,9 @@ impl crate::Sample for Listing {
         uncompiled_fs.source(&[&fs_source]);
 
         let vs = uncompiled_vs
+            .uniform(&l_attenuation)
+            .uniform(&l_x_offset)
+            .uniform(&l_y_offset)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -76,35 +84,53 @@ impl crate::Sample for Listing {
             .inputs(&fs_inputs)
             .output(&fs_output);
 
+
+        let attenuation = 1.0;
+        let x_offset = 0.0;
+        let y_offset = 0.0;
+
         let program = Program::builder()
-            .no_uniforms()
+            .uniforms(|defs| defs
+                .define(&l_attenuation, &attenuation)
+                .define(&l_x_offset, &x_offset)
+                .define(&l_y_offset, &y_offset)
+            )
             .no_resources()
             .vertex_main(&vs)
+            .uniforms(|matcher| matcher
+                .bind(&l_y_offset)
+                .bind(&l_x_offset)
+                .bind(&l_attenuation)
+            )
             .fragment_main(&fs)
             .build()?;
     
-        let mut colors = Buffer::create();
         let mut positions = Buffer::create();
+        let mut colors = Buffer::create();
 
-        colors.data::<(Dynamic, Draw)>(&[
-            [1.0, 0.0, 0.0], 
-            [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
-        ]);
         positions.data::<(Dynamic, Draw)>(&[
-            [-0.5, -0.5, -1.0], 
-            [ 0.5, -0.5, -1.0], 
+            [-0.5, -0.5, -1.0f32],
+            [ 0.5, -0.5, -1.0f32],
             [ 0.0,  0.5, -1.0f32]
+        ]);
+        colors.data::<(Dynamic, Draw)>(&[
+            [1.0, 0.0, 0.0, 1.0f32], 
+            [0.0, 1.0, 0.0, 1.0f32], 
+            [0.0, 0.0, 1.0, 1.0f32]
         ]);
     
         let vao = VertexArray::create()
-            .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
+            .vertex_attrib_pointer(&vin_color, colors)
             ;
 
         let inner = Self {
             program,
             vao,
+            attenuation,
+            x_offset,
+            y_offset,
+            color_shift: -1.0,
         };
 
         Ok(Ctx {
@@ -123,33 +149,23 @@ impl crate::Sample for Listing {
                 gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
             }
         }
+        
+        let glsl::vars![ attenuation, x_offset, y_offset ] = Uniforms::default();
+        
+        if self.attenuation > 1.0 || self.attenuation < 0.0 { 
+            self.color_shift *= -1.0;
+        }
+        self.attenuation = self.attenuation + self.color_shift * 0.005;
+        self.x_offset = if self.x_offset < 1.0 { self.x_offset + 0.005 } else { -1.0 };
+        self.y_offset = if self.y_offset < 1.0 { self.y_offset + 0.005 } else { -1.0 };
 
+        self.program.uniform(&attenuation, &self.attenuation);
+        self.program.uniform(&x_offset, &self.x_offset);
+        self.program.uniform(&y_offset, &self.y_offset);
         self.program.draw_arrays(&self.vao);
     }
     
-    fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-
-        let glsl::vars![color, _pos] = VsInputs::default();
-        let mut data = self.vao.buffer_mut(&color).map_mut();
-        let mut attenuate = |offset| {
-            for vertex_color in data.iter_mut() {
-                vertex_color[offset] += Self::ATTENUATION_FACTOR;
-                if vertex_color[offset] > 1.0 {
-                    vertex_color[offset] = 0.0;
-                }
-            }
-
-            print!("\rchaning {} channel", match offset { 0 => "R", 1 => "G", 2 => "B", _ => panic!("invalid offset {offset}") });
-            std::io::stdout().flush().unwrap();
-        };
-
-        match code {
-            winit::keyboard::KeyCode::KeyA => attenuate(0),
-            winit::keyboard::KeyCode::KeyS => attenuate(1),
-            winit::keyboard::KeyCode::KeyD => attenuate(2),
-            _ => (),
-        }
-    }
+    fn process_key(&mut self, _: winit::keyboard::KeyCode) { }
     
     fn process_mouse(&mut self, _: (f64, f64)) { }
     
