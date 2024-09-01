@@ -8,8 +8,6 @@
 // #include <GL/gl.h>
 #include <windows.h>
 
-// #define RT_CHECK
-
 #ifdef RT_CHECK
 #define CHECK_GL_ERROR \
     { \

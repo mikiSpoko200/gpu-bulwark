@@ -112,9 +112,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     auto app = App(hwnd);
 
     MSG msg = { };
-    while (GetMessage(&msg, NULL, 0, 0)) {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+    BOOL running = true;
+    while (running) {
+        while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
+            if (msg.message == WM_QUIT) {
+                running = false;
+            }
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
 
         app.Render();
     }
