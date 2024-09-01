@@ -31,7 +31,8 @@ public:
         program.Use();
 
         glUniform1f(0, 1.0f);
-        glUniform1f(1, 0.0f);
+        // NOTE: Invalid type
+        glUniform2f(1, 0.0f, 1.0f);
         glUniform1f(2, 0.0f);
 
         const std::vector<float> colors = {
@@ -51,7 +52,6 @@ public:
         colorBuffer.Data(positions, GL_STATIC_DRAW);
         vao.VertexAttribPointer(0, colorBuffer, 3, GL_FLOAT);
 
-        // NOTE: Attribute declaration is missing
         positionBuffer.Data(colors, GL_STATIC_DRAW);
         vao.VertexAttribPointer(1, positionBuffer, 4, GL_FLOAT);
         
@@ -69,7 +69,8 @@ public:
         y_offset = y_offset < 1.0f ? y_offset + 0.005f : -1.0f;
 
         glUniform1f(0, attenuation); CHECK_GL_ERROR;
-        glUniform1f(1, x_offset); CHECK_GL_ERROR;
+        // NOTE: Invalid type
+        glUniform2f(1, 0.0f, 1.0f);
         glUniform1f(2, y_offset); CHECK_GL_ERROR;
 
         glDrawArrays(GL_TRIANGLES, 0, 3); CHECK_GL_ERROR;
