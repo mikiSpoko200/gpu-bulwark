@@ -15,7 +15,7 @@ use gl::buffer::{Dynamic, Draw};
 use gl::{Program, Buffer, VertexArray};
 
 type VsInputs = glsl::Glsl! {
-    layout(location = 0) in vec3;
+    layout(location = 0) in ivec3;
     layout(location = 1) in vec3;
 };
 
