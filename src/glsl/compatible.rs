@@ -143,6 +143,6 @@ where
     GLSL: glsl::parameters::Parameter<glsl::storage::In>,
     PH: glsl::parameters::Parameters<glsl::storage::In>,
     AH: vao::valid::Attributes,
-    GL: vao::bounds::AttribFormat,
+    GL: vao::bounds::AttribFormat + Compatible<GLSL>,
     AH: hlist::Compatible<PH>,
 { }
