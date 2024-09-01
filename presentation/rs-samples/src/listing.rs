@@ -86,10 +86,11 @@ impl crate::Sample for Listing {
         let mut colors = Buffer::create();
         let mut positions = Buffer::create();
 
+        // NOTE: shader expects vec3
         colors.data::<(Dynamic, Draw)>(&[
-            [1.0, 0.0, 0.0], 
-            [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
+            [1.0, 0.0, 0.0, 1.0], 
+            [0.0, 1.0, 0.0, 1.0], 
+            [0.0, 0.0, 1.0, 1.0f32]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
