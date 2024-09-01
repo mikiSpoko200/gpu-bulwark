@@ -137,7 +137,12 @@
     <ClInclude Include="deps\GL\glxew.h" />
     <ClInclude Include="deps\GL\wglew.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="hello_textures.hpp" />
+    <ClInclude Include="hello_triangle.hpp" />
+    <ClInclude Include="hello_uniforms.hpp" />
+    <ClInclude Include="hello_vertices.hpp" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="sample.hpp" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="wrapper.hpp" />
   </ItemGroup>

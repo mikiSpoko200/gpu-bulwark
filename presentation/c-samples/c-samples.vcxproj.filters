@@ -42,6 +42,21 @@
     <ClInclude Include="wrapper.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="sample.hpp">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hello_triangle.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hello_vertices.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hello_uniforms.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hello_textures.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">

@@ -6,8 +6,11 @@
 #include <GL/glew.h>
 #include <GL/wglew.h>
 #include <GL/gl.h>
-#include <windows.h> // For MessageBoxA and exit
+#include <windows.h>
 
+// #define RT_CHECK
+
+#ifdef RT_CHECK
 #define CHECK_GL_ERROR \
     { \
         GLenum err; \
@@ -19,20 +22,24 @@
             exit(-1); \
         } \
     }
+#else
+#define CHECK_GL_ERROR
+#endif
 
 const char* GetGLErrorString(GLenum err) {
     switch (err) {
-        case GL_NO_ERROR: return "No error";
-        case GL_INVALID_ENUM: return "Invalid enum";
-        case GL_INVALID_VALUE: return "Invalid value";
-        case GL_INVALID_OPERATION: return "Invalid operation";
-        case GL_STACK_OVERFLOW: return "Stack overflow";
-        case GL_STACK_UNDERFLOW: return "Stack underflow";
-        case GL_OUT_OF_MEMORY: return "Out of memory";
-        case GL_INVALID_FRAMEBUFFER_OPERATION: return "Invalid framebuffer operation";
-        default: return "Unknown error";
+        case GL_NO_ERROR:                       return "No error";
+        case GL_INVALID_ENUM:                   return "Invalid enum";
+        case GL_INVALID_VALUE:                  return "Invalid value";
+        case GL_INVALID_OPERATION:              return "Invalid operation";
+        case GL_STACK_OVERFLOW:                 return "Stack overflow";
+        case GL_STACK_UNDERFLOW:                return "Stack underflow";
+        case GL_OUT_OF_MEMORY:                  return "Out of memory";
+        case GL_INVALID_FRAMEBUFFER_OPERATION:  return "Invalid framebuffer operation";
+        default:                                return "Unknown error";
     }
 }
+
 
 class Object {
 protected:
@@ -186,7 +193,7 @@ public:
 
     void Storage2D(GLenum internalFormat, GLsizei width, GLsizei height) const {
         Bind();
-        glTexStorage2D(target, 1, internalFormat, width, height); // Use mipmap level 1 for basic texture CHECK_GL_ERROR;
+        glTexStorage2D(target, 1, internalFormat, width, height);
         Unbind();
     }
 

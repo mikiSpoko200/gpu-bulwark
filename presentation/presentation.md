@@ -89,8 +89,6 @@ which are listed by the spec.
 
 ## Vertex Arrays
 
-
-
 ## Shaders and Program objects
 
 To start, shader source code is to loaded from a files, uploaded to OpenGL, and compiled.
@@ -100,15 +98,11 @@ With required minimum of vertex and fragment shaders they can be attached to a p
 
 Programs are 
 
-
-
 # Examples
-
-## Using uncompiled shader
 
 ## Program building
 
-## Buffer data submission
+## Vertex Specification
 
 ## Attributes
 
