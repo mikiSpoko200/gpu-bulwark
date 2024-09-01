@@ -36,17 +36,17 @@ type Attributes = gb::HList! {
     Attribute<[f32; 3], 1>,
 };
 
-pub struct Sample {
+pub struct Listing {
     program: Program<VsInputs, FsOutputs, (), ()>,
     vao: VertexArray<Attributes>,
 }
 
-impl Sample {
+impl Listing {
     // Color values will be shifted by this much with each key press
     const ATTENUATION_FACTOR: f32 = 0.005;
 }
 
-impl crate::Sample for Sample {
+impl crate::Sample for Listing {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         let vs_source = std::fs::read_to_string("../shaders/hello_vertices.vert")?;
         let fs_source = std::fs::read_to_string("../shaders/hello_vertices.frag")?;

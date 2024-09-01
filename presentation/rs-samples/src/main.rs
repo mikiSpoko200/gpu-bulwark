@@ -1,4 +1,3 @@
-//! Application that can load and execute samples. Sample to run is selected using features.
 
 mod common;
 mod listing;
@@ -10,6 +9,7 @@ use glutin::prelude::*;
 use glutin::display::GetGlDisplay;
 
 use glutin_winit::{DisplayBuilder, GlWindow};
+use listing::Listing;
 use winit::application::ApplicationHandler;
 use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
 use winit::event_loop::{self, ActiveEventLoop, EventLoop};
@@ -56,49 +56,25 @@ impl<T> AsMut<T> for Ctx<T> {
     }
 }
 
-struct App<T: Sample> {
-    ctx: Option<Ctx<T>>,
+struct App {
+    ctx: Option<Ctx<Listing>>,
 }
 
-impl<T: Sample> Default for App<T> {
+impl Default for App {
     fn default() -> Self {
         Self { ctx: None }
     }
 }
 
-
-impl App<listing_1::Sample> {
-    #[allow(unused)]
-    fn listing_1() -> Self {
-        Self::default()
-    }
-}
-
-impl App<listing_2::Sample> {
-    #[allow(unused)]
-    fn listing_2() -> Self {
-        Self::default()
-    }
-}
-
-impl<T: Sample> App<T> {
+impl App {
     fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if self.ctx.is_none() {
-            let config = T::config();
-
-            // let icon = hello_textures::logo::uwr();
-            // let icon: &[u8] = unsafe { std::slice::from_raw_parts(icon.as_ptr() as *const _, icon.len() * 4) };
-
-            // let icon = winit::window::Icon::from_rgba(Vec::from_iter(icon.into_iter().map(Clone::clone)), 256, 256).unwrap();
-
-            // Winit window creation
+            let config = Listing::config();
             let window_attributes = winit::window::WindowAttributes::default()
-                // .with_window_icon(Some(icon))
                 .with_inner_size(winit::dpi::PhysicalSize::new(config.width, config.height))
-                .with_title(T::name())
+                .with_title(Listing::name())
                 .with_resizable(false);
     
-            // Glutin gl context initialization
             let version = context::Version::new(4, 6);
             println!(
                 "initializing OpenGL {}.{} core",
@@ -150,7 +126,7 @@ impl<T: Sample> App<T> {
                 let symbol = std::ffi::CString::new(symbol).unwrap();
                 display.get_proc_address(symbol.as_c_str()).cast()
             });
-            self.ctx = Some(match T::initialize(window, surface, gl_context) {
+            self.ctx = Some(match Listing::initialize(window, surface, gl_context) {
                 Ok(ctx) => ctx,
                 Err(err) => panic!("{err}"),
             });
@@ -189,7 +165,7 @@ impl<T: Sample> App<T> {
 }
 
 
-impl<T: Sample> ApplicationHandler for App<T> {
+impl ApplicationHandler for App {
     fn suspended(&mut self, _: &ActiveEventLoop) { }
 
     fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
@@ -239,11 +215,7 @@ impl<T: Sample> ApplicationHandler for App<T> {
 }
 
 fn main() -> anyhow::Result<()> {
-    
-    #[cfg(feature = "listing_1")]
-    let mut app = App::listing_1();
-    #[cfg(feature = "listing_2")]
-    let mut app = App::listing_2();
+    let mut app = App::default();
 
     let event_loop = EventLoop::new()?;
     Ok(event_loop.run_app(&mut app)?)

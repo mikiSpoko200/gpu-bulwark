@@ -13,8 +13,3 @@ winit = "0.30.0"
 anyhow = "1.0.75"
 image = "0.25.2"
 slice-of-array = "0.3.2"
-
-
-[features]
-listing_1 = []
-listing_2 = []
