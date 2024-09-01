@@ -15,7 +15,7 @@ use gl::buffer::{Dynamic, Draw};
 use gl::{Program, Buffer, VertexArray};
 
 type VsInputs = glsl::Glsl! {
-    layout(location = 0) in vec3;
+    layout(location = 0) in ivec3;
     layout(location = 1) in vec3;
 };
 
@@ -32,18 +32,13 @@ type FsOutputs = glsl::Glsl! {
 };
 
 type Attributes = gb::HList! {
-    Attribute<[f32; 3], 0>,
+    Attribute<[i32; 3], 0>,
     Attribute<[f32; 3], 1>,
 };
 
 pub struct Listing {
     program: Program<VsInputs, FsOutputs, (), ()>,
     vao: VertexArray<Attributes>,
-}
-
-impl Listing {
-    // Color values will be shifted by this much with each key press
-    const ATTENUATION_FACTOR: f32 = 0.005;
 }
 
 impl crate::Sample for Listing {
@@ -86,10 +81,11 @@ impl crate::Sample for Listing {
         let mut colors = Buffer::create();
         let mut positions = Buffer::create();
 
+        // NOTE: Invalid data format
         colors.data::<(Dynamic, Draw)>(&[
-            [1.0, 0.0, 0.0], 
-            [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
+            [15i32, 0, 0], 
+            [0, 15, 0], 
+            [0, 0, 15]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
@@ -133,10 +129,7 @@ impl crate::Sample for Listing {
         let mut data = self.vao.buffer_mut(&color).map_mut();
         let mut attenuate = |offset| {
             for vertex_color in data.iter_mut() {
-                vertex_color[offset] += Self::ATTENUATION_FACTOR;
-                if vertex_color[offset] > 1.0 {
-                    vertex_color[offset] = 0.0;
-                }
+                vertex_color[offset] += 1;
             }
 
             print!("\rchaning {} channel", match offset { 0 => "R", 1 => "G", 2 => "B", _ => panic!("invalid offset {offset}") });
