@@ -23,9 +23,9 @@ public:
 
         // NOTE: shader expects vec3
         const std::vector<float> colors = {
-            1.0f, 0.0f, 0.0f, 1.0f,
-            0.0f, 1.0f, 0.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f,
+            1.0f, 0.0f, 0.0f,
+            0.0f, 1.0f, 0.0f,
+            0.0f, 0.0f, 1.0f,
         };
 
         const std::vector<float> positions = {
