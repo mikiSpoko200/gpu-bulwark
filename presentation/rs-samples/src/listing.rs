@@ -89,7 +89,7 @@ impl crate::Sample for Listing {
         colors.data::<(Dynamic, Draw)>(&[
             [1.0, 0.0, 0.0], 
             [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
+            [0.0, 0.0, 1.0f32]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
@@ -97,9 +97,10 @@ impl crate::Sample for Listing {
             [ 0.0,  0.5, -1.0f32]
         ]);
     
+        // NOTE: Missing attribute declaration
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
-            .vertex_attrib_pointer(&vin_position, positions)
+            // .vertex_attrib_pointer(&vin_position, positions)
             ;
 
         let inner = Self {

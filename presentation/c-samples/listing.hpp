@@ -36,10 +36,11 @@ public:
         vao.Bind();
 
         colorBuffer.Data(colors, GL_STATIC_DRAW);
-        vao.VertexAttribPointer(0, colorBuffer, 3, GL_FLOAT);
+        vao.VertexAttribPointer(1, colorBuffer, 3, GL_FLOAT);
 
+        // NOTE: Missing attribute declaration
         positionBuffer.Data(positions, GL_STATIC_DRAW);
-        vao.VertexAttribPointer(1, positionBuffer, 3, GL_FLOAT);
+        // vao.VertexAttribPointer(0, positionBuffer, 3, GL_FLOAT);
     }
 
     void Render() const {
