@@ -97,6 +97,7 @@ impl crate::Sample for Listing {
             [ 0.0,  0.5, -1.0f32]
         ]);
     
+        // NOTE: This error condition is impossible to cause.
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
