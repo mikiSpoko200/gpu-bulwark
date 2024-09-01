@@ -75,11 +75,6 @@ impl App {
                 .with_title(Listing::name())
                 .with_resizable(false);
     
-            let version = context::Version::new(4, 6);
-            println!(
-                "initializing OpenGL {}.{} core",
-                version.major, version.minor
-            );
             let template = glutin::config::ConfigTemplateBuilder::new();
             let display_builder = DisplayBuilder::new().with_window_attributes(Some(window_attributes));
 
@@ -130,11 +125,6 @@ impl App {
                 Ok(ctx) => ctx,
                 Err(err) => panic!("{err}"),
             });
-
-            println!("*-----------------------------------------------------------*\n");
-            println!("{}", self.ctx.as_ref().unwrap().inner.usage());
-            println!("press escape key to exit");
-            println!("\n*-----------------------------------------------------------*");
         }
     }
 
@@ -188,7 +178,6 @@ impl ApplicationHandler for App {
         match event {
             WindowEvent::Resized(size) => {
                 if let Some(ref mut ctx) = self.ctx {
-                    println!("resizing...");
                     if size.width != 0 && size.height != 0 {
                         ctx.surface.resize(
                             &ctx.context,

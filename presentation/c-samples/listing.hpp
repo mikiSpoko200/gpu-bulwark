@@ -11,8 +11,8 @@ class Listing {
 
 public:
     Listing() {
-        std::string vertexShaderCode = ReadShaderFile(L"D:\\dev\\gpu-bulwark\\presentation\\shaders\\hello_vertices.vert");
-        std::string fragmentShaderCode = ReadShaderFile(L"D:\\dev\\gpu-bulwark\\presentation\\shaders\\hello_vertices.frag");
+        std::string vertexShaderCode = ReadShaderFile(L"D:\\dev\\gpu-bulwark\\presentation\\shaders\\vert.glsl");
+        std::string fragmentShaderCode = ReadShaderFile(L"D:\\dev\\gpu-bulwark\\presentation\\shaders\\frag.glsl");
 
         Shader vertexShader = Shader::Vertex(vertexShaderCode);
         Shader fragmentShader = Shader::Fragment(fragmentShaderCode);
@@ -21,7 +21,6 @@ public:
         program.AttachShader(fragmentShader);
         program.Link();
 
-        // NOTE: shader expects vec3
         const std::vector<float> colors = {
             1.0f, 0.0f, 0.0f,
             0.0f, 1.0f, 0.0f,

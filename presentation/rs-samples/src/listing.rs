@@ -48,8 +48,8 @@ impl Listing {
 
 impl crate::Sample for Listing {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
-        let vs_source = std::fs::read_to_string("shaders/hello_vertices.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_vertices.frag")?;
+        let vs_source = std::fs::read_to_string("shaders/vert.glsl")?;
+        let fs_source = std::fs::read_to_string("shaders/frag.glsl")?;
 
         let vs_inputs  = VsInputs::default();
         let vs_outputs = VsOutputs::default();
