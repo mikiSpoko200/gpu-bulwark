@@ -3,7 +3,7 @@
 
 #include "hello_triangle.hpp"
 
-class HelloTriangle : Sample {
+class Listing1 : Sample {
     Program program = Program();
     VertexArray vao = VertexArray();
 

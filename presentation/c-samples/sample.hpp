@@ -99,5 +99,5 @@ std::string ReadShaderFile(const std::wstring& fileName) {
 
 class Sample {
 public:
-    virtual void Render(void) = 0;
+    virtual void Render(void) const = 0;
 };

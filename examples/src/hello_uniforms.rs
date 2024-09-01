@@ -50,8 +50,8 @@ impl crate::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         // ========================[ gpu-bulwark ]========================
 
+        // Shader specification
         let vs_source = std::fs::read_to_string("shaders/hello_uniforms.vert")?;
-        let common_source = std::fs::read_to_string("shaders/hello_uniforms_shared.vert")?;
         let fs_source = std::fs::read_to_string("shaders/hello_uniforms.frag")?;
 
         let vs_inputs = Inputs::default();
@@ -66,17 +66,11 @@ impl crate::Sample for Sample {
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
-        let mut common = shader::create::<shader::target::Vertex>();
     
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
-        common.source(&[&common_source]);
 
-        let camera = FreeRoamingCamera::from(Camera::default());
-    
         let vs = uncompiled_vs
-            .uniform(&view_matrix_location)
-            .uniform(&scale_location)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -86,29 +80,14 @@ impl crate::Sample for Sample {
             .into_main()
             .inputs(&fs_inputs)
             .output(&fs_output);
-        let common = common.compile()?.into_shared();
-
-        let scale = 1.0;
-        
-        let matrix = camera.view_projection_matrix();
 
         let program = Program::builder()
-            .uniforms(|definitions| definitions
-                .define(&view_matrix_location, &matrix)
-                .define(&scale_location, &scale)
-            )
+            .no_uniforms()
             .no_resources()
             .vertex_main(&vs)
-            .uniforms(|matcher| matcher
-                .bind(&scale_location)
-                .bind(&view_matrix_location)
-            )
-            .vertex_shared(&common)
             .fragment_main(&fs)
             .build()?;
     
-        let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
     
         let mut colors = Buffer::create();
         colors.data::<(Static, Draw)>(&[
@@ -116,6 +95,10 @@ impl crate::Sample for Sample {
             [0.0, 1.0, 0.0, 1.0],
             [0.0, 0.0, 1.0, 1.0],
         ]);
+
+        let mut positions = Buffer::create();
+        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
+    
     
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)

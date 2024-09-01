@@ -8,8 +8,8 @@
 #include "wrapper.hpp"
 #include "sample.hpp"
 
-#include "hello_triangle.hpp"
-#include "hello_vertices.hpp"
+#include "listing-1.hpp"
+#include "listing-2.hpp"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
@@ -99,7 +99,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         TEXT("OpenGL Window"), 
         WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX & ~WS_MINIMIZEBOX,
         CW_USEDEFAULT, CW_USEDEFAULT,
-        960, 640,
+        800, 600,
         NULL,
         NULL,
         hInstance,
@@ -110,18 +110,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ShowWindow(hwnd, nCmdShow);
 
-    #define HELLO_TRIANGLE
-    #ifdef HELLO_TRIANGLE
-    auto app = App< HelloTriangle>(hwnd);
-    #endif
-    #ifdef HELLO_VERTIVES
-    auto app = App(hwnd, new HelloVertices());
-    #endif
-    #ifdef HELLO_UNIFORMS
-    auto app = App(hwnd, new HelloUniforms());
-    #endif
-    #ifdef HELLO_TEXTURES
-    auto app = App(hwnd, new HelloTextures());
+    #define LISTING 1
+
+    #if LISTING == 1
+    auto app = App<Listing1>(hwnd);
+    #elif LISTING == 2
+    auto app = App<Listing2>(hwnd);
+    #elif LISTING == 3
+    auto app = App<Listing3>(hwnd);
+    #elif LISTING == 4
+    auto app = App<Listing4>(hwnd);
     #endif
     
 

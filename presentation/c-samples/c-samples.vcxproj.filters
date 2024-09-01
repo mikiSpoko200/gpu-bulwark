@@ -45,16 +45,10 @@
     <ClInclude Include="sample.hpp">
       <Filter>Resource Files</Filter>
     </ClInclude>
-    <ClInclude Include="hello_triangle.hpp">
+    <ClInclude Include="listing-1.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="hello_vertices.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hello_uniforms.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="hello_textures.hpp">
+    <ClInclude Include="listing-2.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
