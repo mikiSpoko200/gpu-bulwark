@@ -1,8 +1,7 @@
 //! Application that can load and execute samples. Sample to run is selected using features.
 
 mod common;
-mod listing_1;
-mod listing_2;
+mod listing;
 
 use std::num::NonZeroU32;
 

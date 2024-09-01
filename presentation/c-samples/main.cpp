@@ -6,16 +6,12 @@
 
 #include <windows.h>
 #include "wrapper.hpp"
-#include "sample.hpp"
-
-#include "listing-1.hpp"
-#include "listing-2.hpp"
+#include "listing.hpp"
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
-template <class S>
 class App {
-    Sample* sample;
+    Listing* listing;
     HWND hwnd;
     HDC hdc;
     HGLRC hglrc;
@@ -61,14 +57,14 @@ public:
             exit(-1);
         }
 
-        sample = new S();
+        listing = new Listing();
         glClearColor(0.4f, 0.5f, 0.6f, 1.0f); CHECK_GL_ERROR;
     }
 
     void Render() const {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); CHECK_GL_ERROR;
 
-        sample->Render();
+        listing->Render();
 
         glDrawArrays(GL_TRIANGLES, 0, 3); CHECK_GL_ERROR;
 
@@ -79,7 +75,7 @@ public:
         wglMakeCurrent(NULL, NULL);
         wglDeleteContext(hglrc);
         ReleaseDC(hwnd, hdc);
-        delete sample;
+        delete listing;
         DestroyWindow(hwnd);
     }
 };
@@ -110,18 +106,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     ShowWindow(hwnd, nCmdShow);
 
-    #define LISTING 1
-
-    #if LISTING == 1
-    auto app = App<Listing1>(hwnd);
-    #elif LISTING == 2
-    auto app = App<Listing2>(hwnd);
-    #elif LISTING == 3
-    auto app = App<Listing3>(hwnd);
-    #elif LISTING == 4
-    auto app = App<Listing4>(hwnd);
-    #endif
-    
+    auto app = App(hwnd);
 
     MSG msg = { };
     while (GetMessage(&msg, NULL, 0, 0)) {
