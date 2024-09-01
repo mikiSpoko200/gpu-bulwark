@@ -9,13 +9,11 @@
 
 #define internal static
 
-// Function Declarations
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 void SetupOpenGL(HWND hwnd);
 void InitializeGL();
 void Render();
 
-// Global Variables
 internal HWND hwnd;
 
 struct GL {
@@ -28,20 +26,18 @@ struct GL {
 internal struct GL* Gl;
 
 void ShowCurrentWorkingDirectory() {
-    // Step 1: Get the current working directory
-    DWORD bufferSize = GetCurrentDirectory(0, NULL);  // Get the size of the buffer needed
+    DWORD bufferSize = GetCurrentDirectory(0, NULL);
     if (bufferSize == 0) {
         throw std::runtime_error("Failed to get the current directory size.");
     }
 
-    std::wstring currentDirectory(bufferSize, L'\0'); // Create a buffer of the correct size
+    std::wstring currentDirectory(bufferSize, L'\0');
     DWORD length = GetCurrentDirectory(bufferSize, &currentDirectory[0]);
 
     if (length == 0) {
         throw std::runtime_error("Failed to get the current directory.");
     }
 
-    // Step 2: Display the current directory in a MessageBox
     MessageBoxW(NULL, currentDirectory.c_str(), L"Current Working Directory", MB_OK | MB_ICONINFORMATION);
 }
 
@@ -67,32 +63,28 @@ std::string GetErrorMessage(DWORD errorCode) {
 }
 
 std::string ReadShaderFile(const std::wstring& fileName) {
-    // Step 1: Open the file
     HANDLE fileHandle = CreateFile(
-        fileName.c_str(),          // File name
-        GENERIC_READ,              // Open for reading
-        0,                         // Do not share
-        NULL,                      // Default security
-        OPEN_EXISTING,             // Open existing file only
-        FILE_ATTRIBUTE_NORMAL,     // Normal file
-        NULL                       // No template file
+        fileName.c_str(), 
+        GENERIC_READ,
+        0,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
     );
 
     if (fileHandle == INVALID_HANDLE_VALUE) {
         DWORD errorCode = GetLastError();
         std::string errorMessage = GetErrorMessage(errorCode);
 
-        // Convert the file name and error message to wide strings for MessageBoxW
         std::wstring wideErrorMessage = std::wstring(errorMessage.begin(), errorMessage.end());
         std::wstring fullMessage = L"Failed to open file: " + fileName + L"\nError: " + wideErrorMessage;
 
-        // Display the error in a MessageBox
         MessageBoxW(NULL, fullMessage.c_str(), TEXT("Error"), MB_OK | MB_ICONERROR);
         
         throw std::runtime_error("Failed to open file: " + errorMessage);
     }
 
-    // Step 2: Get the file size
     DWORD fileSize = GetFileSize(fileHandle, NULL);
     if (fileSize == INVALID_FILE_SIZE) {
         DWORD errorCode = GetLastError();
@@ -108,18 +100,17 @@ std::string ReadShaderFile(const std::wstring& fileName) {
         throw std::runtime_error("Failed to get file size: " + errorMessage);
     }
 
-    // Step 3: Read the file content into a buffer
     std::string fileContent(fileSize, '\0');
     DWORD bytesRead;
     BOOL success = ReadFile(
-        fileHandle,                // Handle to the file
-        &fileContent[0],           // Buffer to receive data
-        fileSize,                  // Number of bytes to read
-        &bytesRead,                // Number of bytes read
-        NULL                       // No overlapped structure
+        fileHandle,
+        &fileContent[0],
+        fileSize,
+        &bytesRead,
+        NULL
     );
 
-    CloseHandle(fileHandle); // Step 4: Close the file handle
+    CloseHandle(fileHandle);
 
     if (!success || bytesRead != fileSize) {
         DWORD errorCode = GetLastError();
@@ -147,16 +138,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     RegisterClass(&wc);
 
     hwnd = CreateWindowEx(
-        0,                              // Optional window styles
-        TEXT("OpenGLWindowClass"),      // Window class name
-        TEXT("OpenGL Window"),          // Window title
-        WS_OVERLAPPEDWINDOW,            // Window style
-        CW_USEDEFAULT, CW_USEDEFAULT,   // Position
-        800, 600,                       // Size
-        NULL,                           // Parent window    
-        NULL,                           // Menu
-        hInstance,                      // Instance handle
-        NULL                            // Additional application data
+        0,
+        TEXT("OpenGLWindowClass"), 
+        TEXT("OpenGL Window"), 
+        WS_OVERLAPPEDWINDOW,
+        CW_USEDEFAULT, CW_USEDEFAULT,
+        800, 600,
+        NULL,
+        NULL,
+        hInstance,
+        NULL
     );
 
     if (hwnd == NULL) {
@@ -202,14 +193,12 @@ void SetupOpenGL(HWND hwnd) {
     HGLRC tempContext = wglCreateContext(hdc);
     wglMakeCurrent(hdc, tempContext);
 
-    // Initialize GLEW to set up OpenGL extensions
     glewExperimental = TRUE;
     if (glewInit() != GLEW_OK) {
         MessageBox(hwnd, TEXT("Failed to initialize GLEW"), TEXT("Error"), MB_OK | MB_ICONERROR);
         exit(-1);
     }
 
-    // Set up a modern OpenGL context (3.3)
     int attribs[] = {
         WGL_CONTEXT_MAJOR_VERSION_ARB, 4,
         WGL_CONTEXT_MINOR_VERSION_ARB, 6,
@@ -240,7 +229,6 @@ void InitializeGL() {
         Shader vertexShader = Shader::Vertex(vertexShaderCode);
         Shader fragmentShader = Shader::Fragment(fragmentShaderCode);
 
-        // Create program and attach shaders
         Gl->program.AttachShader(vertexShader);
         Gl->program.AttachShader(fragmentShader);
         Gl->program.Link();
@@ -263,8 +251,8 @@ void InitializeGL() {
     Gl->colorBuffer.Data(colors, GL_STATIC_DRAW);
     Gl->vao.VertexAttribPointer(0, Gl->colorBuffer, 3, GL_FLOAT);
 
-    // Gl->positionBuffer.Data(positions, GL_STATIC_DRAW);
-    // Gl->vao.VertexAttribPointer(1, Gl->positionBuffer, 3, GL_FLOAT);
+    Gl->positionBuffer.Data(positions, GL_STATIC_DRAW);
+    Gl->vao.VertexAttribPointer(1, Gl->positionBuffer, 3, GL_FLOAT);
 
     glClearColor(0.3f, 0.4f, 0.7f, 1.0f); CHECK_GL_ERROR;
 }
