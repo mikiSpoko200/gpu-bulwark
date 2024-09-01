@@ -1,113 +1,71 @@
-
-# Introduction 
-
-Rust's type system for OpenGL
-`gpu-bulwark` 
+---
+title: "Analysis of Type--Driven approach to systems programming: Implementation of OpenGL library for Rust"
+author: "Mikołaj Depta"
+date: "03.09.2024"
+theme: "black"
+github: "https://github.com/mikiSpoko200/gpu-bulwark"
+---
+# Agenda
+- Introduction (5min)
+  * Why Rust
+  * Why OpenGL
+  * Goals and key features
+  * Overview of the project
+- Code Examples (10min)
+  * Live demo: `gpu-bulwark` vs raw OpenGL in `C` / `C++`
+- Conclusions (5min)
+  * What was achieved
+  * What can be improved
+  * Future plans
 
 ---
+## Introduction - Why Rust
 
-## Why?
+Rust is a very inspiring language to me on so many levels.
+It seamlessly interleaves the elegance of functional languages,
+with clear and predictable view of computers resources comparable to C's.
 
----
-## Rust
-
-Rust is a modern, compiled, general-purpose programming languge.
-Its a new way to do systems programming.
-Aim of this study was to, demonstrate a wide range of 
-
-
----
-## OpenGL
-
-OpenGL is excellent API to start graphics programming due to its
-simple view of the GPU, but its programming interface is very dated.
-
-# Computer graphics primer
-
-Goal: Display 3D geometry onto 2D surface of a computer's screen.
-
-
-
-## Graphics pipeline
-
-It can be broadly divided into to conceptual halves:
-
-**geometry processing** `->` discretization `->` **pixel processing**
-
-- some parts are programmable 
-- some allow limited configuration, but are mostly performed via a predefined process 
+Rust is minimalistic yet very deep. It may make simple things complex, but as a reward it makes complex things manageable.
+Understanding of rust's ownership model and data oriented design, 
+allows one to gain unique perspective on how computer systems interact and function.
 
 ---
-## Terminology
+## Introduction - Why OpenGL
 
-- shader - a routine which runs on the GPU, that implements programmable stages of the graphics pipeline.
-- fixed-function - term commonly used to describe parts of graphics pipeline which are not freely programmable, but rather configurable to a limited degree.
+OpenGL is a specification for hardware accelerated computer graphics.
+Its well-understood, broadly supported and most importantly - simple.
 
----
-## Geometric data
+Idea to write a wrapper for OpenGL originated during the computer graphics course.
+Whilst writing in Rust I was natual
 
-Geometric data is specified using abstract notion of a vertex in a mesh representing
-the surface of a 3D object.
+This is how the idea behind `gpu-bulwark` started.
 
----
-## Rasterization
+## Introduction - Goals
 
-Geometric shapes must at some point be converted into discrete set of pixels.
+Our goals with this study were twofold:
+1. Explore type-driven design in Rust:
+  - Determine benefits and downsides of such an approach to systems programming
+  - Ascertain feasibility of developing software that way
+  - Identify common patterns for type-driven design
+2. Create a minimalistic OpenGL wrapper:
+  - Remain as close to original specification as possible, simply provide typing information and object oriented syntax.
+  - Implement the most essential functionality as it would be unfeasible to cover entirety of the spec without diminishing quality
+  - Prevent as many ill-formed programs at compile-time as possible
 
-This process of conversion, from continous geometric data
-into discrete color samples is called rasterization.
+## Introduction -- Key Features
 
-Fixed function stages interpolate vertex data across prmitive's surface.
-This collection of interpolated data is called a **fragment**.
-
----
-## Fragment processing
-
-Fragments are subsequently processed by a fragment shader, to obtain color values.
-There per pixel lighting computations using interpolated surface normals,
-materials are applied using texture mapping, and different post processing effects 
-may be applied.
-
-# OpenGL API
-
-## Objects
-
-Objects are how OpenGL represents GPU resources.
-
-There are number of objects, but most these matter the most for our purposes:
-- buffers
-- vertex arrays
-- shaders
-- programs
-- textures
-
-## Buffers
-
-Buffers provide the ability to explicitly allocated memory on the GPU.
-Buffer objects have different targets -- which symbolise different predefined use cases,
-which are listed by the spec.
-
-## Vertex Arrays
-
-## Shaders and Program objects
-
-To start, shader source code is to loaded from a files, uploaded to OpenGL, and compiled.
-With required minimum of vertex and fragment shaders they can be attached to a program.
-
-## Program
-
-Programs are 
+- Extensible typing scheme for shaders, programs and vertices. Type level, LISP-like lists of types represent 
+- 
 
 # Examples
 
-## Program building
+## Examples - Program building
 
-## Vertex Specification
+### Vertex Specification
 
-## Attributes
+### Attributes
 
 ### Invalid format for input glsl shader
-
 
 ## Expansions 
 
