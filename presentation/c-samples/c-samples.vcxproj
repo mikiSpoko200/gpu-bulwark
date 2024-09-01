@@ -132,6 +132,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="c-samples.h" />
+    <ClInclude Include="common.hpp" />
     <ClInclude Include="deps\GL\eglew.h" />
     <ClInclude Include="deps\GL\glew.h" />
     <ClInclude Include="deps\GL\glxew.h" />

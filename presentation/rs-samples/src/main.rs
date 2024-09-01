@@ -37,7 +37,7 @@ pub trait Sample: Sized {
     }
 }
 
-pub struct Ctx<T> {
+pub struct  Ctx<T> {
     window: window::Window,
     surface: surface::Surface<surface::WindowSurface>,
     context: context::PossiblyCurrentContext,

@@ -4,6 +4,7 @@
 #include <ostream>
 #include <vector>
 
+#include <GL/glew.h>
 #include <windows.h>
 #include "wrapper.hpp"
 #include "listing.hpp"
