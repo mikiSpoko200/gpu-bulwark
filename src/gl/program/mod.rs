@@ -179,7 +179,6 @@ where
 }
 
 #[derive(dm::Deref)]
-#[doc = include_str!("../../../docs/object/program/Program.md")]
 pub struct Program<Ins, Outs, Unis, Res /* required external resources */>
 where
     Ins: glsl::Parameters<storage::In>,
