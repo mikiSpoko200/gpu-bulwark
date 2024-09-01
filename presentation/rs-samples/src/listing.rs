@@ -1,8 +1,7 @@
-use std::io::Write;
-
 // Sample application imports
 use crate::Ctx;
 
+use gb::glsl::MatchingInputs;
 // Windowing library imports
 use winit::window;
 use glutin::{context, surface};
@@ -16,15 +15,7 @@ use gl::{Program, Buffer, VertexArray};
 
 type VsInputs = glsl::Glsl! {
     layout(location = 0) in vec3;
-    layout(location = 1) in vec3;
-};
-
-type VsOutputs = glsl::Glsl! {
-    layout(location = 0) out vec4;
-};
-
-type FsInputs = glsl::Glsl! {
-    layout(location = 0) in vec4;
+    layout(location = 0) in vec3;
 };
 
 type FsOutputs = glsl::Glsl! {
@@ -33,7 +24,7 @@ type FsOutputs = glsl::Glsl! {
 
 type Attributes = gb::HList! {
     Attribute<[f32; 3], 0>,
-    Attribute<[f32; 3], 1>,
+    Attribute<[f32; 3], 0>,
 };
 
 pub struct Listing {
@@ -41,20 +32,22 @@ pub struct Listing {
     vao: VertexArray<Attributes>,
 }
 
-impl Listing {
-    // Color values will be shifted by this much with each key press
-    const ATTENUATION_FACTOR: f32 = 0.005;
-}
-
 impl crate::Sample for Listing {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         let vs_source = std::fs::read_to_string("shaders/vert.glsl")?;
         let fs_source = std::fs::read_to_string("shaders/frag.glsl")?;
 
-        let vs_inputs  = VsInputs::default();
-        let vs_outputs = VsOutputs::default();
-        let fs_inputs  = FsInputs::default();
-        let fs_outputs = FsOutputs::default();
+        let vs_inputs  = gb::glsl! {
+            layout(location = 0) in vec3;
+            layout(location = 0) in vec3;
+        };
+        let vs_outputs = gb::glsl! {
+            layout(location = 0) out vec4;
+        };
+        let fs_inputs  = vs_outputs.matching_inputs();
+        let fs_outputs = gb::glsl! {
+            layout(location = 0) out vec4;
+        };
 
         let glsl::vars![ fs_output ] = fs_outputs;
         let glsl::vars![ vin_color, vin_position ] = &vs_inputs;
@@ -89,7 +82,7 @@ impl crate::Sample for Listing {
         colors.data::<(Dynamic, Draw)>(&[
             [1.0, 0.0, 0.0], 
             [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
+            [0.0, 0.0, 1.0f32]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
@@ -97,6 +90,7 @@ impl crate::Sample for Listing {
             [ 0.0,  0.5, -1.0f32]
         ]);
     
+        // NOTE: This error condition is impossible to cause.
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
@@ -127,29 +121,7 @@ impl crate::Sample for Listing {
         self.program.draw_arrays(&self.vao);
     }
     
-    fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-
-        let glsl::vars![color, _pos] = VsInputs::default();
-        let mut data = self.vao.buffer_mut(&color).map_mut();
-        let mut attenuate = |offset| {
-            for vertex_color in data.iter_mut() {
-                vertex_color[offset] += Self::ATTENUATION_FACTOR;
-                if vertex_color[offset] > 1.0 {
-                    vertex_color[offset] = 0.0;
-                }
-            }
-
-            print!("\rchaning {} channel", match offset { 0 => "R", 1 => "G", 2 => "B", _ => panic!("invalid offset {offset}") });
-            std::io::stdout().flush().unwrap();
-        };
-
-        match code {
-            winit::keyboard::KeyCode::KeyA => attenuate(0),
-            winit::keyboard::KeyCode::KeyS => attenuate(1),
-            winit::keyboard::KeyCode::KeyD => attenuate(2),
-            _ => (),
-        }
-    }
+    fn process_key(&mut self, _: winit::keyboard::KeyCode) { }
     
     fn process_mouse(&mut self, _: (f64, f64)) { }
     
