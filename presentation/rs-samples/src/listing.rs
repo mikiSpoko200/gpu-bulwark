@@ -85,9 +85,9 @@ impl crate::Sample for Listing {
             .output(&fs_output);
 
 
-        let attenuation = 1.0;
-        let x_offset = 0.0;
-        let y_offset = 0.0;
+        let attenuation = 1.0f32;
+        let x_offset = 0.0f32;
+        let y_offset = 0.0f32;
 
         let program = Program::builder()
             .uniforms(|defs| defs
@@ -160,7 +160,8 @@ impl crate::Sample for Listing {
         self.y_offset = if self.y_offset < 1.0 { self.y_offset + 0.005 } else { -1.0 };
 
         self.program.uniform(&attenuation, &self.attenuation);
-        self.program.uniform(&x_offset, &self.x_offset);
+        // NOTE: Invalid Uniform type
+        self.program.uniform(&x_offset, &[self.x_offset, self.y_offset]);
         self.program.uniform(&y_offset, &self.y_offset);
         self.program.draw_arrays(&self.vao);
     }
