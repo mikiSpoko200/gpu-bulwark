@@ -4,7 +4,9 @@
 #include <ostream>
 #include <vector>
 
-#include <GL/glew.h>
+#define GLEW_STATIC
+
+#include "deps/GL/glew.h"
 #include <windows.h>
 #include "wrapper.hpp"
 #include "listing.hpp"

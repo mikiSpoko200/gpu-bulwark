@@ -3,9 +3,9 @@
 #include <string>
 #include <vector>
 #include <array>
-#include <GL/glew.h>
-#include <GL/wglew.h>
-#include <GL/gl.h>
+#include "deps/GL/glew.h"
+#include "deps/GL/wglew.h"
+// #include <GL/gl.h>
 #include <windows.h>
 
 // #define RT_CHECK
