@@ -378,9 +378,9 @@ macro_rules! glsl {
             @
             $crate::constraint::ValidExt::validated(
                 ($acc, $crate::glsl::variable::Variable::<
-                    storage_qualifier!($storage),
-                    layout_qualifier!($qualifier = $value),
-                    type_qualifier!($type $([$size])*)
+                    $crate::storage_qualifier!($storage),
+                    $crate::layout_qualifier!($qualifier = $value),
+                    $crate::type_qualifier!($type $([$size])*)
                 >::default())
             )
             =>
