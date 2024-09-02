@@ -62,7 +62,7 @@ impl crate::Sample for Listing {
 
         let glsl::vars![ fs_output ] = fs_outputs;
         let glsl::vars![ vin_position, vin_color ] = &vs_inputs;
-        let glsl::vars![ l_attenuation, l_x_offset, l_y_offset ] = Uniforms::default();
+        let glsl::vars![ location_attenuation, location_x_offset, location_y_offset ] = Uniforms::default();
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
@@ -71,9 +71,9 @@ impl crate::Sample for Listing {
         uncompiled_fs.source(&[&fs_source]);
 
         let vs = uncompiled_vs
-            .uniform(&l_attenuation)
-            .uniform(&l_x_offset)
-            .uniform(&l_y_offset)
+            .uniform(&location_attenuation)
+            .uniform(&location_x_offset)
+            .uniform(&location_y_offset)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -84,22 +84,22 @@ impl crate::Sample for Listing {
             .inputs(&fs_inputs)
             .output(&fs_output);
 
-
         let attenuation = 1.0;
         let x_offset = 0.0;
         let y_offset = 0.0;
 
         let program = Program::builder()
             .uniforms(|defs| defs
-                .define(&l_attenuation, &attenuation)
-                .define(&l_x_offset, &x_offset)
+                .define(&location_attenuation, &attenuation)
+                .define(&location_x_offset, &x_offset)
+                .define(&location_y_offset, &y_offset)
             )
             .no_resources()
             .vertex_main(&vs)
             .uniforms(|matcher| matcher
-                .bind(&l_y_offset)
-                .bind(&l_x_offset)
-                .bind(&l_attenuation)
+                .bind(&location_y_offset)
+                .bind(&location_x_offset)
+                .bind(&location_attenuation)
             )
             .fragment_main(&fs)
             .build()?;
