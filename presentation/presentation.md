@@ -52,14 +52,20 @@ Our goals with this study were twofold:
   - Implement the most essential functionality as it would be unfeasible to cover entirety of the spec without diminishing quality
   - Prevent as many ill-formed programs at compile-time as possible
 
-## Introduction -- Key Features
+## Introduction - Key Features
 
 - Extensible typing scheme for shaders, programs and vertices. Type level, LISP-like lists of types represent 
-- 
+
 
 # Examples
 
-## Examples - Program building
+## Listing 1 - Wrong attribute size
+
+## Listing 2 - Invalid attribute specification
+
+## Listing 3 - Type mismatch
+
+## Listing 4 - Missing attribute
 
 ### Vertex Specification
 
