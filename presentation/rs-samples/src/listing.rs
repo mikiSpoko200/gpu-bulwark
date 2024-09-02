@@ -80,9 +80,9 @@ impl crate::Sample for Listing {
         let mut positions = Buffer::create();
 
         colors.data::<(Dynamic, Draw)>(&[
-            [1.0, 0.0, 0.0], 
-            [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.0f32]
+            [1, 0, 0], 
+            [0, 1, 0], 
+            [0, 0, 1i32]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
