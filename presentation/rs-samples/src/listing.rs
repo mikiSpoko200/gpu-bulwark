@@ -89,7 +89,7 @@ impl crate::Sample for Listing {
         colors.data::<(Dynamic, Draw)>(&[
             [1.0, 0.0, 0.0], 
             [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
+            [0.0, 0.0, 1.0f32]
         ]);
         positions.data::<(Dynamic, Draw)>(&[
             [-0.5, -0.5, -1.0], 
