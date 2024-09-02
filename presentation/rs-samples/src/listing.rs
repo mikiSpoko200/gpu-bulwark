@@ -150,19 +150,23 @@ impl crate::Sample for Listing {
             }
         }
         
-        let glsl::vars![ attenuation, x_offset, y_offset ] = Uniforms::default();
-        
         if self.attenuation > 1.0 || self.attenuation < 0.0 { 
             self.color_shift *= -1.0;
         }
         self.attenuation = self.attenuation + self.color_shift * 0.005;
         self.x_offset = if self.x_offset < 1.0 { self.x_offset + 0.005 } else { -1.0 };
         self.y_offset = if self.y_offset < 1.0 { self.y_offset + 0.005 } else { -1.0 };
+        
+        let glsl::vars![ location_attenuation, location_x_offset, location_y_offset ] = gb::glsl! {
+            layout(location = 0) uniform float;
+            layout(location = 1) uniform float;
+            layout(location = 2) uniform float;
+        };
 
-        self.program.uniform(&attenuation, &self.attenuation);
+        self.program.uniform(&location_attenuation, &self.attenuation);
         // NOTE: Invalid Uniform type
-        self.program.uniform(&x_offset, &[self.x_offset, self.y_offset]);
-        self.program.uniform(&y_offset, &self.y_offset);
+        self.program.uniform(&location_x_offset, &[self.x_offset, self.y_offset]);
+        self.program.uniform(&location_y_offset, &self.y_offset);
         self.program.draw_arrays(&self.vao);
     }
     
