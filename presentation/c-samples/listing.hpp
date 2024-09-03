@@ -63,9 +63,9 @@ public:
         if (attenuation > 1.0f || attenuation < 0.0f) { 
             color_shift *= -1.0f;
         }
-        attenuation = attenuation + color_shift * 0.005;
-        x_offset = x_offset < 1.0f ? x_offset + 0.005f : -1.0f;
-        y_offset = y_offset < 1.0f ? y_offset + 0.005f : -1.0f;
+        attenuation = attenuation + color_shift * 0.0005;
+        x_offset = x_offset < 1.0f ? x_offset + 0.0005f : -1.0f;
+        y_offset = y_offset < 1.0f ? y_offset + 0.0005f : -1.0f;
 
         glUniform1f(0, attenuation); CHECK_GL_ERROR;
         glUniform1f(1, x_offset); CHECK_GL_ERROR;
