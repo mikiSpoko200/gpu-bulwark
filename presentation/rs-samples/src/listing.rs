@@ -92,12 +92,12 @@ impl crate::Sample for Listing {
             .uniforms(|defs| defs
                 .define(&location_attenuation, &attenuation)
                 .define(&location_x_offset, &x_offset)
-                .define(&location_y_offset, &y_offset)
+                // .define(&location_y_offset, &y_offset)
             )
             .no_resources()
             .vertex_main(&vs)
             .uniforms(|matcher| matcher
-                .bind(&location_y_offset)
+                // .bind(&location_y_offset)
                 .bind(&location_x_offset)
                 .bind(&location_attenuation)
             )
