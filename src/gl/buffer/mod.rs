@@ -149,47 +149,45 @@ where
     where
         U: Usage,
     {
-        {
-            if self.state.length > 0 && self.state.length != data.len() {
-                panic!("realocating buffers with mutable storage is not supported");
+        if self.state.length > 0 && self.state.length != data.len() {
+            panic!("realocating buffers with mutable storage is not supported");
+        }
+        let binder = self.bind();
+        gl::call! {
+            [panic]
+            unsafe {
+                glb::BufferData(
+                    T::ID,
+                    (std::mem::size_of::<GL>() * data.len()) as _,
+                    data.as_ptr() as _,
+                    U::ID,
+                );
             }
-            let binder = self.bind();
-            gl::call! {
-                [panic]
-                unsafe {
-                    glb::BufferData(
-                        T::ID,
-                        (std::mem::size_of::<GL>() * data.len()) as _,
-                        data.as_ptr() as _,
-                        U::ID,
-                    );
-                }
-            }
-            self.state.length = data.len();
-        };
+        }
+        self.state.length = data.len();
     }
 
     pub fn len(&self) -> usize {
         self.state.length
     }
 
-    pub fn map(&self) -> impl std::ops::Deref<Target=&[GL]> {
-        MappedRef::new(self)
+    pub fn mmap(&self) -> impl std::ops::Deref<Target=&[GL]> {
+        MMap::new(self)
     }
 
-    pub fn map_mut(&mut self) -> impl std::ops::DerefMut<Target = &mut [GL]> {
-        MappedMut::new(self)
+    pub fn mmap_mut(&mut self) -> impl std::ops::DerefMut<Target = &mut [GL]> {
+        MMapMut::new(self)
     }
 }
 
 
 #[derive(dm::Deref)]
-pub struct MappedRef<'b, T, GL>(&'b Buffer<T, GL>, #[deref] &'b [GL])
+pub struct MMap<'b, T, GL>(&'b Buffer<T, GL>, #[deref] &'b [GL])
 where
     T: buffer::Target,
 ;
 
-impl<'b, T, GL> MappedRef<'b, T, GL>
+impl<'b, T, GL> MMap<'b, T, GL>
 where
     T: buffer::Target,
 {
@@ -208,7 +206,7 @@ where
     }
 }
 
-impl<'b, T, GL> Drop for MappedRef<'b, T, GL>
+impl<'b, T, GL> Drop for MMap<'b, T, GL>
 where
     T: buffer::Target,
 {   
@@ -226,12 +224,12 @@ where
 
 
 #[derive(dm::Deref, dm::DerefMut)]
-pub struct MappedMut<'b, T, GL>(&'b mut Buffer<T, GL>, #[deref] #[deref_mut] &'b mut [GL])
+pub struct MMapMut<'b, T, GL>(&'b mut Buffer<T, GL>, #[deref] #[deref_mut] &'b mut [GL])
 where
     T: buffer::Target,
 ;
 
-impl<'b, T, GL> MappedMut<'b, T, GL>
+impl<'b, T, GL> MMapMut<'b, T, GL>
 where
     T: buffer::Target,
 {
@@ -252,7 +250,7 @@ where
     }
 }
 
-impl<'b, T, GL> Drop for MappedMut<'b, T, GL>
+impl<'b, T, GL> Drop for MMapMut<'b, T, GL>
 where
     T: buffer::Target,
 {   
@@ -265,4 +263,31 @@ where
             }
         }
     }
+}
+
+enum Version<const MAJOR: usize, const MINOR: usize> { }
+
+mod private {
+    pub trait MVersion { }
+
+    impl<const MAJOR: usize, const MINOR: usize> MVersion for super::Version<MAJOR, MINOR> { }
+}
+
+pub trait Api {
+    type Version: private::MVersion;
+}
+
+// different APIs expressed using traits
+// 
+// pros:
+//     type checked capabilities (if you can use given function while targetting different versions (not too sure, if we're even going for this at all))
+// pub trait DataApi: Api<Version = Version<1, 2>> {
+//     fn data<U>(&mut self, data: &[GL]) -> () { todo!("") }
+// }
+
+#[cfg(feature="direct_state_access")]
+pub mod dsa {
+    use super::*;
+
+    
 }

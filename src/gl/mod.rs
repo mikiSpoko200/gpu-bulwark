@@ -13,6 +13,7 @@ pub mod types;
 pub mod valid;
 pub mod bounds;
 pub mod error;
+pub mod get;
 
 // Reexports
 pub use types::*;
@@ -69,3 +70,13 @@ macro_rules! impl_token {
 }
 
 pub(crate) use impl_token;
+
+/// TODO: abstraction over old vs direct state access APIs
+macro_rules! invocation {
+    (buffer::$function:ident) => {
+        
+    };
+    (#[dsa]) => {
+        $invocation:stmt
+    }
+}

@@ -36,26 +36,29 @@ type Attributes = gb::HList! {
     Attribute<[f32; 3], 1>,
 };
 
-pub struct Listing {
+pub struct Sample {
     program: Program<VsInputs, FsOutputs, (), ()>,
     vao: VertexArray<Attributes>,
 }
 
-impl Listing {
+impl Sample {
     // Color values will be shifted by this much with each key press
     const ATTENUATION_FACTOR: f32 = 0.005;
 }
 
-impl crate::Sample for Listing {
+impl crate::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
-        let vs_source = std::fs::read_to_string("shaders/vert.glsl")?;
-        let fs_source = std::fs::read_to_string("shaders/frag.glsl")?;
+        // Read shader source code.
+        let vs_source = std::fs::read_to_string("shaders/hello_vertices.vert")?;
+        let fs_source = std::fs::read_to_string("shaders/hello_vertices.frag")?;
 
+        // GLSL varaible bindings.
         let vs_inputs  = VsInputs::default();
         let vs_outputs = VsOutputs::default();
         let fs_inputs  = FsInputs::default();
         let fs_outputs = FsOutputs::default();
 
+        // Unpacking type level lists of variables.
         let glsl::vars![ fs_output ] = fs_outputs;
         let glsl::vars![ vin_color, vin_position ] = &vs_inputs;
 
@@ -65,6 +68,7 @@ impl crate::Sample for Listing {
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
 
+        // Defining shaders.
         let vs = uncompiled_vs
             .compile()?
             .into_main()
@@ -76,6 +80,7 @@ impl crate::Sample for Listing {
             .inputs(&fs_inputs)
             .output(&fs_output);
 
+        // Building type checked pipeline.
         let program = Program::builder()
             .no_uniforms()
             .no_resources()
@@ -84,24 +89,25 @@ impl crate::Sample for Listing {
             .build()?;
     
         let mut colors = Buffer::create();
-        let mut positions = Buffer::create();
+        colors.data::<(Dynamic, Draw)>(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0f32]]);
 
-        colors.data::<(Dynamic, Draw)>(&[
-            [1.0, 0.0, 0.0], 
-            [0.0, 1.0, 0.0], 
-            [0.0, 0.0, 1.032]
-        ]);
-        positions.data::<(Dynamic, Draw)>(&[
-            [-0.5, -0.5, -1.0], 
-            [ 0.5, -0.5, -1.0], 
-            [ 0.0,  0.5, -1.0f32]
-        ]);
+        let mut positions = Buffer::create();
+        positions.data::<(Dynamic, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
     
-        let vao: VertexArray<Attributes> = VertexArray::create()
+    
+    
+        // Vertex attribute array configuration.
+        let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
             ;
 
+        // NOTE: Uncomment this to provoke a compilation error resulting from swapped attribute indices.
+        // let vao = VertexArray::create()
+        //     .vertex_attrib_pointer(&vin_position, positions)
+        //     .vertex_attrib_pointer(&vin_color, colors)
+        //     ;
+        
         let inner = Self {
             program,
             vao,

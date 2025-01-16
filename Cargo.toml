@@ -18,3 +18,6 @@ concat-idents = "1.1.5"
 default = ["nalgebra-glm"]
 nalgebra = ["dep:nalgebra"]
 nalgebra-glm = ["dep:nalgebra-glm"]
+
+direct_state_access = []
+opengl46 = ["direct_state_access"]

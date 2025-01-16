@@ -1,12 +1,21 @@
 
 #[macro_export]
 macro_rules! denmark {
-    ($ty:ty as $($traits:path),+ $(,)?) => {
+    // Type -> impl many traits
+    ($(type)? $ty:ty as $($traits:path),+ $(,)?) => {
         $(impl $traits for $ty { })+
     };
-    ($ty:path as $($traits:path),+ $(,)?) => {
+    ($(type)? $ty:path as $($traits:path),+ $(,)?) => {
         $(impl $traits for $ty { })+
     };
+    
+    // Trait -> impl for many types
+    ($trait:path where $($ty:path),+ $(,)?) => {
+        $(
+            impl $trait for $ty { }
+        )+
+    };
+
     (impl <$type_var:ident : $bound:path> $ty:ty as $($traits:path),+ $(,)?) => {
         $(impl<$type_var: $bound> $traits for $ty { })+
     };

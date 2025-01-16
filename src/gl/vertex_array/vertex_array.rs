@@ -1,5 +1,8 @@
 #![allow(unused)]
 
+use core::panic;
+
+use crate::gl::buffer::ElementArray;
 use crate::glsl;
 use crate::hlist;
 use crate::prelude::internal::*;
@@ -52,11 +55,12 @@ impl Binder for VertexArrayObject {
 }
 
 #[derive(Default)]
-struct VertexArrayState<Attrs>
+struct VertexArrayState<Attrs, Elem = ()>
 where
     Attrs: valid::Attributes,
 {
     pub attributes: Attrs,
+    pub element: Buffer<ElementArray, Elem>,
     pub length: usize,
 }
 
@@ -64,8 +68,29 @@ impl<AS> VertexArrayState<AS>
 where
     AS: valid::Attributes,
 {
+    pub fn element_buffer<E>(self, element_buffer: Buffer<buffer::ElementArray, E>) -> VertexArrayState<AS, E>
+    where
+        E: buffer::_valid::ForBuffer<buffer::ElementArray>
+    {
+        let given = element_buffer.len();
+        let expected = self.length;
+        if given != expected {
+            panic!("invalid element buffer length, expected: {}, got: {}", expected, given);
+        }
+        VertexArrayState {
+            attributes: self.attributes,
+            element: element_buffer,
+            length: self.length,
+        }
+    }
+}
+
+impl<AS, E> VertexArrayState<AS, E>
+where
+    AS: valid::Attributes,
+{
     pub fn vertex_attrib_pointer<A, const ATTRIBUTE_INDEX: usize>(self, vbo: Buffer<buffer::Array, A>) -> 
-    VertexArrayState<(AS, Attribute<A, ATTRIBUTE_INDEX>)>
+    VertexArrayState<(AS, Attribute<A, ATTRIBUTE_INDEX>), E>
     where
         A: bounds::AttribFormat,
     {
@@ -73,19 +98,20 @@ where
         VertexArrayState {
             length: attribute.as_ref().len(),
             attributes: self.attributes.append(attribute),
+            element: self.element,
         }
     }
 }
 
 #[derive(Default, dm::Deref)]
 /// Representation of Vertex Array Object.
-pub struct VertexArray<Attrs>
+pub struct VertexArray<Attrs, Elem = ()>
 where
     Attrs: valid::Attributes,
 {
     #[deref]
     object: ObjectBase<VertexArrayObject>,
-    phantoms: VertexArrayState<Attrs>,
+    phantoms: VertexArrayState<Attrs, Elem>,
 }
 
 pub type VAO<Attrs> = VertexArray<Attrs>;
@@ -111,7 +137,7 @@ where
     {
         if self.phantoms.length > 0 && self.phantoms.length != buffer.state.length {
             panic!(
-                "buffers must be the same length, current {} received {}",
+                "buffers must be the same length, expected {} received {}",
                 self.phantoms.length, buffer.len()
             );
         }
@@ -135,6 +161,26 @@ where
 
         let Self { object, phantoms } = self;
         VertexArray { object, phantoms: phantoms.vertex_attrib_pointer(buffer) }
+    }
+
+    pub fn element_buffer<E>(self, element_buffer: Buffer<buffer::ElementArray, E>) -> VertexArray<AS, E>
+    where
+        E: buffer::_valid::ForBuffer<buffer::ElementArray>
+    {
+        let _vao_bind = self.bind();
+        let _ebo_bind = element_buffer.bind();
+
+        let given = element_buffer.len();
+        let expected = self.phantoms.length;
+        if given != expected {
+            panic!(
+                "buffers must be the same length, expected {} received {}",
+                expected, given
+            );
+        }
+
+        let Self { object, phantoms } = self;
+        VertexArray { object, phantoms: phantoms.element_buffer(element_buffer) }
     }
 
     pub fn buffer_mut<Attr, Param, const ATTRIBUTE_INDEX: usize, IDX>(&mut self, var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>) -> &mut Buffer<buffer::target::Array, Attr>
