@@ -1,7 +1,11 @@
 use std::io::Write;
 
+#[path = "common/common.rs"] mod common;
+
+use common::config::shader_path;
 // Sample application imports
-use crate::Ctx;
+use common::Ctx;
+use gpu_bulwark as gb;
 
 // Windowing library imports
 use winit::window;
@@ -46,11 +50,11 @@ impl Sample {
     const ATTENUATION_FACTOR: f32 = 0.005;
 }
 
-impl crate::Sample for Sample {
+impl common::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         // Read shader source code.
-        let vs_source = std::fs::read_to_string("shaders/hello_vertices.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_vertices.frag")?;
+        let vs_source = std::fs::read_to_string(shader_path("vertices.vert"))?;
+        let fs_source = std::fs::read_to_string(shader_path("vertices.frag"))?;
 
         // GLSL varaible bindings.
         let vs_inputs  = VsInputs::default();
@@ -137,7 +141,7 @@ impl crate::Sample for Sample {
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
 
         let glsl::vars![color, _pos] = VsInputs::default();
-        let mut data = self.vao.buffer_mut(&color).map_mut();
+        let mut data = self.vao.buffer_mut(&color).mmap_mut();
         let mut attenuate = |offset| {
             for vertex_color in data.iter_mut() {
                 vertex_color[offset] += Self::ATTENUATION_FACTOR;
@@ -167,4 +171,9 @@ impl crate::Sample for Sample {
     fn name() -> String {
         String::from("hello-vertices")
     }
+}
+
+fn main() -> anyhow::Result<()> {
+    common::run_sample::<Sample>()?;
+    Ok(())
 }

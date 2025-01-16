@@ -1,6 +1,10 @@
 #![allow(unused)]
 
-use crate::Ctx;
+#[path = "common/common.rs"] mod common;
+use common::{config::shader_path, Ctx};
+
+use nalgebra_glm as glm;
+use gpu_bulwark as gb;
 
 use winit::window;
 use glutin::{context, surface};
@@ -13,11 +17,11 @@ pub struct Sample {
     vao: gl::VertexArray<()>,
 }
 
-impl crate::Sample for Sample {
+impl common::Sample for Sample {
     fn initialize(window: winit::window::Window, surface: glutin::surface::Surface<glutin::surface::WindowSurface>, context: glutin::context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         // Read shader source code.
-        let vs_source = std::fs::read_to_string("shaders/hello_triangle.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_triangle.frag")?;
+        let vs_source = std::fs::read_to_string(shader_path("triangle.vert"))?;
+        let fs_source = std::fs::read_to_string(shader_path("triangle.frag"))?;
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
@@ -76,4 +80,8 @@ impl crate::Sample for Sample {
     fn name() -> String {
         String::from("hello-triangle")
     }
+}
+
+fn main() {
+    common::run_sample::<Sample>();
 }

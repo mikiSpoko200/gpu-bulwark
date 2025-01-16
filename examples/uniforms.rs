@@ -1,7 +1,9 @@
 
+use common::config::shader_path;
 use winit::window;
 use glutin::{context, surface};
 use gb::{gl, glsl};
+use gpu_bulwark as gb;
 
 
 use gl::vertex_array::Attribute;
@@ -10,7 +12,9 @@ use gl::buffer::{Static, Draw};
 use gl::{Program, Buffer, VertexArray};
 use glsl::MatchingInputs as _;
 
-use crate::common::camera::{Camera, CameraProvider as _, FixedMovable, Rotatable};
+#[path = "common/common.rs"] mod common;
+use common::camera::{Camera, CameraProvider as _, FixedMovable, Rotatable, FreeRoamingCamera};
+use common::Ctx;
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
@@ -36,9 +40,6 @@ type Attributes = gb::HList! {
 };
 
 
-use crate::common::camera::FreeRoamingCamera;
-use crate::Ctx;
-
 pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes>,
@@ -46,13 +47,13 @@ pub struct Sample {
     camera: FreeRoamingCamera,
 }
 
-impl crate::Sample for Sample {
+impl common::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         // ========================[ gpu-bulwark ]========================
 
-        // Shader specification
-        let vs_source = std::fs::read_to_string("shaders/hello_uniforms.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_uniforms.frag")?;
+        let vs_source = std::fs::read_to_string(shader_path("uniforms.vert"))?;
+        let common_source = std::fs::read_to_string(shader_path("uniforms_shared.vert"))?;
+        let fs_source = std::fs::read_to_string(shader_path("uniforms.frag"))?;
 
         let vs_inputs = Inputs::default();
         let glsl::vars![vin_position, vin_color] = &vs_inputs;
@@ -66,11 +67,17 @@ impl crate::Sample for Sample {
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
+        let mut common = shader::create::<shader::target::Vertex>();
     
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
+        common.source(&[&common_source]);
 
+        let camera = FreeRoamingCamera::from(Camera::default());
+    
         let vs = uncompiled_vs
+            .uniform(&view_matrix_location)
+            .uniform(&scale_location)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -80,14 +87,29 @@ impl crate::Sample for Sample {
             .into_main()
             .inputs(&fs_inputs)
             .output(&fs_output);
+        let common = common.compile()?.into_shared();
+
+        let scale = 1.0;
+        
+        let matrix = camera.view_projection_matrix();
 
         let program = Program::builder()
-            .no_uniforms()
+            .uniforms(|definitions| definitions
+                .define(&view_matrix_location, &matrix)
+                .define(&scale_location, &scale)
+            )
             .no_resources()
             .vertex_main(&vs)
+            .uniforms(|matcher| matcher
+                .bind(&scale_location)
+                .bind(&view_matrix_location)
+            )
+            .vertex_shared(&common)
             .fragment_main(&fs)
             .build()?;
     
+        let mut positions = Buffer::create();
+        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
     
         let mut colors = Buffer::create();
         colors.data::<(Static, Draw)>(&[
@@ -95,10 +117,6 @@ impl crate::Sample for Sample {
             [0.0, 1.0, 0.0, 1.0],
             [0.0, 0.0, 1.0, 1.0],
         ]);
-
-        let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
-    
     
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)
@@ -164,4 +182,9 @@ impl crate::Sample for Sample {
     fn name() -> String {
         String::from("hello-uniforms")
     }
+}
+
+fn main() -> anyhow::Result<()> {
+    common::run_sample::<Sample>()?;
+    Ok(())
 }

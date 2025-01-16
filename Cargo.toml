@@ -21,3 +21,13 @@ nalgebra-glm = ["dep:nalgebra-glm"]
 
 direct_state_access = []
 opengl46 = ["direct_state_access"]
+
+
+[dev-dependencies]
+glutin-winit = "0.5" 
+glutin = "0.32.0"
+raw-window-handle = "0.6"
+winit = "0.30.0"
+anyhow = "1.0.75"
+image = "0.25.2"
+slice-of-array = "0.3.2"

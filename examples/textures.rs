@@ -1,10 +1,12 @@
 #![allow(unused)]
 
+#[path = "common/common.rs"] mod common;
+use common::config::shader_path;
+use common::{Ctx, config};
+
 use std::io::Write;
 use std::marker::PhantomData;
-
-use crate::{common, Ctx};
-
+use gpu_bulwark as gb;
 
 use gb::gl::texture::{self, pixel, TextureUnit};
 use winit::window;
@@ -19,35 +21,38 @@ use gl::{Program, Buffer, VertexArray};
 use texture::pixel::channels::Channels as _;
 use glsl::MatchingInputs as _;
 
+use nalgebra_glm as glm;
+
 // imports for reading images
 use std::io::Cursor;
 use slice_of_array::prelude::*;
 
 pub mod logo {
     use std::path::Path;
+    use super::common::config::resource_path;
 
     use image::{DynamicImage, GenericImage, Pixel, RgbImage, Rgba};
 
-    pub fn try_load_bitmap(path: &str) -> image::ImageResult<RgbImage> {
+    pub fn try_load_bitmap(path: &std::path::Path) -> image::ImageResult<RgbImage> {
         image::open(path).map(|dynamic| dynamic.into_rgb8())
     }
 
-    pub fn load_bitmap_from_resources(path: &str) -> RgbImage {
+    pub fn load_bitmap_from_resources(path: &std::path::Path) -> RgbImage {
         try_load_bitmap(path).expect("resource paths are valid")
     }
 
     pub fn uwr(dest: &mut RgbImage) {
-        let loaded = load_bitmap_from_resources("resources/uwr.bmp");
+        let loaded = load_bitmap_from_resources(&resource_path("uwr.bmp"));
         dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 
     pub fn rust(dest: &mut RgbImage) {
-        let loaded = load_bitmap_from_resources("resources/rust.bmp");
+        let loaded = load_bitmap_from_resources(&resource_path("rust.bmp"));
         dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 
     pub fn opengl(dest: &mut RgbImage) {
-        let loaded = load_bitmap_from_resources("resources/opengl.bmp");
+        let loaded = load_bitmap_from_resources(&resource_path("opengl.bmp"));
         dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
     }
 }
@@ -88,10 +93,10 @@ impl Sample {
     const TEXTURE_SIZE: usize = 256;
 }
 
-impl crate::Sample for Sample {
+impl common::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
-        let vs_source = std::fs::read_to_string("shaders/hello_textures.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_textures.frag")?;
+        let vs_source = std::fs::read_to_string(shader_path("textures.vert"))?;
+        let fs_source = std::fs::read_to_string(shader_path("textures.frag"))?;
 
         let vs_inputs = Inputs::default();
         let glsl::vars![vin_position, vin_tex] = &vs_inputs;
@@ -121,13 +126,13 @@ impl crate::Sample for Sample {
             .output(&fs_output);
 
         let program = Program::builder()
-        .no_uniforms()
-        .resources(|resources| resources
-            .sampler(&sampler)
-        )
-        .vertex_main(&vs)
-        .fragment_main(&fs)
-        .build()?;
+            .no_uniforms()
+            .resources(|resources| resources
+                .sampler(&sampler)
+            )
+            .vertex_main(&vs)
+            .fragment_main(&fs)
+            .build()?;
 
         let mut positions = Buffer::create();
         positions.data::<(Static, Draw)>(
@@ -215,3 +220,6 @@ impl crate::Sample for Sample {
     }
 }
 
+fn main() {
+    common::run_sample::<Sample>();
+}
