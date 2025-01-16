@@ -67,7 +67,7 @@ pub mod format {
 
 /// Implementations of 'Channels`.
 pub mod channels {
-    use image::format::Components;
+    use super::image::format::Components;
 
     use super::*;
     use crate::gl::impl_token;

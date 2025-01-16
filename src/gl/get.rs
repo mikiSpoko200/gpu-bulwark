@@ -1,5 +1,7 @@
 /// `glGet` API.
 
+use crate::gl;
+
 /// Wrapper around OpenGL literals.
 pub struct SymbolicConstant<const SYMBOLIC_CONSTANT: glb::types::GLenum>;
 
@@ -7,18 +9,19 @@ pub trait Meta {
     type Get: Get;
 }
 
-pub trait Get: Default {
-    fn get(&mut self, pname: glb::types::GLenum);
+pub trait Get: Default + Sized {
+    fn get(&mut self, pname: glb::types::GLenum) -> Self;
 }
 
 impl Get for i32 {
-    fn get(&mut self, pname: glb::types::GLenum) {
+    fn get(&mut self, pname: glb::types::GLenum) -> Self {
         gl::call! {
             [panic]
             unsafe {
-                glb::
+                glb::GetIntegerv(pname, self as *mut _);
             }
         }
+        *self
     }
 }
 

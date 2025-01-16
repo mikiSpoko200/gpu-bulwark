@@ -280,7 +280,7 @@ impl<'s, Defs, Res> Builder<'s, ts::Some<Vertex>, (), (), Defs, (), Res>
 where
     Defs: uniform::bounds::Definitions,
 {
-    pub fn vertex_main<VIns, VOuts, Decls>(mut self, vertex: &'s super::Main<Vertex, VIns, VOuts, Decls>) -> Builder<ts::Some<Vertex>, VIns, VOuts, Defs, Decls, Res>
+    pub fn vertex_main<VIns, VOuts, Decls>(mut self, vertex: &'s super::Main<Vertex, VIns, VOuts, Decls>) -> Builder<'s, ts::Some<Vertex>, VIns, VOuts, Defs, Decls, Res>
     where
         VIns: super::glsl::Parameters<In>,
         VOuts: super::glsl::Parameters<Out>,
@@ -299,7 +299,7 @@ where
     Defs: uniform::bounds::Definitions,
 {
     /// Attach new vertex shader for linking purposes possibly adding new uniforms.
-    pub fn vertex_shared<Decls>(mut self, vertex: &'s Lib<Vertex, Decls>) -> Builder<'_, ts::Some<Vertex>, Ins, Outs, Defs, Decls, Res>
+    pub fn vertex_shared<Decls>(mut self, vertex: &'s Lib<Vertex, Decls>) -> Builder<'s, ts::Some<Vertex>, Ins, Outs, Defs, Decls, Res>
     where
         Decls: uniform::bounds::Declarations,
     {
@@ -311,7 +311,7 @@ where
         self.attach_lib(vertex.declarations())
     }
 
-    pub fn tess_control_main<NOuts, Decls>(mut self, tess_control: &'s Main<TessControl, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<TessControl>, Ins, NOuts, Defs, Decls, Res>
+    pub fn tess_control_main<NOuts, Decls>(mut self, tess_control: &'s Main<TessControl, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<TessControl>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -320,7 +320,7 @@ where
         self.attach_main(tess_control.declarations())
     }
 
-    pub fn geometry_main<NOuts, Decls>(mut self, geometry: &'s Main<Geometry, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<Geometry>, Ins, NOuts, Defs, Decls, Res>
+    pub fn geometry_main<NOuts, Decls>(mut self, geometry: &'s Main<Geometry, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<Geometry>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -329,7 +329,7 @@ where
         self.attach_main(geometry.declarations())
     }
 
-    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
+    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -347,7 +347,7 @@ where
     Outs: glsl::Parameters<Out> + glsl::MatchingInputs,
     Defs: uniform::bounds::Definitions,
 {
-    pub fn tess_control_shared<Decls>(mut self, tess_control: &'s Lib<TessControl, Decls>) -> Builder<ts::Some<TessControl>, Ins, Outs, Defs, Decls, Res>
+    pub fn tess_control_shared<Decls>(mut self, tess_control: &'s Lib<TessControl, Decls>) -> Builder<'s, ts::Some<TessControl>, Ins, Outs, Defs, Decls, Res>
     where
         Decls: uniform::bounds::Declarations,
     {
@@ -359,7 +359,7 @@ where
         self.attach_main(tess_control.declarations())
     }
 
-    pub fn tess_evaluation_main<NOuts, Decls>(mut self, tess_evaluation_main: &'s Main<TessEvaluation, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<TessEvaluation>, Ins, NOuts, Defs, Decls, Res>
+    pub fn tess_evaluation_main<NOuts, Decls>(mut self, tess_evaluation_main: &'s Main<TessEvaluation, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<TessEvaluation>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -376,7 +376,7 @@ where
     Outs: glsl::Parameters<Out> + glsl::MatchingInputs,
     Defs: uniform::bounds::Definitions,
 {
-    pub fn tesselation_evaluation_shared<Decls>(mut self, te_lib: &'s Lib<TessEvaluation, Decls>) -> Builder<ts::Some<TessEvaluation>, Ins, Outs, Defs, Decls, Res>
+    pub fn tesselation_evaluation_shared<Decls>(mut self, te_lib: &'s Lib<TessEvaluation, Decls>) -> Builder<'s, ts::Some<TessEvaluation>, Ins, Outs, Defs, Decls, Res>
     where
         Decls: uniform::bounds::Declarations,
     {
@@ -388,7 +388,7 @@ where
         self.attach_main(te_lib.declarations())
     }
 
-    pub fn geometry_main<NOuts, Decls>(mut self, geometry: &'s Main<Geometry, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<Geometry>, Ins, NOuts, Defs, Decls, Res>
+    pub fn geometry_main<NOuts, Decls>(mut self, geometry: &'s Main<Geometry, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<Geometry>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -397,7 +397,7 @@ where
         self.attach_main(geometry.declarations())
     }
 
-    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
+    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -414,7 +414,7 @@ where
     Outs: glsl::Parameters<Out> + glsl::MatchingInputs,
     Defs: uniform::bounds::Definitions,
 {
-    pub fn geometry_shared<Decls>(mut self, geometry: &'s Lib<Geometry, Decls>) -> Builder<ts::Some<Geometry>, Ins, Outs, Defs, Decls, Res>
+    pub fn geometry_shared<Decls>(mut self, geometry: &'s Lib<Geometry, Decls>) -> Builder<'s, ts::Some<Geometry>, Ins, Outs, Defs, Decls, Res>
     where
         Decls: uniform::bounds::Declarations,
     {
@@ -426,7 +426,7 @@ where
         self.attach_main(geometry.declarations())
     }
 
-    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
+    pub fn fragment_main<NOuts, Decls>(mut self, fragment: &'s Main<Fragment, Outs::Inputs, NOuts, Decls>) -> Builder<'s, ts::Some<Fragment>, Ins, NOuts, Defs, Decls, Res>
     where
         NOuts: glsl::Parameters<Out>,
         Decls: uniform::bounds::Declarations,
@@ -443,7 +443,7 @@ where
     Outs: glsl::Parameters<Out>,
     Defs: uniform::bounds::Definitions + SetDefinitions,
 {
-    pub fn fragment_shared<Decls>(mut self, fragment: &'s Lib<Fragment, Decls>) -> Builder<ts::Some<Fragment>, Ins, Outs, Defs, Decls, Res>
+    pub fn fragment_shared<Decls>(mut self, fragment: &'s Lib<Fragment, Decls>) -> Builder<'s, ts::Some<Fragment>, Ins, Outs, Defs, Decls, Res>
     where
         Decls: uniform::bounds::Declarations,
     {
