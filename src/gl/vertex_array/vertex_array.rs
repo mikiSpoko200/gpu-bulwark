@@ -193,7 +193,7 @@ where
         self.phantoms.attributes.get_mut().as_mut()
     }
 
-    pub fn buffer_ref<Attr, Param, const ATTRIBUTE_INDEX: usize, IDX>(&mut self, var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>) -> &Buffer<buffer::target::Array, Attr>
+    pub fn buffer_ref<Attr, Param, const ATTRIBUTE_INDEX: usize, IDX>(&self, var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>) -> &Buffer<buffer::target::Array, Attr>
     where
         Attr: bounds::AttribFormat,
         Param: glsl::bounds::Parameter<glsl::storage::In>,
