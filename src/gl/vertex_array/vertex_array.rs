@@ -26,7 +26,7 @@ pub enum VertexArrayObject { }
 unsafe impl Allocator for VertexArrayObject {
     fn allocate(names: &mut [u32]) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::CreateVertexArrays(names.len() as _, names.as_mut_ptr());
             }
@@ -35,7 +35,7 @@ unsafe impl Allocator for VertexArrayObject {
 
     fn free(names: &[u32]) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::DeleteVertexArrays(names.len() as _, names.as_ptr());
             }
@@ -43,10 +43,10 @@ unsafe impl Allocator for VertexArrayObject {
     }
 }
 
-impl Binder for VertexArrayObject {
+impl Bind for VertexArrayObject {
     fn bind(name: u32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::BindVertexArray(name);
             }
@@ -64,19 +64,11 @@ where
     pub length: usize,
 }
 
-impl<AS> VertexArrayState<AS>
+impl<AS, E> VertexArrayState<AS, E>
 where
     AS: valid::Attributes,
 {
-    pub fn element_buffer<E>(self, element_buffer: Buffer<buffer::ElementArray, E>) -> VertexArrayState<AS, E>
-    where
-        E: buffer::_valid::ForBuffer<buffer::ElementArray>
-    {
-        let given = element_buffer.len();
-        let expected = self.length;
-        if given != expected {
-            panic!("invalid element buffer length, expected: {}, got: {}", expected, given);
-        }
+    pub fn element_buffer<NE>(self, element_buffer: Buffer<buffer::ElementArray, NE>) -> VertexArrayState<AS, NE> {
         VertexArrayState {
             attributes: self.attributes,
             element: element_buffer,
@@ -116,21 +108,19 @@ where
 
 pub type VAO<Attrs> = VertexArray<Attrs>;
 
-impl<Attrs: valid::Attributes> VertexArray<Attrs> {
-    pub const fn len(&self) -> usize {
-        self.phantoms.length
-    }
-}
-
-impl<AS> VertexArray<AS>
+impl<AS, E> VertexArray<AS, E>
 where
     AS: valid::Attributes,
 {
+    pub const fn len(&self) -> usize {
+        self.phantoms.length
+    }
+
     pub fn vertex_attrib_pointer<Attr, Param, const ATTRIBUTE_INDEX: usize>(
         self,
         var: &glsl::InVariable<Param, ATTRIBUTE_INDEX>,
         buffer: Buffer<buffer::Array, Attr>
-    ) -> VertexArray<(AS, Attribute<Attr, ATTRIBUTE_INDEX>)>
+    ) -> VertexArray<(AS, Attribute<Attr, ATTRIBUTE_INDEX>), E>
     where
         Attr: bounds::AttribFormat,
         Param: glsl::bounds::Parameter<glsl::storage::In>
@@ -145,7 +135,7 @@ where
         let _vao_bind = self.bind();
         let _buffer_bind = buffer.bind();
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::VertexAttribPointer(
                     ATTRIBUTE_INDEX as _,
@@ -163,22 +153,15 @@ where
         VertexArray { object, phantoms: phantoms.vertex_attrib_pointer(buffer) }
     }
 
-    pub fn element_buffer<E>(self, element_buffer: Buffer<buffer::ElementArray, E>) -> VertexArray<AS, E>
+    pub fn element_buffer<NE>(self, element_buffer: Buffer<buffer::ElementArray, NE>) -> VertexArray<AS, NE>
     where
-        E: buffer::_valid::ForBuffer<buffer::ElementArray>
+        NE: buffer::_valid::ForBuffer<buffer::ElementArray>
     {
         let _vao_bind = self.bind();
         let _ebo_bind = element_buffer.bind();
-
-        let given = element_buffer.len();
-        let expected = self.phantoms.length;
-        if given != expected {
-            panic!(
-                "buffers must be the same length, expected {} received {}",
-                expected, given
-            );
-        }
-
+        // VAO sets its internal EBO binding accordingly to the last EBO bound while it's still bound.
+        // However, it respects unbinding that's why we need to force vao unbinding by dropping the binding guard. 
+        drop(_vao_bind);
         let Self { object, phantoms } = self;
         VertexArray { object, phantoms: phantoms.element_buffer(element_buffer) }
     }

@@ -54,7 +54,7 @@ unsafe impl<T: Target> gl::object::Allocator for ShaderObject<T> {
     fn allocate(names: &mut [u32]) {
         for name in names {
             gl::call! {
-                [panic]
+                #[panic]
                 *name = unsafe { glb::CreateShader(T::ID) }
             }
         }
@@ -64,7 +64,7 @@ unsafe impl<T: Target> gl::object::Allocator for ShaderObject<T> {
         // UNSAFE: Check for 0 return type, otherwise Stage guarantees valid Enum value.
         for name in names {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe { glb::DeleteShader(*name) }
             }
         }
@@ -158,7 +158,7 @@ where
         let lengths: Vec<_> = sources.iter().map(|s| s.len()).collect();
 
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::ShaderSource(
                     self.name(),
@@ -181,7 +181,7 @@ where
 
     pub fn compile(self) -> Result<Shader<ts::Compiled, T, Decls>, CompilationError> {
         gl::call! {
-            [propagate]
+            #[return]
             unsafe {
                 glb::CompileShader(self.object.name())
             }
@@ -195,7 +195,7 @@ where
 
     fn query(&self, param: QueryParam, output: &mut i32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::GetShaderiv(self.object.name(), param as _, output);
             }
@@ -209,7 +209,7 @@ where
             let mut buffer = Vec::<u8>::with_capacity(log_size as _);
             let mut actual_length = 0;
             gl::call! {
-                [panic]
+                #[panic]
                 // SAFETY: All values passed are valid
                 // todo: notes on error situations
                 unsafe {

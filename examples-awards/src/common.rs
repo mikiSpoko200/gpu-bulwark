@@ -93,7 +93,7 @@ pub mod camera {
         fn default() -> Self {
             let mut viewport = [0; 4];
             gb::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     gb::gl::raw::GetIntegerv(gb::gl::raw::VIEWPORT, viewport.as_mut_ptr());
                 }

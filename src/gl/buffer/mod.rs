@@ -74,6 +74,7 @@ impl_usage!((Dynamic, Copy): glb::DYNAMIC_COPY);
 
 /// Allocator for OpenGL buffer objects.
 #[hi::mark(PartialObject, Object)]
+#[derive(Debug)]
 pub struct BufferObject<T: Target>(PhantomData<T>);
 
 unsafe impl<T: Target> object::Allocator for BufferObject<T> {
@@ -90,10 +91,10 @@ unsafe impl<T: Target> object::Allocator for BufferObject<T> {
     }
 }
 
-impl<T: Target> object::Binder for BufferObject<T> {
+impl<T: Target> object::Bind for BufferObject<T> {
     fn bind(name: u32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe { glb::BindBuffer(T::ID, name) }
         }
     }
@@ -154,7 +155,7 @@ where
         }
         let binder = self.bind();
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::BufferData(
                     T::ID,
@@ -195,7 +196,7 @@ where
         let binding = buffer.bind();
         let mut data;
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 data = glb::MapBuffer(T::ID, glb::READ_ONLY) as *const _;
             }
@@ -213,7 +214,7 @@ where
     fn drop(&mut self) {
         let binding = self.0.bind();
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::UnmapBuffer(T::ID);
             }
@@ -237,7 +238,7 @@ where
         let binding = buffer.bind();
         let mut data;
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 data = glb::MapBuffer(T::ID, glb::READ_WRITE) as *mut _;
             }
@@ -257,7 +258,7 @@ where
     fn drop(&mut self) {
         let binding = self.0.bind();
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::UnmapBuffer(T::ID);
             }

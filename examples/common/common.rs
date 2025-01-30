@@ -41,6 +41,7 @@ pub mod config {
     
     const RESOURCE_PATH: &'static str = "examples/resources";
     const SHADER_PATH: &'static str = "examples/shaders";
+    const MODEL_PATH: &'static str = "examples/models";
 
     pub fn resource_path(resource: &'static str) -> PathBuf {
         format!("{}/{}", RESOURCE_PATH, resource).into()
@@ -48,6 +49,10 @@ pub mod config {
     
     pub fn shader_path(shader: &'static str) -> PathBuf {
         format!("{}/{}", SHADER_PATH, shader).into()
+    }
+
+    pub fn model_path(model: &'static str) -> PathBuf {
+        format!("{}/{}", MODEL_PATH, model).into()
     }
 }
 
@@ -125,7 +130,7 @@ pub mod camera {
         fn default() -> Self {
             let mut viewport = [0; 4];
             gb::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     gb::gl::raw::GetIntegerv(gb::gl::raw::VIEWPORT, viewport.as_mut_ptr());
                 }

@@ -5,6 +5,7 @@ use std::io::Write;
 use common::config::shader_path;
 // Sample application imports
 use common::Ctx;
+use gpu_bulwark::gl::buffer::{self, Static};
 use gpu_bulwark as gb;
 
 // Windowing library imports
@@ -42,7 +43,7 @@ type Attributes = gb::HList! {
 
 pub struct Sample {
     program: Program<VsInputs, FsOutputs, (), ()>,
-    vao: VertexArray<Attributes>,
+    vao: VertexArray<Attributes, u8>,
 }
 
 impl Sample {
@@ -92,26 +93,22 @@ impl common::Sample for Sample {
             .vertex_main(&vs)
             .fragment_main(&fs)
             .build()?;
-    
+        
+        let mut index = Buffer::<buffer::target::ElementArray, u8>::create();
+        index.data::<(Static, Draw)>(&[0, 1, 2]);
+
         let mut colors = Buffer::create();
         colors.data::<(Dynamic, Draw)>(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0f32]]);
 
         let mut positions = Buffer::create();
         positions.data::<(Dynamic, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
     
-    
-    
         // Vertex attribute array configuration.
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
+            .element_buffer(index)
             ;
-
-        // NOTE: Uncomment this to provoke a compilation error resulting from swapped attribute indices.
-        // let vao = VertexArray::create()
-        //     .vertex_attrib_pointer(&vin_position, positions)
-        //     .vertex_attrib_pointer(&vin_color, colors)
-        //     ;
         
         let inner = Self {
             program,
@@ -128,14 +125,14 @@ impl common::Sample for Sample {
     
     fn render(&mut self) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 gl::raw::ClearColor(0.4, 0.5, 0.6, 1.0);
                 gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);
             }
         }
 
-        self.program.draw_arrays(&self.vao);
+        self.program.draw_elements(&self.vao);
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {

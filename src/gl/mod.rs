@@ -27,7 +27,7 @@ pub use vertex_array::{VertexArray, VAO};
 use crate::glsl;
 use crate::gl;
 use glsl::storage::{In, Out};
-use object::Binder;
+use object::Bind;
 
 pub use glb as raw;
 
@@ -40,7 +40,7 @@ pub type Result<T> = std::result::Result<T, Box<[error::Error]>>;
 #[allow(unused)]
 #[macro_export]
 macro_rules! call {
-    ([panic] $invocation:stmt) => {
+    (#[panic] $invocation:stmt) => {
         $invocation
         if cfg!(debug_assertions) {
             let errors = $crate::gl::error::Error::poll_queue();
@@ -50,7 +50,7 @@ macro_rules! call {
             }
         }
     };
-    ([propagate] $invocation:stmt) => {
+    (#[return] $invocation:stmt) => {
         {
             $invocation
             let errors = $crate::gl::error::Error::poll_queue();
@@ -79,4 +79,8 @@ macro_rules! invocation {
     (#[dsa]) => {
         $invocation:stmt
     }
+}
+
+fn type_id<T: Type>() -> u32 {
+    T::ID
 }

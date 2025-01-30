@@ -6,7 +6,18 @@ use gl::error;
 
 
 mod private {
-    pub trait Binder: Sized {
+    
+    pub(in crate::gl) mod access {
+        pub trait Access {}
+
+        #[hi::mark(Access)]
+        pub enum Priv {}
+
+        #[hi::mark(Access)]
+        pub enum Pub {}
+    }
+
+    pub trait Bind: Sized {
         fn bind(name: u32);
         fn unbind() {
             Self::bind(0);
@@ -19,20 +30,22 @@ mod private {
     }
     pub trait PartialObject: Allocator { }
     
-    pub trait Object: PartialObject + Binder { }
+    pub trait Object: PartialObject + Bind { }
 }
 pub(in crate::gl) use private::*;
 
-pub struct Bind<B: Binder>(PhantomData<B>);
+#[must_use]
+pub struct BindGuard<B: Bind>(PhantomData<B>);
 
-impl<B: Binder> Bind<B> {
-    pub(super) fn new(name: u32) -> Self {
+impl<B: Bind> BindGuard<B> {
+    /// Create new binder.
+    pub(in crate::gl) fn new(name: u32) -> Self {
         B::bind(name);
         Self(PhantomData)
     }
 }
 
-impl<B: Binder> Drop for Bind<B> {
+impl<B: Bind> Drop for BindGuard<B> {
     fn drop(&mut self) {
         B::unbind();
     }
@@ -69,11 +82,12 @@ impl<O: PartialObject> ObjectBase<O> {
 }
 
 impl<O: Object> ObjectBase<O> {
-    pub fn bind(&self) -> Bind<O> {
-        Bind::new(self.name())
+    // Objects allow public binding of objects
+    pub fn bind(&self) -> BindGuard<O> {
+        BindGuard::<O>::new(self.name())
     }
 
-    pub fn bound<T>(&self, f: impl FnOnce(&Bind<O>) -> T) -> T {
+    pub fn bound<T>(&self, f: impl FnOnce(&BindGuard<O>) -> T) -> T {
         let bind = self.bind();
         f(&bind)
     }

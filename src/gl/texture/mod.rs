@@ -25,13 +25,13 @@ pub use storage::{Immutable, Mutable, Storage};
 #[hi::mark(PartialObject, Object)]
 pub struct TextureObject<T>(PhantomData<T>) where T: Target;
 
-impl<T> Binder for TextureObject<T>
+impl<T> Bind for TextureObject<T>
 where
     T: Target
 {
     fn bind(name: u32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::BindTexture(T::ID as _, name);
             }
@@ -45,7 +45,7 @@ where
 {
     fn allocate(names: &mut [u32]) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::CreateTextures(T::ID as _, names.len() as _, names.as_mut_ptr())
             }
@@ -54,7 +54,7 @@ where
 
     fn free(names: &[u32]) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::DeleteTextures(names.len() as _, names.as_ptr())
             }
@@ -226,7 +226,7 @@ where
     Kind: storage::marker::Storage<Target=D3Target, Signature = storage::signature::Storage3D>,
     InternalFormat: image::marker::Format,
 {
-    pub fn create_with_storage_3d(_: &object::Bind<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
+    pub fn create_with_storage_3d(_: &object::BindGuard<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
         let mut object = ObjectBase::default();
         let binder = object.bind();
 
@@ -273,7 +273,7 @@ where
     pub fn new<const N: usize>(texture: Texture<Target, Kind, InternalFormat>) -> gl::Result<TextureUnit<Target, Kind, InternalFormat, N>> {
         let binder = texture.bind();
         gl::call! {
-            [propagate]
+            #[return]
             unsafe {
                 glb::BindTextureUnit(N as _, texture.name());
             }
@@ -321,7 +321,7 @@ where
     Kind: texture::storage::marker::Kind<Target = Target>,
     InternalFormat: texture::image::marker::Format,
 {
-    type Binders = (H::Binders, object::Bind<texture::TextureObject<Target>>);
+    type Binders = (H::Binders, object::BindGuard<texture::TextureObject<Target>>);
 
     fn binders(&self) -> Self::Binders {
         (self.0.binders(), self.1.object.bind())

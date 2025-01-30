@@ -1,7 +1,10 @@
 
+use common::config::{model_path, shader_path};
 use winit::window;
 use glutin::{context, surface};
 use gb::{gl, glsl};
+use gpu_bulwark as gb;
+use nalgebra_glm as glm;
 
 
 use gl::vertex_array::Attribute;
@@ -10,11 +13,13 @@ use gl::buffer::{Static, Draw};
 use gl::{Program, Buffer, VertexArray};
 use glsl::MatchingInputs as _;
 
-use crate::common::camera::{Camera, CameraProvider as _, FixedMovable, Rotatable};
+#[path = "common/common.rs"] mod common;
+use common::camera::{Camera, CameraProvider as _, FixedMovable, Rotatable, FreeRoamingCamera};
+use common::Ctx;
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
-    layout(location = 1) vec4;
+    layout(location = 1) vec3;
 };
 
 type VsOutputs = glsl::Outputs! {
@@ -27,32 +32,55 @@ type FsOutputs = glsl::Outputs! {
 
 type Uniforms = glsl::Uniforms! {
     layout(location = 0) mat4;
-    layout(location = 1) float;
+    layout(location = 1) vec3;
 };
 
 type Attributes = gb::HList! {
-    Attribute<[f32; 3], 0>,
-    Attribute<[f32; 4], 1>,
+    Attribute<glm::Vec3, 0>,
+    Attribute<glm::Vec3, 1>,
 };
 
 
-use crate::common::camera::FreeRoamingCamera;
-use crate::Ctx;
-
 pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, ()>,
-    vao: VertexArray<Attributes>,
-    scale: f32,
+    vao: VertexArray<Attributes, u16>,
+    global_light_dir: glm::Vec3,
     camera: FreeRoamingCamera,
 }
 
-impl crate::Sample for Sample {
+struct Model {
+    pub positions: Vec<glm::Vec3>,
+    pub normals: Vec<glm::Vec3>,
+    pub index: Vec<u16>,
+}
+
+impl Sample {
+    fn load_model() -> Model {
+        use std::fs::File;
+        use std::io::BufReader;
+        use obj::load_obj;
+
+        let input = BufReader::new(File::open(model_path("bunny.obj")).expect("model file exists"));
+        let obj = load_obj::<obj::Vertex, _, _>(input).expect("model can be loaded");
+        let (positions, normals) = 
+            obj.vertices
+            .iter()
+            .map(|vertex| (glm::Vec3::from(vertex.position), glm::Vec3::from(vertex.normal)))
+            .unzip();
+        Model {
+            positions,
+            normals,
+            index: obj.indices
+        }
+    }
+}
+
+impl common::Sample for Sample {
     fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
         // ========================[ gpu-bulwark ]========================
 
-        let vs_source = std::fs::read_to_string("shaders/hello_uniforms.vert")?;
-        let common_source = std::fs::read_to_string("shaders/hello_uniforms_shared.vert")?;
-        let fs_source = std::fs::read_to_string("shaders/hello_uniforms.frag")?;
+        let vs_source = std::fs::read_to_string(shader_path("bunny.vert"))?;
+        let fs_source = std::fs::read_to_string(shader_path("bunny.frag"))?;
 
         let vs_inputs = Inputs::default();
         let glsl::vars![vin_position, vin_color] = &vs_inputs;
@@ -62,21 +90,19 @@ impl crate::Sample for Sample {
         let fs_inputs = vs_outputs.matching_inputs();
         let glsl::vars![ fs_output ] = FsOutputs::default();
 
-        let glsl::vars![ view_matrix_location, scale_location ] = Uniforms::default();
+        let glsl::vars![ view_matrix_location, global_light_direction_location ] = Uniforms::default();
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
-        let mut common = shader::create::<shader::target::Vertex>();
     
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
-        common.source(&[&common_source]);
 
         let camera = FreeRoamingCamera::from(Camera::default());
     
         let vs = uncompiled_vs
             .uniform(&view_matrix_location)
-            .uniform(&scale_location)
+            .uniform(&global_light_direction_location)
             .compile()?
             .into_main()
             .inputs(&vs_inputs)
@@ -86,45 +112,45 @@ impl crate::Sample for Sample {
             .into_main()
             .inputs(&fs_inputs)
             .output(&fs_output);
-        let common = common.compile()?.into_shared();
 
-        let scale = 1.0;
+        let global_light_dir = glm::vec3(-1f32,-1f32, -1f32);
         
         let matrix = camera.view_projection_matrix();
 
         let program = Program::builder()
             .uniforms(|definitions| definitions
                 .define(&view_matrix_location, &matrix)
-                .define(&scale_location, &scale)
+                .define(&global_light_direction_location, &global_light_dir)
             )
             .no_resources()
             .vertex_main(&vs)
             .uniforms(|matcher| matcher
-                .bind(&scale_location)
+                .bind(&global_light_direction_location)
                 .bind(&view_matrix_location)
             )
-            .vertex_shared(&common)
             .fragment_main(&fs)
             .build()?;
     
+        let model = Self::load_model();
+
         let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(&[[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0f32]]);
+        positions.data::<(Static, Draw)>(&model.positions);
     
         let mut colors = Buffer::create();
-        colors.data::<(Static, Draw)>(&[
-            [1.0, 0.0, 0.0, 1.0],
-            [0.0, 1.0, 0.0, 1.0],
-            [0.0, 0.0, 1.0, 1.0],
-        ]);
+        colors.data::<(Static, Draw)>(&model.normals);
+
+        let mut index = Buffer::create();
+        index.data::<(Static, Draw)>(&model.index);
     
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)
-            .vertex_attrib_pointer(&vin_color, colors);
+            .vertex_attrib_pointer(&vin_color, colors)
+            .element_buffer(index);
         
         let mut inner = Self {
             program,
             vao,
-            scale,
+            global_light_dir,
             camera,
         };
 
@@ -149,7 +175,7 @@ impl crate::Sample for Sample {
     }
     
     fn process_key(&mut self, code: winit::keyboard::KeyCode) {
-        let glsl::vars![matrix, scale] = Uniforms::default();
+        let glsl::vars![matrix, light] = Uniforms::default();
         match code {
             winit::keyboard::KeyCode::KeyW => self.camera.fixed_move(&crate::common::camera::Direction::Front),
             winit::keyboard::KeyCode::KeyS => self.camera.fixed_move(&crate::common::camera::Direction::Back),
@@ -159,11 +185,9 @@ impl crate::Sample for Sample {
         };
         self.program.uniform(&matrix, &self.camera.view_projection_matrix());
         if code == winit::keyboard::KeyCode::Space {
-            self.scale -= 0.01;
-            if self.scale < 0.4 {
-                self.scale = 1.5;
-            }
-            self.program.uniform(&scale, &self.scale);
+            self.global_light_dir = glm::rotate(&glm::Mat4::identity(), 1.0, &glm::Vec3::y_axis()) * glm::vec(
+                self.global_light_dir.x, self.global_light_dir.y, self.global_light_dir.z, 1.0f32
+            ).xyz();
         }
     }
     
@@ -181,4 +205,9 @@ impl crate::Sample for Sample {
     fn name() -> String {
         String::from("hello-uniforms")
     }
+}
+
+fn main() -> anyhow::Result<()> {
+    common::run_sample::<Sample>()?;
+    Ok(())
 }

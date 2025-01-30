@@ -175,7 +175,7 @@ impl common::Sample for Sample {
             .add(&self.texture);
         
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 gl::raw::ClearColor(0.4, 0.5, 0.6, 1.0);
                 gl::raw::Clear(gl::raw::COLOR_BUFFER_BIT);

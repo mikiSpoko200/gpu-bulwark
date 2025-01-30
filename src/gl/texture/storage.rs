@@ -112,7 +112,7 @@ where
         Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
-        _: &gl::object::Bind<texture::TextureObject<D1Target>>, 
+        _: &gl::object::BindGuard<texture::TextureObject<D1Target>>, 
         x_range: impl std::ops::RangeBounds<usize>, 
         pixels: &[Pixel]
     )
@@ -127,7 +127,7 @@ where
         }
         let length = end - start;
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::TexSubImage1D(
                     D1Target::ID,
@@ -154,7 +154,7 @@ where
         Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
-        _: &gl::object::Bind<texture::TextureObject<D2Target>>,
+        _: &gl::object::BindGuard<texture::TextureObject<D2Target>>,
         x_range: impl std::ops::RangeBounds<usize>, 
         y_range: impl std::ops::RangeBounds<usize>,
         pixels: &[Pixel]
@@ -177,7 +177,7 @@ where
             panic!("sub image height range {y_start}..={y_end} extends out of bounds");
         }
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::TexSubImage2D(
                     D2Target::ID,
@@ -206,7 +206,7 @@ where
         Pixel: pixel::Pixel<Components = Channels::Components, Type = InternalFormat::ComponentType>,
     >(
         &mut self,
-        _: &gl::object::Bind<texture::TextureObject<D3Target>>,
+        _: &gl::object::BindGuard<texture::TextureObject<D3Target>>,
         x_range: impl std::ops::RangeBounds<usize>,
         y_range: impl std::ops::RangeBounds<usize>,
         z_range: impl std::ops::RangeBounds<usize>,
@@ -236,7 +236,7 @@ where
         let z_length = z_end - z_start;
 
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::TexSubImage3D(
                     D3Target::ID,
@@ -262,9 +262,9 @@ where
     Kind: marker::Storage<Target=D1Target, Signature = signature::Storage1D>,
     InternalFormat: image::marker::Format,
 {
-    pub fn storage_1d(_: &gl::object::Bind<TextureObject<D1Target>>, width: usize) -> Self {
+    pub fn storage_1d(_: &gl::object::BindGuard<TextureObject<D1Target>>, width: usize) -> Self {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 Kind::ALLOCATOR(D1Target::ID, 1, InternalFormat::ID, width as _);
             }
@@ -286,9 +286,9 @@ where
     Kind: marker::Storage<Target=D2Target, Signature = signature::Storage2D>,
     InternalFormat: image::marker::Format,
 {
-    pub fn storage_2d(_: &object::Bind<TextureObject<D2Target>>, width: usize, height: usize) -> Self {
+    pub fn storage_2d(_: &object::BindGuard<TextureObject<D2Target>>, width: usize, height: usize) -> Self {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 Kind::ALLOCATOR(D2Target::ID, 1, InternalFormat::ID, width as _, height as _);
             }
@@ -310,9 +310,9 @@ where
     Kind: marker::Storage<Target=D3Target, Signature = signature::Storage3D>,
     InternalFormat: image::marker::Format,
 {
-    pub fn storage_3d(_: &object::Bind<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
+    pub fn storage_3d(_: &object::BindGuard<TextureObject<D3Target>>, width: usize, height: usize, depth: usize) -> Self {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 Kind::ALLOCATOR(D3Target::ID, 1, InternalFormat::ID, width as _, height as _, depth as _);
             }

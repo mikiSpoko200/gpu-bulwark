@@ -32,6 +32,7 @@ use glsl::variable;
 use variable::TransparentUniformVariable;
 use variable::{layout, storage};
 
+use super::buffer;
 use super::texture;
 use super::texture::TextureState;
 use super::texture::TextureUnit;
@@ -110,7 +111,7 @@ pub enum ProgramObject { }
 unsafe impl Allocator for ProgramObject {
     fn allocate(names: &mut [u32]) {
         gl::call! {
-            [panic]
+            #[panic]
             for name in names {
                 *name = unsafe { glb::CreateProgram() };
             }
@@ -121,7 +122,7 @@ unsafe impl Allocator for ProgramObject {
         // UNSAFE: Check for 0 return type, otherwise Stage guarantees valid Enum value.
         for &name in names {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     glb::DeleteProgram(name)
                 }
@@ -130,10 +131,10 @@ unsafe impl Allocator for ProgramObject {
     }
 }
 
-impl Binder for ProgramObject {
+impl Bind for ProgramObject {
     fn bind(name: u32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::UseProgram(name);
             }
@@ -197,7 +198,7 @@ impl Program<(), (), (), ()> {
         let _program_bind = self.bind();
 
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::DrawArrays(glb::TRIANGLES, 0, n_triangles as _);
             }
@@ -212,7 +213,7 @@ where
     Unis: uniform::bounds::Declarations,
 {
     /// Draw arrays using program when it does not use any external resources.
-    pub fn draw_arrays<Attrs>(&mut self, vao: &gl::VertexArray<Attrs>)
+    pub fn draw_arrays<Attrs, Elem>(&mut self, vao: &gl::VertexArray<Attrs, Elem>)
     where
         Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
     {
@@ -242,13 +243,13 @@ where
 pub trait SetDefinitions: uniform::bounds::Definitions + private::Sealed {
     type Current;
 
-    fn set(&self, _: &Bind<ProgramObject>);
+    fn set(&self, _: &BindGuard<ProgramObject>);
 }
 
 impl SetDefinitions for () {
     type Current = ();
 
-    fn set(&self, _: &Bind<ProgramObject>) { }
+    fn set(&self, _: &BindGuard<ProgramObject>) { }
 }
 
 impl<'a, H, U, T, const LOCATION: usize> SetDefinitions for (H, uniform::Definition<'a, U, T, LOCATION>)
@@ -260,7 +261,7 @@ where
 {
     type Current = uniform::Definition<'a, U, T, LOCATION>;
 
-    fn set(&self, bind: &Bind<ProgramObject>) {
+    fn set(&self, bind: &BindGuard<ProgramObject>) {
         U::set(bind, &glsl::variable::TransparentUniformVariable::<U, LOCATION>::default(), self.1.0);
         self.0.set(bind);
     }
@@ -292,7 +293,7 @@ where
 {
     pub fn query(&self, param: QueryParam, output: &mut i32) {
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::GetProgramiv(self.object.name(), param as _, output);
             }
@@ -313,7 +314,7 @@ where
             let mut buffer = Vec::<u8>::with_capacity(log_size as _);
             let mut actual_length = 0;
             gl::call! {
-                [panic]
+                #[panic]
                 // SAFETY: All values passed are valid
                 // todo: notes on error situations
                 unsafe {
@@ -338,14 +339,14 @@ where
     fn attach<T: shader::target::Target>(&self, stage: &ShaderStage<T>) {
         let main = stage.main;
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::AttachShader(self.object.name(), main.name());
             }
         }
         for lib in &stage.libs {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     glb::AttachShader(self.object.name(), lib.name());
                 }
@@ -379,7 +380,7 @@ where
     }
 
     /// Draw arrays using program that uses external resources. Bindings for these resources need to be provided in order to draw. 
-    pub fn draw_arrays_ext<Attrs, Handles>(&self, vao: &gl::VertexArray<Attrs>, handles: &texture::TextureUnits<Handles>)
+    pub fn draw_arrays_ext<Attrs, Elem, Handles>(&self, vao: &gl::VertexArray<Attrs, Elem>, handles: &texture::TextureUnits<Handles>)
     where
         Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
         Handles: ResourceProviders<Res> + texture::Binders,
@@ -389,9 +390,25 @@ where
         let _texture_binders = handles.binders();
 
         gl::call! {
-            [panic]
+            #[panic]
             unsafe {
                 glb::DrawArrays(glb::TRIANGLES, 0, vao.len() as _);
+            }
+        }
+    }
+
+    pub fn draw_elements<Attrs, Elem>(&self, vao: &gl::VertexArray<Attrs, Elem>)
+    where
+        Attrs: vertex_array::valid::Attributes + glsl::compatible::hlist::Compatible<Ins>,
+        Elem: buffer::_valid::ExtForElementBuffer,
+    {
+        let _vao_bind = vao.bind();
+        let _program_bind = self.bind();
+
+        gl::call! {
+            #[panic]
+            unsafe {
+                glb::DrawElements(glb::TRIANGLES, vao.len() as _, gl::type_id::<Elem>(), std::ptr::null());
             }
         }
     }

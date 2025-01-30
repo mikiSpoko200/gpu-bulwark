@@ -217,7 +217,7 @@ pub mod ops {
 
     use crate::ffi;
     use crate::gl;
-    use crate::gl::object::Bind;
+    use crate::gl::object::BindGuard;
     use crate::gl::program::ProgramObject;
     use glsl::variable::TransparentUniformVariable;
     use ffi::FFIExt;
@@ -226,7 +226,7 @@ pub mod ops {
     where
         Subtype: valid::Subtype,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
+        fn set<const LOCATION: usize>(_: &BindGuard<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>);
     }
 
     impl<U> Set<valid::Scalar> for U
@@ -234,9 +234,9 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &BindGuard<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     Self::SETTER(LOCATION as _, <Self as glsl::Location>::N_USED_LOCATIONS as _, uniform.as_slice().as_ptr());
                 }
@@ -250,9 +250,9 @@ pub mod ops {
         + DispatchSetters<Signature = signature::UniformV<<U::Layout as ext::Array>::Type>>,
         Const<DIM>: valid::VecDim,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &BindGuard<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, uniform.as_slice().as_ptr());
                 }
@@ -265,9 +265,9 @@ pub mod ops {
         U: glsl::bounds::TransparentType + Uniform
         + DispatchSetters<Signature = signature::UniformMatrixV<<U::Layout as ext::Array>::Type>>,
     {
-        fn set<const LOCATION: usize>(_: &Bind<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
+        fn set<const LOCATION: usize>(_: &BindGuard<ProgramObject>, _: &TransparentUniformVariable<Self, LOCATION>, uniform: &impl glsl::Compatible<Self>) {
             gl::call! {
-                [panic]
+                #[panic]
                 unsafe {
                     Self::SETTER(LOCATION as _, Self::N_ELEMENTS as _, true as _, uniform.as_slice().as_ptr());
                 }

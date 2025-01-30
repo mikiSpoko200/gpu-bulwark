@@ -10,42 +10,55 @@ use gl::texture;
 pub trait Target: gl::target::Target { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum Array { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum AtomicCounter { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum CopyRead { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum CopyWrite { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum DispatchIndirect { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum DrawIndirect { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum ElementArray { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum PixelPack { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum PixelUnpack { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum Query { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum ShaderStorage { }
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum TransformFeedback { } 
 
 #[hi::mark(Target)]
+#[derive(Debug)]
 pub enum Uniform { }
 
 hi::denmark! { texture::Buffer as Target }
