@@ -1,6 +1,8 @@
 #![allow(unused)]
 
+use std::cell::{Cell, LazyCell};
 use std::num::NonZeroU32;
+use std::time::{self, Duration};
 
 use glutin::display::GetGlDisplay;
 use glutin::prelude::*;
@@ -9,13 +11,93 @@ use glutin::{context, surface};
 use glutin_winit::{DisplayBuilder, GlWindow};
 use raw_window_handle::HasWindowHandle as _;
 use winit::application::ApplicationHandler;
-use winit::event::{self, DeviceEvent, ElementState, WindowEvent};
+use winit::event::{self, DeviceEvent, ElementState, KeyEvent, WindowEvent};
 use winit::event_loop::{self, ActiveEventLoop, EventLoop};
-use winit::keyboard;
-use winit::window::{self};
+use winit::keyboard::{self, KeyCode, PhysicalKey};
+use winit::window::{self, CursorGrabMode};
 
-use nalgebra_glm as glm;
 use gpu_bulwark as gb;
+use nalgebra_glm as glm;
+
+#[path = "physics.rs"]
+mod physics;
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Default)]
+pub enum Toggle {
+    #[default]
+    Off = 0,
+    On = 1,
+}
+
+impl Toggle {
+    pub const fn flip(&mut self) -> Self {
+        match self {
+            Toggle::Off => *self = Self::On,
+            Toggle::On => *self = Self::Off,
+        };
+        *self
+    }
+
+    pub fn set(&mut self, state: bool) {
+        match state {
+            true => *self = Self::On,
+            false => *self = Self::Off,
+        }
+    }
+
+    pub const fn is_on(&self) -> bool {
+        matches! { self, Self::On }
+    }
+
+    pub const fn is_off(&self) -> bool {
+        matches! { self, Self::On }
+    }
+
+    pub fn map_on<T>(&self, f: impl FnOnce() -> T) -> Option<T> {
+        (matches! { self, Self::On }).then(f)
+    }
+
+    pub fn map_off<T>(&self, f: impl FnOnce() -> T) -> Option<T> {
+        (matches! { self, Self::Off }).then(f)
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
+pub struct KeyBoard {
+    pub key_w: Toggle,
+    pub key_s: Toggle,
+    pub key_a: Toggle,
+    pub key_d: Toggle,
+    pub key_q: Toggle,
+    pub key_e: Toggle,
+}
+
+impl KeyBoard {
+    pub fn as_ref(&self, key: KeyCode) -> Option<&Toggle> {
+        match key {
+            KeyCode::KeyW => Some(&self.key_w),
+            KeyCode::KeyS => Some(&self.key_s),
+            KeyCode::KeyA => Some(&self.key_a),
+            KeyCode::KeyD => Some(&self.key_d),
+            KeyCode::KeyE => Some(&self.key_e),
+            KeyCode::KeyQ => Some(&self.key_q),
+            _ => None,
+        }
+    }
+
+    pub fn as_mut(&mut self, key: KeyCode) -> Option<&mut Toggle> {
+        match key {
+            KeyCode::KeyW => Some(&mut self.key_w),
+            KeyCode::KeyS => Some(&mut self.key_s),
+            KeyCode::KeyA => Some(&mut self.key_a),
+            KeyCode::KeyD => Some(&mut self.key_d),
+            KeyCode::KeyE => Some(&mut self.key_e),
+            KeyCode::KeyQ => Some(&mut self.key_q),
+            _ => None,
+        }
+    }
+}
 
 pub mod config {
     use std::path::PathBuf;
@@ -38,7 +120,7 @@ pub mod config {
     pub const HEIGHT: u32 = 640;
     pub const MOUSE_SENSITIVITY: f32 = 0.0005;
     pub const MOVEMENT_SPEED: f32 = 0.1;
-    
+
     const RESOURCE_PATH: &'static str = "examples/resources";
     const SHADER_PATH: &'static str = "examples/shaders";
     const MODEL_PATH: &'static str = "examples/models";
@@ -46,7 +128,7 @@ pub mod config {
     pub fn resource_path(resource: &'static str) -> PathBuf {
         format!("{}/{}", RESOURCE_PATH, resource).into()
     }
-    
+
     pub fn shader_path(shader: &'static str) -> PathBuf {
         format!("{}/{}", SHADER_PATH, shader).into()
     }
@@ -58,8 +140,8 @@ pub mod config {
 
 pub mod camera {
     use super::config::{HEIGHT, WIDTH};
-    use super::glm::{self, Mat4, Vec3};
     use super::gb;
+    use super::glm::{self, Mat4, Vec3};
 
     #[derive(Debug, Copy, Clone)]
     pub struct Directions {
@@ -79,6 +161,7 @@ pub mod camera {
         const RIGHT: glm::Vec3 = glm::Vec3::new(1f32, 0f32, 0f32);
         const LEFT: glm::Vec3 = glm::Vec3::new(-1f32, 0f32, 0f32);
     }
+
     pub enum Direction {
         Front,
         Back,
@@ -348,6 +431,25 @@ pub mod camera {
     }
 }
 
+pub struct Timer(time::Instant);
+
+impl Timer {
+    pub fn new() -> Self {
+        Self(time::Instant::now())
+    }
+
+    pub fn get(&self) -> time::Duration {
+        std::time::Instant::now() - self.0
+    }
+
+    pub fn update(&mut self) -> time::Duration {
+        let start = self.0;
+        let now = std::time::Instant::now();
+        self.0 = now;
+        now - start
+    }
+}
+
 pub trait Sample: Sized {
     fn initialize(
         window: window::Window,
@@ -357,7 +459,7 @@ pub trait Sample: Sized {
 
     fn render(&mut self);
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode);
+    fn process_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState);
 
     fn process_mouse(&mut self, delta: (f64, f64));
 
@@ -368,6 +470,13 @@ pub trait Sample: Sized {
     fn config() -> config::Config {
         config::Config::default()
     }
+}
+
+pub trait InteractiveSample: Sample {
+    const FREQUENCY: usize;
+    type DCtx;
+
+    fn update(&mut self, dctx: &Self::DCtx, dt: Duration);
 }
 
 pub struct Ctx<T> {
@@ -390,18 +499,24 @@ impl<T> AsMut<T> for Ctx<T> {
 }
 
 struct App<T: Sample> {
+    physical_device_timer: Timer,
     ctx: Option<Ctx<T>>,
 }
 
 impl<T: Sample> Default for App<T> {
     fn default() -> Self {
-        Self { ctx: None }
+        Self {
+            physical_device_timer: Timer::new(),
+            ctx: None,
+        }
     }
 }
 
 impl<T: Sample> App<T> {
     fn init(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
         if self.ctx.is_none() {
+            event_loop.set_control_flow(event_loop::ControlFlow::Poll);
+
             let config = T::config();
 
             // let icon = hello_textures::logo::uwr();
@@ -452,6 +567,9 @@ impl<T: Sample> App<T> {
                 .and_then(|window| window.window_handle().map(|handle| handle.as_raw()).ok());
 
             let window = window.take().unwrap();
+
+            window.set_cursor_grab(CursorGrabMode::Confined).ok();
+            window.set_cursor_visible(false);
 
             let display = config.display();
 
@@ -505,7 +623,10 @@ impl<T: Sample> App<T> {
         });
     }
 
-    fn process_key(&mut self, key: keyboard::KeyCode) {
+    fn process_key(&mut self, key: keyboard::KeyCode, state: ElementState) {
+        if key == KeyCode::Escape {
+            std::process::exit(0)
+        }
         self.ctx
             .as_mut()
             .map(AsMut::as_mut)
@@ -523,16 +644,14 @@ impl<T: Sample> App<T> {
 impl<T: Sample> ApplicationHandler for App<T> {
     fn suspended(&mut self, _: &ActiveEventLoop) {}
 
-    fn device_event(&mut self, _: &ActiveEventLoop, _: event::DeviceId, event: event::DeviceEvent) {
+    fn device_event(
+        &mut self,
+        event_loop: &ActiveEventLoop,
+        _: event::DeviceId,
+        event: event::DeviceEvent,
+    ) {
         match event {
             DeviceEvent::MouseMotion { delta } => self.process_mouse_input(delta),
-            DeviceEvent::Key(winit::event::RawKeyEvent {
-                physical_key: keyboard::PhysicalKey::Code(key),
-                state: ElementState::Pressed,
-            }) => match key {
-                winit::keyboard::KeyCode::Escape => std::process::exit(0),
-                other => self.process_key(other),
-            },
             _ => (),
         }
     }
@@ -552,12 +671,32 @@ impl<T: Sample> ApplicationHandler for App<T> {
                     ctx.window.request_redraw();
                 }
             }
+            WindowEvent::KeyboardInput {
+                event:
+                    KeyEvent {
+                        physical_key: PhysicalKey::Code(key),
+                        state: ElementState::Pressed,
+                        repeat,
+                        ..
+                    },
+                ..
+            } => {
+                println!("{repeat}");
+                self.process_key(key);
+            }
             WindowEvent::CloseRequested => {
                 std::process::exit(0);
             }
-            WindowEvent::RedrawRequested => self.render(),
+            WindowEvent::RedrawRequested => {
+                // print!("\r{} Hz", 1000000 / self.physical_device_timer.get().as_micros());
+                self.render()
+            }
             _ => (),
         }
+    }
+
+    fn about_to_wait(&mut self, _: &ActiveEventLoop) {
+        self.physical_device_timer.update();
     }
 
     fn resumed(&mut self, event_loop: &event_loop::ActiveEventLoop) {

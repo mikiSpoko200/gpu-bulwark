@@ -1,35 +1,35 @@
 #![allow(unused)]
 
-#[path = "common/common.rs"] mod common;
+#[path = "common/common.rs"]
+mod common;
 use common::config::shader_path;
-use common::{Ctx, config};
+use common::{config, Ctx};
 
+use gpu_bulwark as gb;
 use std::io::Write;
 use std::marker::PhantomData;
-use gpu_bulwark as gb;
 
 use gb::gl::texture::{self, pixel, TextureUnit};
-use winit::window;
-use glutin::{context, surface};
 use gb::{gl, glsl};
+use glutin::{context, surface};
+use winit::window;
 
-
-use gl::vertex_array::Attribute;
+use gl::buffer::{Draw, Static};
 use gl::shader;
-use gl::buffer::{Static, Draw};
-use gl::{Program, Buffer, VertexArray};
-use texture::pixel::channels::Channels as _;
+use gl::vertex_array::Attribute;
+use gl::{Buffer, Program, VertexArray};
 use glsl::MatchingInputs as _;
+use texture::pixel::channels::Channels as _;
 
 use nalgebra_glm as glm;
 
 // imports for reading images
-use std::io::Cursor;
 use slice_of_array::prelude::*;
+use std::io::Cursor;
 
 pub mod logo {
-    use std::path::Path;
     use super::common::config::resource_path;
+    use std::path::Path;
 
     use image::{DynamicImage, GenericImage, Pixel, RgbImage, Rgba};
 
@@ -43,17 +43,20 @@ pub mod logo {
 
     pub fn uwr(dest: &mut RgbImage) {
         let loaded = load_bitmap_from_resources(&resource_path("uwr.bmp"));
-        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
+        dest.copy_from(&loaded, 0, 0)
+            .expect("image storage matches loaded bitmaps")
     }
 
     pub fn rust(dest: &mut RgbImage) {
         let loaded = load_bitmap_from_resources(&resource_path("rust.bmp"));
-        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
+        dest.copy_from(&loaded, 0, 0)
+            .expect("image storage matches loaded bitmaps")
     }
 
     pub fn opengl(dest: &mut RgbImage) {
         let loaded = load_bitmap_from_resources(&resource_path("opengl.bmp"));
-        dest.copy_from(&loaded, 0, 0).expect("image storage matches loaded bitmaps")
+        dest.copy_from(&loaded, 0, 0)
+            .expect("image storage matches loaded bitmaps")
     }
 }
 
@@ -79,8 +82,11 @@ type Attributes = gb::HList! {
     Attribute<[f32; 2], 1>,
 };
 
-
-use texture::{target::D2, Immutable, image::{Format, format}};
+use texture::{
+    image::{format, Format},
+    target::D2,
+    Immutable,
+};
 
 pub struct Sample {
     program: Program<Inputs, FsOutputs, (), Resources>,
@@ -94,7 +100,11 @@ impl Sample {
 }
 
 impl common::Sample for Sample {
-    fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
+    fn initialize(
+        window: window::Window,
+        surface: surface::Surface<surface::WindowSurface>,
+        context: context::PossiblyCurrentContext,
+    ) -> anyhow::Result<Ctx<Self>> {
         let vs_source = std::fs::read_to_string(shader_path("textures.vert"))?;
         let fs_source = std::fs::read_to_string(shader_path("textures.frag"))?;
 
@@ -104,16 +114,16 @@ impl common::Sample for Sample {
         let vs_outputs = VsOutputs::default();
 
         let fs_inputs = vs_outputs.matching_inputs();
-        let glsl::vars![ fs_output ] = FsOutputs::default();
+        let glsl::vars![fs_output] = FsOutputs::default();
 
-        let glsl::vars![ sampler ] = Resources::default();
+        let glsl::vars![sampler] = Resources::default();
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
-    
+
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
-    
+
         let vs = uncompiled_vs
             .compile()?
             .into_main()
@@ -127,34 +137,47 @@ impl common::Sample for Sample {
 
         let program = Program::builder()
             .no_uniforms()
-            .resources(|resources| resources
-                .sampler(&sampler)
-            )
+            .resources(|resources| resources.sampler(&sampler))
             .vertex_main(&vs)
             .fragment_main(&fs)
             .build()?;
 
         let mut positions = Buffer::create();
-        positions.data::<(Static, Draw)>(
-            &[[0.5, -0.5], [ 0.5, 0.5], [-0.5, -0.5], [-0.5, 0.5], [0.5, 0.5], [-0.5, -0.5]]
-        );
-        
+        positions.data::<(Static, Draw)>(&[
+            [0.5, -0.5],
+            [0.5, 0.5],
+            [-0.5, -0.5],
+            [-0.5, 0.5],
+            [0.5, 0.5],
+            [-0.5, -0.5],
+        ]);
+
         let mut texture_coords = Buffer::create();
-        texture_coords.data::<(Static, Draw)>(
-            &[[1.0, 1.0], [1.0, 0.0], [0.0, 1.0], [0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]
-        );
+        texture_coords.data::<(Static, Draw)>(&[
+            [1.0, 1.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ]);
 
         let mut image = image::RgbImage::new(Self::TEXTURE_SIZE as _, Self::TEXTURE_SIZE as _);
-        let mut texture = texture::Texture::create_with_storage_2d(Self::TEXTURE_SIZE, Self::TEXTURE_SIZE);
+        let mut texture =
+            texture::Texture::create_with_storage_2d(Self::TEXTURE_SIZE, Self::TEXTURE_SIZE);
 
         logo::uwr(&mut image);
-        
-        texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &image.nest::<[_; 3]>());
+
+        texture.sub_image_2d::<pixel::channels::RGB, _>(
+            0..Self::TEXTURE_SIZE,
+            0..Self::TEXTURE_SIZE,
+            &image.nest::<[_; 3]>(),
+        );
 
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_position, positions)
             .vertex_attrib_pointer(&vin_tex, texture_coords);
-        
+
         let inner = Self {
             program,
             vao,
@@ -169,11 +192,10 @@ impl common::Sample for Sample {
             inner,
         })
     }
-    
+
     fn render(&mut self) {
-        let texture_bindings = texture::TextureUnits::default()
-            .add(&self.texture);
-        
+        let texture_bindings = texture::TextureUnits::default().add(&self.texture);
+
         gl::call! {
             #[panic]
             unsafe {
@@ -183,15 +205,19 @@ impl common::Sample for Sample {
         }
         self.program.draw_arrays_ext(&self.vao, &texture_bindings);
     }
-    
-    fn process_key(&mut self, code: winit::keyboard::KeyCode) {
+
+    fn process_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {
         let texture = &mut self.texture;
 
         let mut update_image = |load: fn(&mut image::RgbImage), message: &str| {
             print!("\rdisplaying logo {:>6}", message);
             std::io::stdout().flush().unwrap();
             load(&mut self.image);
-            texture.sub_image_2d::<pixel::channels::RGB, _>(0..Self::TEXTURE_SIZE, 0..Self::TEXTURE_SIZE, &self.image.nest::<[u8; 3]>());
+            texture.sub_image_2d::<pixel::channels::RGB, _>(
+                0..Self::TEXTURE_SIZE,
+                0..Self::TEXTURE_SIZE,
+                &self.image.nest::<[u8; 3]>(),
+            );
         };
 
         match code {
@@ -201,20 +227,20 @@ impl common::Sample for Sample {
             _ => (),
         }
     }
-    
-    fn process_mouse(&mut self, _: (f64, f64)) { }
-    
+
+    fn process_mouse(&mut self, _: (f64, f64)) {}
+
     fn config() -> common::config::Config {
         common::config::Config {
             width: 512,
             height: 512,
         }
     }
-    
+
     fn usage(&self) -> String {
         String::from("use A, S, D keys to change displayed texture")
     }
-    
+
     fn name() -> String {
         String::from("hello-textures")
     }
