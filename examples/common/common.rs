@@ -140,7 +140,8 @@ pub mod config {
 
 pub mod camera {
     use super::config::{HEIGHT, WIDTH};
-    use super::gb;
+    use super::physics::{KineticState, Moveable};
+    use super::{gb, physics};
     use super::glm::{self, Mat4, Vec3};
 
     #[derive(Debug, Copy, Clone)]
@@ -200,16 +201,7 @@ pub mod camera {
         }
     }
 
-    // general camera
-    #[derive(Debug, Clone)]
-    pub struct CameraPerspectiveState {
-        aspect_ratio: f32,
-        fovy: f32,
-        z_near: f32,
-        z_far: f32,
-    }
-
-    impl Default for CameraPerspectiveState {
+    impl Default for Projection {
         fn default() -> Self {
             let mut viewport = [0; 4];
             gb::call! {
@@ -229,7 +221,7 @@ pub mod camera {
         }
     }
 
-    impl CameraPerspectiveState {
+    impl Projection {
         pub fn new(aspect_ratio: f32, fovy: f32, z_near: f32, z_far: f32) -> Self {
             Self {
                 aspect_ratio,
@@ -240,48 +232,50 @@ pub mod camera {
         }
     }
 
-    impl PerspectiveMatrixProvider for CameraPerspectiveState {
+    impl PerspectiveMatrixProvider for Projection {
         fn perspective_matrix(&self) -> Mat4 {
             glm::perspective(self.aspect_ratio, self.fovy, self.z_near, self.z_far)
         }
     }
 
     #[derive(Debug, Clone)]
-    pub struct CameraViewState {
+    pub struct View {
         pub looking_direction: Vec3,
-        pub position: Vec3,
     }
 
-    impl Default for CameraViewState {
+    impl Default for View {
         fn default() -> Self {
             let looking_direction = Directions::BACK;
             let position = glm::vec3(0.0, 0.0, -1f32);
             Self {
                 looking_direction,
-                position,
             }
         }
     }
 
-    impl CameraViewState {
+    impl View {
         pub fn new(looking_direction: Vec3, position: Vec3) -> Self {
             Self {
                 looking_direction,
-                position,
             }
         }
     }
 
-    impl ViewMatrixProvider for CameraViewState {
+    impl ViewMatrixProvider for View {
         fn view_matrix(&self) -> glm::Mat4 {
-            let looking_point = self.position + self.looking_direction;
-            glm::look_at(&self.position, &looking_point, &Directions::UP)
+            glm::look_at(&Vec3::default(), &self.looking_direction, &Directions::UP)
         }
     }
 
+    pub enum Projection {
+        Orthographic { near: f32, far: f32 },
+        Perspective { near: f32, far: f32, aspect_ratio: f32, fovy: f32 }
+    }
+
     pub struct Camera {
-        pub view: CameraViewState,
-        perspective: CameraPerspectiveState,
+        kinetic: KineticState,
+        view: View,
+        projection: Projection,
     }
 
     impl Camera {
@@ -326,15 +320,27 @@ pub mod camera {
             self.perspective.perspective_matrix()
         }
 
-        pub fn new(perspective: CameraPerspectiveState, view: CameraViewState) -> Self {
-            Self { perspective, view }
+        pub fn new(projection: Projection, view: View) -> Self {
+            Self { projection, view }
+        }
+    }
+
+    impl physics::Moveable for Camera {
+
+
+        fn velocity(&mut self) -> &mut nalgebra_glm::Vec3 {
+            todo!()
+        }
+        
+        fn position(&mut self) -> &mut nalgebra_glm::Vec3 {
+            todo!()
         }
     }
 
     impl Default for Camera {
         fn default() -> Self {
-            let perspective = CameraPerspectiveState::default();
-            let view = CameraViewState::default();
+            let perspective = Projection::default();
+            let view = View::default();
             Self::new(perspective, view)
         }
     }
@@ -373,13 +379,17 @@ pub mod camera {
         fn fixed_move(&mut self, direction: &Direction);
     }
 
-    pub trait Movable {
-        fn r#move(&mut self, vector: &Vec3);
-    }
-
     #[derive(Default)]
     pub struct FreeRoamingCamera {
         pub camera: Camera,
+    }
+
+    pub struct DynMotion<T>
+    where
+        T: Moveable
+    {
+        moveable: T,
+        effects: std::rc::Rc<dyn Fn(&mut KineticState)>
     }
 
     impl FreeRoamingCamera {
@@ -401,14 +411,6 @@ pub mod camera {
     impl FixedMovable for FreeRoamingCamera {
         fn is_in_bounds(&self) -> bool {
             true
-        }
-
-        fn fixed_move(&mut self, direction: &Direction) {
-            let position = self.camera.view.position.clone();
-            self.camera.r#move(direction);
-            if !self.is_in_bounds() {
-                self.camera.view.position = position;
-            }
         }
     }
 
@@ -459,9 +461,11 @@ pub trait Sample: Sized {
 
     fn render(&mut self);
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState);
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState);
 
-    fn process_mouse(&mut self, delta: (f64, f64));
+    fn on_mouse_movement(&mut self, delta: (f64, f64));
+
+    fn update(&mut self) {}
 
     fn name() -> String;
 
@@ -630,14 +634,14 @@ impl<T: Sample> App<T> {
         self.ctx
             .as_mut()
             .map(AsMut::as_mut)
-            .map(|sample| sample.process_key(key));
+            .map(|sample| sample.on_key(key));
     }
 
     fn process_mouse_input(&mut self, delta: (f64, f64)) {
         self.ctx
             .as_mut()
             .map(AsMut::as_mut)
-            .map(|sample| sample.process_mouse(delta));
+            .map(|sample| sample.on_mouse_movement(delta));
     }
 }
 

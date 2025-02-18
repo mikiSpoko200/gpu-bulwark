@@ -187,13 +187,28 @@ impl common::Sample for Sample {
         self.program.draw_elements(&self.vao);
     }
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState) {
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: winitElementState) {
         self.keyboard
             .as_mut(code)
             .expect("code is supported")
             .set(state == ElementState::Pressed);
 
+    }
+
+    fn on_mouse_movement(&mut self, (dx, dy): (f64, f64)) {
+        let glsl::vars![matrix, _scale] = Uniforms::default();
+
+        self.camera
+            .rotate((-dy as f32).to_radians(), (-dx as f32).to_radians());
+        self.program
+            .uniform(&matrix, &self.camera.view_projection_matrix());
+    }
+
+    fn update(&mut self) {
         let glsl::vars![matrix, light] = Uniforms::default();
+        glm::Vec3::default()
+            .add
+
         match code {
             winit::keyboard::KeyCode::KeyW => self
                 .camera
@@ -218,15 +233,6 @@ impl common::Sample for Sample {
                 .xyz();
             self.program.uniform(&light, &self.global_light_dir);
         }
-    }
-
-    fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
-        let glsl::vars![matrix, _scale] = Uniforms::default();
-
-        self.camera
-            .rotate((-dy as f32).to_radians(), (-dx as f32).to_radians());
-        self.program
-            .uniform(&matrix, &self.camera.view_projection_matrix());
     }
 
     fn usage(&self) -> String {
