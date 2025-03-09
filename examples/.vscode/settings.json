@@ -49,4 +49,5 @@
         "xoffset"
     ],
     "rust-analyzer.cargo.features": "all"
+    // "rust-analyzer.cargo.extraArgs": ["--verbose"],
 }
