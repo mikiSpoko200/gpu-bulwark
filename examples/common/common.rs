@@ -140,7 +140,7 @@ pub mod config {
 
 pub mod camera {
     use super::config::{HEIGHT, WIDTH};
-    use super::physics::{KineticState, Moveable};
+    use super::physics::{KineticState, Kinetic};
     use super::{gb, physics};
     use super::glm::{self, Mat4, Vec3};
 
@@ -172,8 +172,6 @@ pub mod camera {
         Right,
     }
 
-    const MOVEMENT_SPEED: f32 = 0.1;
-    const MOUSE_SENSITIVITY: f32 = 0.005;
     struct RightHandCoordSys {
         front: Vec3,
     }
@@ -201,75 +199,52 @@ pub mod camera {
         }
     }
 
-    impl Default for Projection {
-        fn default() -> Self {
-            let mut viewport = [0; 4];
-            gb::call! {
-                #[panic]
-                unsafe {
-                    gb::gl::raw::GetIntegerv(gb::gl::raw::VIEWPORT, viewport.as_mut_ptr());
-                }
-            }
-            let [.., width, height] = viewport;
-
-            Self::new(
-                Camera::DEFAULT_FOVY.to_radians(),
-                width as f32 / height as f32,
-                Camera::DEFAULT_Z_NEAR,
-                Camera::DEFAULT_Z_FAR,
-            )
-        }
-    }
-
-    impl Projection {
-        pub fn new(aspect_ratio: f32, fovy: f32, z_near: f32, z_far: f32) -> Self {
-            Self {
-                aspect_ratio,
-                fovy,
-                z_near,
-                z_far,
-            }
-        }
-    }
-
-    impl PerspectiveMatrixProvider for Projection {
-        fn perspective_matrix(&self) -> Mat4 {
-            glm::perspective(self.aspect_ratio, self.fovy, self.z_near, self.z_far)
-        }
-    }
-
     #[derive(Debug, Clone)]
     pub struct View {
-        pub looking_direction: Vec3,
+        looking_direction: Vec3,
+        up: Vec3
     }
 
     impl Default for View {
         fn default() -> Self {
             let looking_direction = Directions::BACK;
-            let position = glm::vec3(0.0, 0.0, -1f32);
             Self {
                 looking_direction,
+                up: Directions::UP
             }
         }
     }
 
     impl View {
-        pub fn new(looking_direction: Vec3, position: Vec3) -> Self {
-            Self {
-                looking_direction,
-            }
+        pub const fn new(looking_direction: Vec3, up: Vec3) -> Self {
+            Self { looking_direction, up }
         }
-    }
 
-    impl ViewMatrixProvider for View {
-        fn view_matrix(&self) -> glm::Mat4 {
+        pub fn matrix(&self) -> glm::Mat4 {
             glm::look_at(&Vec3::default(), &self.looking_direction, &Directions::UP)
         }
     }
 
     pub enum Projection {
-        Orthographic { near: f32, far: f32 },
+        Orthographic { near: f32, far: f32, width: f32, height: f32 },
         Perspective { near: f32, far: f32, aspect_ratio: f32, fovy: f32 }
+    }
+
+    impl Projection {
+        pub const fn orthographic(near: f32, far: f32, width: f32, height: f32 ) -> Self {
+            Self::Orthographic { near, far, width, height }
+        }
+
+        pub const fn perspective(near: f32, far: f32, aspect_ratio: f32, fovy: f32) -> Self {
+            Self::Perspective { near, far, aspect_ratio, fovy }
+         }
+
+        pub fn matrix(&self) -> glm::Mat4 {
+            match self {
+                &Projection::Orthographic { near, far, width, height } => glm::ortho(0.0, width, 0.0, height, near, far),
+                &Projection::Perspective { near, far, aspect_ratio, fovy } => glm::perspective(aspect_ratio, fovy, near, far),
+            }
+        }
     }
 
     pub struct Camera {
@@ -284,10 +259,13 @@ pub mod camera {
         const DEFAULT_Z_FAR: f32 = 150.0;
 
         const SENSITIVITY: f32 = 0.5;
-        const SPEED: f32 = 0.05;
 
-        pub fn angle() -> f32 {
-            f32::to_radians(10f32)
+        pub fn new(kinetic: KineticState, view: View, projection: Projection) -> Self {
+            Self {
+                kinetic,
+                view,
+                projection,
+            }
         }
 
         pub fn rotate(&mut self, x_rot: f32, y_rot: f32) {
@@ -307,69 +285,55 @@ pub mod camera {
             );
         }
 
-        pub fn r#move(&mut self, direction: &Direction) {
-            let local = RightHandCoordSys::new(self.view.looking_direction);
-            self.view.position += local.direction(direction) * Self::SPEED;
-        }
-
         pub fn view_matrix(&self) -> glm::Mat4 {
-            self.view.view_matrix()
+            self.view.matrix()
         }
 
-        pub fn perspective_matrix(&self) -> glm::Mat4 {
-            self.perspective.perspective_matrix()
+        pub fn projection_matrix(&self) -> glm::Mat4 {
+            self.projection.matrix()
         }
 
-        pub fn new(projection: Projection, view: View) -> Self {
-            Self { projection, view }
-        }
-    }
-
-    impl physics::Moveable for Camera {
-
-
-        fn velocity(&mut self) -> &mut nalgebra_glm::Vec3 {
-            todo!()
-        }
-        
-        fn position(&mut self) -> &mut nalgebra_glm::Vec3 {
-            todo!()
+        pub fn view_projection_matrix(&self) -> glm::Mat4 {
+            self.projection_matrix() * self.view_matrix()
         }
     }
 
-    impl Default for Camera {
-        fn default() -> Self {
-            let perspective = Projection::default();
-            let view = View::default();
-            Self::new(perspective, view)
-        }
-    }
-    pub trait ViewMatrixProvider {
-        fn view_matrix(&self) -> glm::Mat4;
-    }
-
-    pub trait PerspectiveMatrixProvider {
-        fn perspective_matrix(&self) -> glm::Mat4;
-    }
-
-    pub trait CameraProvider: PerspectiveMatrixProvider + ViewMatrixProvider {
-        fn view_projection_matrix(&self) -> glm::Mat4;
-    }
-
-    impl<C: PerspectiveMatrixProvider + ViewMatrixProvider> CameraProvider for C {
-        fn view_projection_matrix(&self) -> glm::Mat4 {
-            self.perspective_matrix() * self.view_matrix()
+    impl physics::Kinetic for Camera {
+        fn kinetic_state(&mut self) -> &mut KineticState {
+            &mut self.kinetic
         }
     }
 
-    pub trait KinematicCamera: CameraProvider + Rotatable + FixedMovable {}
+    // impl Default for Camera {
+    //     fn default() -> Self {
+    //         let perspective = Projection::default();
+    //         let view = View::default();
+    //         Self::new(perspective, view)
+    //     }
+    // }
+    // pub trait ViewMatrixProvider {
+    //     fn view_matrix(&self) -> glm::Mat4;
+    // }
 
-    impl<K: CameraProvider + Rotatable + FixedMovable> KinematicCamera for K {}
+    // pub trait PerspectiveMatrixProvider {
+    //     fn perspective_matrix(&self) -> glm::Mat4;
+    // }
+
+    // pub trait CameraProvider: PerspectiveMatrixProvider + ViewMatrixProvider {
+    //     fn view_projection_matrix(&self) -> glm::Mat4;
+    // }
+
+    // impl<C: PerspectiveMatrixProvider + ViewMatrixProvider> CameraProvider for C {
+    //     fn view_projection_matrix(&self) -> glm::Mat4 {
+    //         self.perspective_matrix() * self.view_matrix()
+    //     }
+    // }
+
+    // pub trait KinematicCamera: CameraProvider + Rotatable + FixedMovable {}
+
+    // impl<K: CameraProvider + Rotatable + FixedMovable> KinematicCamera for K {}
 
     // todo: move to kinematics
-    pub trait Rotatable {
-        fn rotate(&mut self, x_angle: f32, y_angle: f32);
-    }
 
     pub trait FixedMovable {
         fn is_in_bounds(&self) -> bool {
@@ -386,7 +350,7 @@ pub mod camera {
 
     pub struct DynMotion<T>
     where
-        T: Moveable
+        T: Kinetic
     {
         moveable: T,
         effects: std::rc::Rc<dyn Fn(&mut KineticState)>
