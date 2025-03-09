@@ -12,7 +12,7 @@ use glsl::MatchingInputs as _;
 
 #[path = "common/common.rs"]
 mod common;
-use common::camera::{Camera, CameraProvider as _, FixedMovable, FreeRoamingCamera, Rotatable};
+use common::camera::{Camera, FixedMovable, FreeRoamingCamera, Rotatable};
 use common::Ctx;
 
 type Inputs = glsl::Inputs! {
@@ -153,7 +153,7 @@ impl common::Sample for Sample {
         self.program.draw_arrays(&self.vao);
     }
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {
         let glsl::vars![matrix, scale] = Uniforms::default();
         match code {
             winit::keyboard::KeyCode::KeyW => self
@@ -181,7 +181,7 @@ impl common::Sample for Sample {
         }
     }
 
-    fn process_mouse(&mut self, (dx, dy): (f64, f64)) {
+    fn on_mouse_movement(&mut self, (dx, dy): (f64, f64)) {
         let glsl::vars![matrix, _scale] = Uniforms::default();
 
         self.camera

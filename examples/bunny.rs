@@ -14,7 +14,7 @@ use glsl::MatchingInputs as _;
 
 #[path = "common/common.rs"]
 mod common;
-use common::camera::{Camera, CameraProvider as _, FixedMovable, FreeRoamingCamera, Rotatable};
+use common::camera::{Camera, FreeRoamingCamera, Rotatable};
 use common::{Ctx, KeyBoard};
 
 type Inputs = glsl::Inputs! {
@@ -187,12 +187,11 @@ impl common::Sample for Sample {
         self.program.draw_elements(&self.vao);
     }
 
-    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: winitElementState) {
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: ElementState) {
         self.keyboard
             .as_mut(code)
             .expect("code is supported")
             .set(state == ElementState::Pressed);
-
     }
 
     fn on_mouse_movement(&mut self, (dx, dy): (f64, f64)) {
@@ -206,27 +205,12 @@ impl common::Sample for Sample {
 
     fn update(&mut self) {
         let glsl::vars![matrix, light] = Uniforms::default();
-        glm::Vec3::default()
-            .add
 
-        match code {
-            winit::keyboard::KeyCode::KeyW => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Front),
-            winit::keyboard::KeyCode::KeyS => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Back),
-            winit::keyboard::KeyCode::KeyA => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Left),
-            winit::keyboard::KeyCode::KeyD => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Right),
-            _ => (),
-        };
+        // TODO: update motion model based on current inputs
+
         self.program
             .uniform(&matrix, &self.camera.view_projection_matrix());
-        if code == winit::keyboard::KeyCode::Space {
+        if self.keyboard.space.is_on() {
             self.global_light_dir =
                 (glm::rotate(&glm::Mat4::identity(), 0.1, &glm::Vec3::y_axis())
                     * glm::vec3_to_vec4(&self.global_light_dir))

@@ -1,23 +1,25 @@
 use std::io::Write;
 
-#[path = "common/common.rs"] mod common;
+#[path = "common/common.rs"]
+mod common;
 
 use common::config::shader_path;
 // Sample application imports
 use common::Ctx;
-use gpu_bulwark::gl::buffer::{self, Static};
 use gpu_bulwark as gb;
+use gpu_bulwark::gl::buffer::{self, Static};
 
+use winit::event::ElementState;
 // Windowing library imports
-use winit::window;
 use glutin::{context, surface};
+use winit::window;
 
 // gpu-bulwark imports
 use gb::{gl, glsl};
-use gl::vertex_array::Attribute;
+use gl::buffer::{Draw, Dynamic};
 use gl::shader;
-use gl::buffer::{Dynamic, Draw};
-use gl::{Program, Buffer, VertexArray};
+use gl::vertex_array::Attribute;
+use gl::{Buffer, Program, VertexArray};
 
 type VsInputs = glsl::Glsl! {
     layout(location = 0) in vec3;
@@ -52,25 +54,28 @@ impl Sample {
 }
 
 impl common::Sample for Sample {
-    fn initialize(window: window::Window, surface: surface::Surface<surface::WindowSurface>, context: context::PossiblyCurrentContext) -> anyhow::Result<Ctx<Self>> {
+    fn initialize(
+        window: window::Window,
+        surface: surface::Surface<surface::WindowSurface>,
+        context: context::PossiblyCurrentContext,
+    ) -> anyhow::Result<Ctx<Self>> {
         // Read shader source code.
         let vs_source = std::fs::read_to_string(shader_path("vertices.vert"))?;
         let fs_source = std::fs::read_to_string(shader_path("vertices.frag"))?;
 
         // GLSL varaible bindings.
-        let vs_inputs  = VsInputs::default();
+        let vs_inputs = VsInputs::default();
         let vs_outputs = VsOutputs::default();
-        let fs_inputs  = FsInputs::default();
+        let fs_inputs = FsInputs::default();
         let fs_outputs = FsOutputs::default();
 
         // Unpacking type level lists of variables.
-        let glsl::vars![ fs_output ] = fs_outputs;
-        let glsl::vars![ vin_color, vin_position ] = &vs_inputs;
-
+        let glsl::vars![fs_output] = fs_outputs;
+        let glsl::vars![vin_color, vin_position] = &vs_inputs;
 
         let mut uncompiled_vs = shader::create::<shader::target::Vertex>();
         let mut uncompiled_fs = shader::create::<shader::target::Fragment>();
-    
+
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
 
@@ -93,7 +98,7 @@ impl common::Sample for Sample {
             .vertex_main(&vs)
             .fragment_main(&fs)
             .build()?;
-        
+
         let mut index = Buffer::<buffer::target::ElementArray, u8>::create();
         index.data::<(Static, Draw)>(&[0, 1, 2]);
 
@@ -101,19 +106,19 @@ impl common::Sample for Sample {
         colors.data::<(Dynamic, Draw)>(&[[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0f32]]);
 
         let mut positions = Buffer::create();
-        positions.data::<(Dynamic, Draw)>(&[[-0.5, -0.5, -1.0], [0.5, -0.5, -1.0], [0.0, 0.5, -1.0f32]]);
-    
+        positions.data::<(Dynamic, Draw)>(&[
+            [-0.5, -0.5, -1.0],
+            [0.5, -0.5, -1.0],
+            [0.0, 0.5, -1.0f32],
+        ]);
+
         // Vertex attribute array configuration.
         let vao = VertexArray::create()
             .vertex_attrib_pointer(&vin_color, colors)
             .vertex_attrib_pointer(&vin_position, positions)
-            .element_buffer(index)
-            ;
-        
-        let inner = Self {
-            program,
-            vao,
-        };
+            .element_buffer(index);
+
+        let inner = Self { program, vao };
 
         Ok(Ctx {
             window,
@@ -122,7 +127,7 @@ impl common::Sample for Sample {
             inner,
         })
     }
-    
+
     fn render(&mut self) {
         gl::call! {
             #[panic]
@@ -134,9 +139,8 @@ impl common::Sample for Sample {
 
         self.program.draw_elements(&self.vao);
     }
-    
-    fn process_key(&mut self, code: winit::keyboard::KeyCode) {
 
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: ElementState) {
         let glsl::vars![color, _pos] = VsInputs::default();
         let mut data = self.vao.buffer_mut(&color).mmap_mut();
         let mut attenuate = |offset| {
@@ -147,7 +151,15 @@ impl common::Sample for Sample {
                 }
             }
 
-            print!("\rchaning {} channel", match offset { 0 => "R", 1 => "G", 2 => "B", _ => panic!("invalid offset {offset}") });
+            print!(
+                "\rchaning {} channel",
+                match offset {
+                    0 => "R",
+                    1 => "G",
+                    2 => "B",
+                    _ => panic!("invalid offset {offset}"),
+                }
+            );
             std::io::stdout().flush().unwrap();
         };
 
@@ -158,13 +170,13 @@ impl common::Sample for Sample {
             _ => (),
         }
     }
-    
-    fn process_mouse(&mut self, _: (f64, f64)) { }
-    
+
+    fn on_mouse_movement(&mut self, delta: (f64, f64)) {}
+
     fn usage(&self) -> String {
         String::from("use A, S, D keys to change values of color vertex attribute components")
     }
-    
+
     fn name() -> String {
         String::from("hello-vertices")
     }

@@ -59,91 +59,70 @@ pub mod foundation {
     pub trait BasicRotate {
         fn basic_rotate(&mut self) -> &mut BasicRotateState;
     }
+
+    pub const fn new(position: glm::Vec3) -> Self {
+        Self {
+            velocity: glm::Vec3::default(),
+            position,
+        }
+    }
 }
 
 pub use foundation::*;
 
 pub mod motion {
-    use std::time::Instant;
-    use nalgebra_glm::Vec3;
-    use super::*;
-    use std::ops::{Mul, Add, Div, Sub};
+    use super::Kinetic;
+    use nalgebra_glm as glm;
+    use std::time::Duration;
 
     // Trait for different motion models
-    trait KineticModel {
-        fn apply(&self, dt: f32);
+    pub trait Model {
+        fn update(&self, dt: Duration);
     }
 
     // 1. Exponential Decay (First-Order Inertia)
-    struct ExponentialDecay<K: Kinetic> {
+    pub struct ExponentialDecay<K: Kinetic> {
         decay_rate: f32,
-        kinetic: K
+        kinetic: K,
     }
 
-    impl<K: Kinetic> KineticModel for ExponentialDecay<K> {
-        fn apply(&self, dt: f32) {
-            let KineticState { mut velocity, mut position } = self.kinetic.kinetic_state();
-
-            velocity *= (-self.decay_rate * dt).exp();
-            position += velocity * dt;
+    impl<K: Kinetic> Model for ExponentialDecay<K> {
+        fn update(&self, dt: Duration) {
+            let velocity = *self.kinetic.velocity()
+                * (-self.decay_rate * dt.as_micros() as f32 / 1_000_000.0).exp();
+            *obj.velocity() = velocity;
+            *obj.position() += velocity * dt;
         }
     }
 
     // 2. Critically Damped Spring (Smooth Target Following)
-    struct CriticallyDampedSpring<K: Kinetic> {
-        target: Vec3,
+    pub struct CriticallyDampedSpring {
+        target: glm::Vec3,
         stiffness: f32,
         damping: f32,
-        kinetic: K,
     }
 
-    impl<K: Kinetic> KineticModel for CriticallyDampedSpring<K> {
-        fn apply(&self, dt: f32) {
-            let KineticState { mut velocity, mut position } = self.kinetic.kinetic_state();
-
-            let diff = self.target - position;
-            let force = diff * velocity * -self.damping * self.stiffness;
-            velocity += force * dt;
-            position += velocity * dt;
+    impl<T: Kinetic> Model<T> for CriticallyDampedSpring {
+        fn update(&self, obj: &mut T, dt: f32) {
+            let diff = self.target - *obj.position();
+            let force = diff * self.stiffness - *obj.velocity() * self.damping;
+            obj.kinetic_state().apply_acceleration(force, dt);
         }
     }
 
     // 3. Velocity-Based Damping (Friction Model)
-    struct VelocityDamping {
+    pub struct VelocityDamping {
         friction: f32,
     }
 
-    impl KineticModel for VelocityDamping {
-        fn apply(&self, obj: &mut dyn Movable, dt: f32) {
-            let friction_force = obj.velocity().scale(-self.friction);
-            let new_velocity = obj.velocity().add(&friction_force.scale(dt));
-            obj.set_velocity(new_velocity);
-            obj.set_position(obj.position().add(&new_velocity.scale(dt)));
+    impl<T: Kinetic> Model<T> for VelocityDamping {
+        fn update(&self, obj: &mut T, dt: f32) {
+            let friction_force = *obj.velocity() * -self.friction;
+            obj.kinetic_state().apply_acceleration(friction_force, dt);
         }
     }
 
     // Main loop with fixed timestep
     type Time = f32;
     const FIXED_DT: Time = 1.0 / 120.0; // 120Hz physics rate
-
-    fn main() {
-        let mut obj = Object::new();
-        let motion_model = ExponentialDecay { decay_rate: 5.0 };
-        let mut last_time = Instant::now();
-        let mut accumulated_time: Time = 0.0;
-
-        loop {
-            let now = Instant::now();
-            let frame_time = now.duration_since(last_time).as_secs_f32();
-            last_time = now;
-            accumulated_time += frame_time;
-
-            while accumulated_time >= FIXED_DT {
-                motion_model.apply(&mut obj, FIXED_DT);
-                accumulated_time -= FIXED_DT;
-            }
-
-            println!("Object Position: {:?}", obj.position());
-        }
-    }
 }

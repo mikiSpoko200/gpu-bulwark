@@ -67,10 +67,6 @@ impl common::Sample for Sample {
         self.program.run_program(3, &self.vao);
     }
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {}
-
-    fn process_mouse(&mut self, delta: (f64, f64)) {}
-
     fn usage(&self) -> String {
         String::from("this basic sample is non-interactive")
     }
@@ -78,6 +74,10 @@ impl common::Sample for Sample {
     fn name() -> String {
         String::from("hello-triangle")
     }
+
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState) {}
+
+    fn on_mouse_movement(&mut self, delta: (f64, f64)) {}
 }
 
 fn main() {

@@ -206,7 +206,22 @@ impl common::Sample for Sample {
         self.program.draw_arrays_ext(&self.vao, &texture_bindings);
     }
 
-    fn process_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {
+    fn config() -> common::config::Config {
+        common::config::Config {
+            width: 512,
+            height: 512,
+        }
+    }
+
+    fn usage(&self) -> String {
+        String::from("use A, S, D keys to change displayed texture")
+    }
+
+    fn name() -> String {
+        String::from("hello-textures")
+    }
+    
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: winit::event::ElementState) {
         let texture = &mut self.texture;
 
         let mut update_image = |load: fn(&mut image::RgbImage), message: &str| {
@@ -227,22 +242,9 @@ impl common::Sample for Sample {
             _ => (),
         }
     }
-
-    fn process_mouse(&mut self, _: (f64, f64)) {}
-
-    fn config() -> common::config::Config {
-        common::config::Config {
-            width: 512,
-            height: 512,
-        }
-    }
-
-    fn usage(&self) -> String {
-        String::from("use A, S, D keys to change displayed texture")
-    }
-
-    fn name() -> String {
-        String::from("hello-textures")
+    
+    fn on_mouse_movement(&mut self, delta: (f64, f64)) {
+        todo!()
     }
 }
 

@@ -46,6 +46,17 @@ impl Toggle {
         }
     }
 
+    pub const fn clear(&mut self) {
+        *self = Self::Off;
+    }
+
+    /// Clear toggle to [Off] state, return true if it was [On].
+    pub const fn impulse(&mut self) -> bool {
+        let was_on = self.is_on();
+        self.clear();
+        was_on
+    }
+
     pub const fn is_on(&self) -> bool {
         matches! { self, Self::On }
     }
@@ -71,6 +82,7 @@ pub struct KeyBoard {
     pub key_d: Toggle,
     pub key_q: Toggle,
     pub key_e: Toggle,
+    pub space: Toggle,
 }
 
 impl KeyBoard {
@@ -140,9 +152,9 @@ pub mod config {
 
 pub mod camera {
     use super::config::{HEIGHT, WIDTH};
-    use super::physics::{KineticState, Kinetic};
-    use super::{gb, physics};
     use super::glm::{self, Mat4, Vec3};
+    use super::physics::{Kinetic, KineticState};
+    use super::{gb, physics};
 
     #[derive(Debug, Copy, Clone)]
     pub struct Directions {
@@ -202,7 +214,7 @@ pub mod camera {
     #[derive(Debug, Clone)]
     pub struct View {
         looking_direction: Vec3,
-        up: Vec3
+        up: Vec3,
     }
 
     impl Default for View {
@@ -210,14 +222,17 @@ pub mod camera {
             let looking_direction = Directions::BACK;
             Self {
                 looking_direction,
-                up: Directions::UP
+                up: Directions::UP,
             }
         }
     }
 
     impl View {
         pub const fn new(looking_direction: Vec3, up: Vec3) -> Self {
-            Self { looking_direction, up }
+            Self {
+                looking_direction,
+                up,
+            }
         }
 
         pub fn matrix(&self) -> glm::Mat4 {
@@ -225,24 +240,74 @@ pub mod camera {
         }
     }
 
+    #[derive(Clone, Copy, Debug, PartialEq)]
     pub enum Projection {
-        Orthographic { near: f32, far: f32, width: f32, height: f32 },
-        Perspective { near: f32, far: f32, aspect_ratio: f32, fovy: f32 }
+        Orthographic {
+            width: f32,
+            height: f32,
+            near: f32,
+            far: f32,
+        },
+        Perspective {
+            near: f32,
+            far: f32,
+            aspect_ratio: f32,
+            fovy: f32,
+        },
     }
 
     impl Projection {
-        pub const fn orthographic(near: f32, far: f32, width: f32, height: f32 ) -> Self {
-            Self::Orthographic { near, far, width, height }
+        pub fn matrix(self) -> glm::Mat4 {
+            match self {
+                Projection::Orthographic {
+                    width,
+                    height,
+                    near,
+                    far,
+                } => glm::ortho(0.0, width, 0.0, height, near, far),
+                Projection::Perspective {
+                    near,
+                    far,
+                    aspect_ratio,
+                    fovy,
+                } => glm::perspective(aspect_ratio, fovy, near, far),
+            }
+        }
+    }
+
+    impl Projection {
+        pub const fn orthographic(near: f32, far: f32, width: f32, height: f32) -> Self {
+            Self::Orthographic {
+                near,
+                far,
+                width,
+                height,
+            }
         }
 
         pub const fn perspective(near: f32, far: f32, aspect_ratio: f32, fovy: f32) -> Self {
-            Self::Perspective { near, far, aspect_ratio, fovy }
-         }
+            Self::Perspective {
+                near,
+                far,
+                aspect_ratio,
+                fovy,
+            }
+        }
 
         pub fn matrix(&self) -> glm::Mat4 {
             match self {
-                &Projection::Orthographic { near, far, width, height } => glm::ortho(0.0, width, 0.0, height, near, far),
-                &Projection::Perspective { near, far, aspect_ratio, fovy } => glm::perspective(aspect_ratio, fovy, near, far),
+                &Projection::Orthographic {
+                    near,
+                    far,
+                    width,
+                    height,
+                } => glm::ortho(0.0, width, 0.0, height, near, far),
+                &Projection::Perspective {
+                    near,
+                    far,
+                    aspect_ratio,
+                    fovy,
+                } => glm::perspective(aspect_ratio, fovy, near, far),
             }
         }
     }
@@ -304,36 +369,10 @@ pub mod camera {
         }
     }
 
-    // impl Default for Camera {
-    //     fn default() -> Self {
-    //         let perspective = Projection::default();
-    //         let view = View::default();
-    //         Self::new(perspective, view)
-    //     }
-    // }
-    // pub trait ViewMatrixProvider {
-    //     fn view_matrix(&self) -> glm::Mat4;
-    // }
-
-    // pub trait PerspectiveMatrixProvider {
-    //     fn perspective_matrix(&self) -> glm::Mat4;
-    // }
-
-    // pub trait CameraProvider: PerspectiveMatrixProvider + ViewMatrixProvider {
-    //     fn view_projection_matrix(&self) -> glm::Mat4;
-    // }
-
-    // impl<C: PerspectiveMatrixProvider + ViewMatrixProvider> CameraProvider for C {
-    //     fn view_projection_matrix(&self) -> glm::Mat4 {
-    //         self.perspective_matrix() * self.view_matrix()
-    //     }
-    // }
-
-    // pub trait KinematicCamera: CameraProvider + Rotatable + FixedMovable {}
-
-    // impl<K: CameraProvider + Rotatable + FixedMovable> KinematicCamera for K {}
-
-    // todo: move to kinematics
+    // todo: move to
+    pub trait Rotatable {
+        fn rotate(&mut self, x_angle: f32, y_angle: f32);
+    }
 
     pub trait FixedMovable {
         fn is_in_bounds(&self) -> bool {
@@ -350,10 +389,10 @@ pub mod camera {
 
     pub struct DynMotion<T>
     where
-        T: Kinetic
+        T: Kinetic,
     {
         moveable: T,
-        effects: std::rc::Rc<dyn Fn(&mut KineticState)>
+        effects: std::rc::Rc<dyn Fn(&mut KineticState)>,
     }
 
     impl FreeRoamingCamera {
@@ -372,27 +411,9 @@ pub mod camera {
         }
     }
 
-    impl FixedMovable for FreeRoamingCamera {
-        fn is_in_bounds(&self) -> bool {
-            true
-        }
-    }
-
     impl Rotatable for FreeRoamingCamera {
         fn rotate(&mut self, x_angle: f32, y_angle: f32) {
             self.camera.rotate(x_angle, y_angle);
-        }
-    }
-
-    impl ViewMatrixProvider for FreeRoamingCamera {
-        fn view_matrix(&self) -> glm::Mat4 {
-            self.camera.view_matrix()
-        }
-    }
-
-    impl PerspectiveMatrixProvider for FreeRoamingCamera {
-        fn perspective_matrix(&self) -> glm::Mat4 {
-            self.camera.perspective_matrix()
         }
     }
 }
@@ -598,7 +619,7 @@ impl<T: Sample> App<T> {
         self.ctx
             .as_mut()
             .map(AsMut::as_mut)
-            .map(|sample| sample.on_key(key));
+            .map(|sample| sample.on_key(key, state));
     }
 
     fn process_mouse_input(&mut self, delta: (f64, f64)) {
@@ -643,14 +664,13 @@ impl<T: Sample> ApplicationHandler for App<T> {
                 event:
                     KeyEvent {
                         physical_key: PhysicalKey::Code(key),
-                        state: ElementState::Pressed,
-                        repeat,
+                        state,
+                        repeat: false,
                         ..
                     },
                 ..
             } => {
-                println!("{repeat}");
-                self.process_key(key);
+                self.process_key(key, state);
             }
             WindowEvent::CloseRequested => {
                 std::process::exit(0);
