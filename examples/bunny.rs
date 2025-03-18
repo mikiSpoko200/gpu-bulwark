@@ -14,8 +14,10 @@ use glsl::MatchingInputs as _;
 
 #[path = "common/common.rs"]
 mod common;
-use common::camera::{Camera, FreeRoamingCamera, Rotatable};
+use common::camera::{Camera, Directions, Projection, View};
 use common::{Ctx, KeyBoard};
+#[path = "common/physics.rs"]
+mod physics;
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
@@ -44,7 +46,7 @@ pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes, u16>,
     global_light_dir: glm::Vec3,
-    camera: FreeRoamingCamera,
+    camera: Camera,
     keyboard: KeyBoard,
 }
 
@@ -108,7 +110,12 @@ impl common::Sample for Sample {
         uncompiled_vs.source(&[&vs_source]);
         uncompiled_fs.source(&[&fs_source]);
 
-        let camera = FreeRoamingCamera::from(Camera::default());
+        let camera = {
+            let view = View::new(Directions::BACK, Directions::UP);
+            let projection = Projection::perspective(0.01, 100.0, 16.0 / 9.0, 60.0);
+
+            Camera::stationary(view, projection, glm::Vec3::zeros())
+        };
 
         let vs = uncompiled_vs
             .uniform(&view_matrix_location)
@@ -203,10 +210,12 @@ impl common::Sample for Sample {
             .uniform(&matrix, &self.camera.view_projection_matrix());
     }
 
-    fn update(&mut self) {
+    fn update(&mut self, dt: f32) {
         let glsl::vars![matrix, light] = Uniforms::default();
 
         // TODO: update motion model based on current inputs
+
+        physics::steer(&self.keyboard, &mut self.camera, dt);
 
         self.program
             .uniform(&matrix, &self.camera.view_projection_matrix());
@@ -232,7 +241,7 @@ impl common::InteractiveSample for Sample {
     const FREQUENCY: usize = 120;
     type DCtx = common::KeyBoard;
 
-    fn update(&mut self, dctx: &KeyBoard, _: std::time::Duration) {}
+    fn update(&mut self, _: &KeyBoard, _: std::time::Duration) {}
 }
 
 fn main() -> anyhow::Result<()> {

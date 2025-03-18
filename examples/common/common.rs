@@ -74,6 +74,7 @@ impl Toggle {
     }
 }
 
+#[repr(C)]
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Default)]
 pub struct KeyBoard {
     pub key_w: Toggle,
@@ -83,6 +84,24 @@ pub struct KeyBoard {
     pub key_q: Toggle,
     pub key_e: Toggle,
     pub space: Toggle,
+}
+
+impl KeyBoard {
+    const N_TOGGLES: usize = std::mem::size_of::<KeyBoard>() / std::mem::size_of::<Toggle>();
+}
+
+impl AsRef<[Toggle; KeyBoard::N_TOGGLES]> for KeyBoard {
+    fn as_ref(&self) -> &[Toggle; KeyBoard::N_TOGGLES] {
+        // SAFETY: repr(C) 
+        unsafe { std::mem::transmute(self) }
+    }
+}
+
+impl AsMut<[Toggle; KeyBoard::N_TOGGLES]> for KeyBoard {
+    fn as_mut(&mut self) -> &mut [Toggle; KeyBoard::N_TOGGLES] {
+        // SAFETY: repr(C) 
+        unsafe { std::mem::transmute(self) }
+    }
 }
 
 impl KeyBoard {
@@ -167,12 +186,12 @@ pub mod camera {
     }
 
     impl Directions {
-        const FRONT: glm::Vec3 = glm::Vec3::new(0f32, 0f32, -1f32);
-        const BACK: glm::Vec3 = glm::Vec3::new(0f32, 0f32, 1f32);
-        const UP: glm::Vec3 = glm::Vec3::new(0f32, 1f32, 0f32);
-        const DOWN: glm::Vec3 = glm::Vec3::new(0f32, -1f32, 0f32);
-        const RIGHT: glm::Vec3 = glm::Vec3::new(1f32, 0f32, 0f32);
-        const LEFT: glm::Vec3 = glm::Vec3::new(-1f32, 0f32, 0f32);
+        pub const FRONT: glm::Vec3 = glm::Vec3::new(0f32, 0f32, -1f32);
+        pub const BACK: glm::Vec3 = glm::Vec3::new(0f32, 0f32, 1f32);
+        pub const UP: glm::Vec3 = glm::Vec3::new(0f32, 1f32, 0f32);
+        pub const DOWN: glm::Vec3 = glm::Vec3::new(0f32, -1f32, 0f32);
+        pub const RIGHT: glm::Vec3 = glm::Vec3::new(1f32, 0f32, 0f32);
+        pub const LEFT: glm::Vec3 = glm::Vec3::new(-1f32, 0f32, 0f32);
     }
 
     pub enum Direction {
@@ -257,25 +276,6 @@ pub mod camera {
     }
 
     impl Projection {
-        pub fn matrix(self) -> glm::Mat4 {
-            match self {
-                Projection::Orthographic {
-                    width,
-                    height,
-                    near,
-                    far,
-                } => glm::ortho(0.0, width, 0.0, height, near, far),
-                Projection::Perspective {
-                    near,
-                    far,
-                    aspect_ratio,
-                    fovy,
-                } => glm::perspective(aspect_ratio, fovy, near, far),
-            }
-        }
-    }
-
-    impl Projection {
         pub const fn orthographic(near: f32, far: f32, width: f32, height: f32) -> Self {
             Self::Orthographic {
                 near,
@@ -313,9 +313,9 @@ pub mod camera {
     }
 
     pub struct Camera {
-        kinetic: KineticState,
         view: View,
         projection: Projection,
+        kinetic: KineticState,
     }
 
     impl Camera {
@@ -325,11 +325,15 @@ pub mod camera {
 
         const SENSITIVITY: f32 = 0.5;
 
-        pub fn new(kinetic: KineticState, view: View, projection: Projection) -> Self {
+        pub fn stationary(view: View, projection: Projection, at: glm::Vec3) -> Self {
+            Self::moving(view, projection, KineticState::stationary(at))
+        }
+
+        pub fn moving(view: View, projection: Projection, kinetic: KineticState) -> Self {
             Self {
-                kinetic,
                 view,
                 projection,
+                kinetic,
             }
         }
 
@@ -369,22 +373,8 @@ pub mod camera {
         }
     }
 
-    // todo: move to
     pub trait Rotatable {
         fn rotate(&mut self, x_angle: f32, y_angle: f32);
-    }
-
-    pub trait FixedMovable {
-        fn is_in_bounds(&self) -> bool {
-            true
-        }
-
-        fn fixed_move(&mut self, direction: &Direction);
-    }
-
-    #[derive(Default)]
-    pub struct FreeRoamingCamera {
-        pub camera: Camera,
     }
 
     pub struct DynMotion<T>
@@ -393,28 +383,6 @@ pub mod camera {
     {
         moveable: T,
         effects: std::rc::Rc<dyn Fn(&mut KineticState)>,
-    }
-
-    impl FreeRoamingCamera {
-        pub fn get_position(&self) -> Vec3 {
-            self.camera.view.position
-        }
-
-        pub fn set_position(&mut self, new: Vec3) {
-            self.camera.view.position = new;
-        }
-    }
-
-    impl From<Camera> for FreeRoamingCamera {
-        fn from(camera: Camera) -> Self {
-            Self { camera }
-        }
-    }
-
-    impl Rotatable for FreeRoamingCamera {
-        fn rotate(&mut self, x_angle: f32, y_angle: f32) {
-            self.camera.rotate(x_angle, y_angle);
-        }
     }
 }
 
@@ -450,7 +418,7 @@ pub trait Sample: Sized {
 
     fn on_mouse_movement(&mut self, delta: (f64, f64));
 
-    fn update(&mut self) {}
+    fn update(&mut self, dt: f32) {}
 
     fn name() -> String;
 

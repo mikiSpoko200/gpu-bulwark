@@ -140,7 +140,7 @@ impl common::Sample for Sample {
         self.program.draw_elements(&self.vao);
     }
 
-    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: ElementState) {
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, _: ElementState) {
         let glsl::vars![color, _pos] = VsInputs::default();
         let mut data = self.vao.buffer_mut(&color).mmap_mut();
         let mut attenuate = |offset| {
@@ -171,7 +171,7 @@ impl common::Sample for Sample {
         }
     }
 
-    fn on_mouse_movement(&mut self, delta: (f64, f64)) {}
+    fn on_mouse_movement(&mut self, _: (f64, f64)) {}
 
     fn usage(&self) -> String {
         String::from("use A, S, D keys to change values of color vertex attribute components")

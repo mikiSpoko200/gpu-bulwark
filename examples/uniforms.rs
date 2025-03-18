@@ -2,7 +2,9 @@ use common::config::shader_path;
 use gb::{gl, glsl};
 use glutin::{context, surface};
 use gpu_bulwark as gb;
+use winit::event::ElementState;
 use winit::window;
+use nalgebra_glm as glm;
 
 use gl::buffer::{Draw, Static};
 use gl::shader;
@@ -12,8 +14,8 @@ use glsl::MatchingInputs as _;
 
 #[path = "common/common.rs"]
 mod common;
-use common::camera::{Camera, FixedMovable, FreeRoamingCamera, Rotatable};
-use common::Ctx;
+use common::camera::{Camera, Directions, Projection, View};
+use common::{Ctx, KeyBoard};
 
 type Inputs = glsl::Inputs! {
     layout(location = 0) vec3;
@@ -42,7 +44,8 @@ pub struct Sample {
     program: Program<Inputs, FsOutputs, Uniforms, ()>,
     vao: VertexArray<Attributes>,
     scale: f32,
-    camera: FreeRoamingCamera,
+    camera: Camera,
+    keyboard: KeyBoard,
 }
 
 impl common::Sample for Sample {
@@ -51,6 +54,7 @@ impl common::Sample for Sample {
         surface: surface::Surface<surface::WindowSurface>,
         context: context::PossiblyCurrentContext,
     ) -> anyhow::Result<Ctx<Self>> {
+        
         // ========================[ gpu-bulwark ]========================
 
         let vs_source = std::fs::read_to_string(shader_path("uniforms.vert"))?;
@@ -75,7 +79,12 @@ impl common::Sample for Sample {
         uncompiled_fs.source(&[&fs_source]);
         common.source(&[&common_source]);
 
-        let camera = FreeRoamingCamera::from(Camera::default());
+        let camera = {
+            let view = View::new(Directions::BACK, Directions::UP);
+            let projection = Projection::perspective(0.01, 100.0, 16.0 / 9.0, 60.0);
+
+            Camera::stationary(view, projection, glm::Vec3::zeros())
+        };
 
         let vs = uncompiled_vs
             .uniform(&view_matrix_location)
@@ -131,6 +140,7 @@ impl common::Sample for Sample {
             vao,
             scale,
             camera,
+            keyboard: KeyBoard::default(),
         };
 
         inner.render();
@@ -153,23 +163,29 @@ impl common::Sample for Sample {
         self.program.draw_arrays(&self.vao);
     }
 
-    fn on_key(&mut self, code: winit::keyboard::KeyCode, _: winit::event::ElementState) {
-        let glsl::vars![matrix, scale] = Uniforms::default();
+    fn on_key(&mut self, code: winit::keyboard::KeyCode, state: ElementState) {
         match code {
             winit::keyboard::KeyCode::KeyW => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Front),
+                .keyboard
+                .key_w
+                .set(state.is_pressed()),
             winit::keyboard::KeyCode::KeyS => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Back),
+                .keyboard
+                .key_s
+                .set(state.is_pressed()),
             winit::keyboard::KeyCode::KeyA => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Left),
+                .keyboard
+                .key_a
+                .set(state.is_pressed()),
             winit::keyboard::KeyCode::KeyD => self
-                .camera
-                .fixed_move(&crate::common::camera::Direction::Right),
+                .keyboard
+                .key_d
+                .set(state.is_pressed()),
             _ => (),
         };
+
+        let glsl::vars![matrix, scale] = Uniforms::default();
+
         self.program
             .uniform(&matrix, &self.camera.view_projection_matrix());
         if code == winit::keyboard::KeyCode::Space {
